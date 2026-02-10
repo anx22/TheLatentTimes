@@ -2,12 +2,16 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { AspectRatio, SearchResult } from "../types";
 
+// The API Key is polyfilled in vite.config.ts from VITE_GEMINI_API_KEY
+// This adheres to the strict SDK requirement of using process.env.API_KEY
+const API_KEY = process.env.API_KEY;
+
 // --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s) ---
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
     // Re-init client to ensure freshness and use latest key from process.env.API_KEY
-    const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const client = new GoogleGenAI({ apiKey: API_KEY });
     let delay = 2000; // Start with 2s delay
     
     for (let i = 0; i < 5; i++) { // 5 Retries
@@ -32,9 +36,10 @@ export const safeGenerateContent = async (
 export const generateImage = async (prompt: string, aspectRatio: AspectRatio): Promise<string> => {
   if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
      // Ensure we use the selected key if available. 
-     // The key is automatically injected into process.env.API_KEY
+     // The key is automatically injected into process.env.API_KEY by the environment,
+     // but in this app structure, we rely on the polyfill or the window selection.
   }
-  const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const currentAi = new GoogleGenAI({ apiKey: API_KEY });
 
   const response = await currentAi.models.generateContent({
     model: 'gemini-3-pro-image-preview',
@@ -59,7 +64,7 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
 
 // Image Editing using Gemini 2.5 Flash Image
 export const editImage = async (base64Image: string, prompt: string): Promise<string> => {
-  const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const currentAi = new GoogleGenAI({ apiKey: API_KEY });
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
   const response = await currentAi.models.generateContent({
