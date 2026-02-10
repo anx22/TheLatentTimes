@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Referrer Policy: strict-origin-when-cross-origin is the modern default -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>MODUS | The September Issue</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#ffffff',
+              foreground: '#000000',
+              accent: '#d00000',
+              muted: '#f2f2f2',
+              'muted-foreground': '#666666',
+            },
+            fontFamily: {
+              display: ['"Didot"', '"Playfair Display"', 'serif'],
+              sans: ['"Helvetica Neue"', '"Inter"', 'sans-serif'],
+            },
+            spacing: {
+              gutter: '32px',
+              margin: '80px',
+            },
+            fontSize: {
+              '2xs': '10px', // Only for purely decorative elements
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #ffffff;
+        color: #000000;
+        -webkit-font-smoothing: antialiased;
+        font-size: 16px; /* Increased base size */
+      }
+      /* Custom utility for the drop cap */
+      .drop-cap {
+        float: left;
+        font-family: "Didot", "Playfair Display", serif;
+        font-size: 96px; /* Increased from 80px */
+        line-height: 0.75;
+        margin-right: 20px;
+        margin-top: 10px;
+        font-weight: 700;
+        color: #000000;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
