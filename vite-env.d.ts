@@ -1,3 +1,4 @@
+
 export {};
 
 declare global {
@@ -10,12 +11,8 @@ declare global {
     }
   }
 
-  interface AIStudio {
-    hasSelectedApiKey(): Promise<boolean>;
-    openSelectKey(): Promise<void>;
-  }
-
   interface Window {
-    aistudio?: AIStudio;
+    // aistudio definition removed as it conflicts with the global definition provided by the environment/SDK
+    // Use the global AIStudio type if available, or any.
   }
 }

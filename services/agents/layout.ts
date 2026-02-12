@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, DebateArtifact, IssueMeta } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 
 // PHASE 6: LAYOUT AGENT
 export const agentLayout = async (
@@ -42,11 +42,13 @@ export const agentLayout = async (
       });
   }
 
-  // 3. Ticker Tape Generation
-  let tickerItems: string[] = [];
-  try {
-      // Only regen ticker if we have new signals or it's missing
-      if (signals.length > 0) {
+  // 3. Ticker Tape Generation (OPTIMIZED)
+  // Only generate if we have signals AND the existing meta doesn't have a ticker yet.
+  // This prevents hitting the LLM on every partial UI update.
+  let tickerItems: string[] = existingMeta?.ticker || [];
+  
+  if (tickerItems.length === 0 && signals.length > 0) {
+      try {
           const tickerPrompt = `Generate 5 punchy, high-fashion ticker tape news items for a magazine issue about "${theme}".
           Signals involved: ${signals.map(s => s.topic).join(', ')}.
           Format: "BREAKING: [Headline]", "MARKET: [Stat]", "TREND: [Observation]".
@@ -63,10 +65,12 @@ export const agentLayout = async (
                   }
               }
           });
-          tickerItems = JSON.parse(resp.text || "[]");
+          tickerItems = cleanAndParseJSON(resp.text);
+      } catch (e) {
+          tickerItems = signals.map(s => `SIGNAL: ${s.topic.toUpperCase()} (${s.scores.heat}/5)`);
       }
-  } catch (e) {
-      tickerItems = signals.map(s => `SIGNAL: ${s.topic.toUpperCase()} (${s.scores.heat}/5)`);
+  } else if (tickerItems.length === 0) {
+      tickerItems = ["SYSTEM ONLINE", "AWAITING INPUT"];
   }
 
   // 4. Resolve Meta
@@ -94,8 +98,11 @@ export const agentLayout = async (
 
   // 5. Final Assembly
   const issue: IssueContent = {
-    meta: meta,
-    ticker: tickerItems.length > 0 ? tickerItems : ["SYSTEM ONLINE", "AWAITING INPUT"],
+    meta: {
+        ...meta,
+        ticker: tickerItems
+    },
+    ticker: tickerItems,
     cover: {
       eyebrow: "The Issue",
       title: coverStory?.headline || "Untitled Issue",

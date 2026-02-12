@@ -24,7 +24,7 @@ export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, h
     }
 
     const response = await safeGenerateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Columnist
         contents: `Write a Column based on this outline: ${JSON.stringify(outline)}.
         Headline: ${headline}.
         Topic: ${dossier.topic}.

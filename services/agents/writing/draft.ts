@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, Verdict, StoryOutline, StoryArtifact } from "../../../types";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { RunConfig } from "../../../hooks/useNewsroom";
 import { getBannedList, STYLE_INSTRUCTION } from "./constants";
 
@@ -30,7 +30,7 @@ export const agentOutline = async (dossier: SignalDossier, verdict: Verdict): Pr
       }
     }
   });
-  return JSON.parse(response.text || "{}");
+  return cleanAndParseJSON(response.text);
 };
 
 // 4.3 Draft Writer
@@ -41,7 +41,7 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
   const temperature = overrides?.modelTemperature || 0.7;
 
   const response = await safeGenerateContent({
-    model: "gemini-3-pro-preview",
+    model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Drafting (Writer)
     contents: `Write the story based on this outline: ${JSON.stringify(outline)}.
     Headline: ${headline}.
     Signal: ${dossier.topic}.
@@ -78,7 +78,7 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
     }
   });
   
-  const raw = JSON.parse(response.text || "{}");
+  const raw = cleanAndParseJSON(response.text);
   return { 
     id: dossier.id, 
     signal_id: dossier.id, 

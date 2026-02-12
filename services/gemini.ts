@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { AspectRatio, SearchResult } from "../types";
 
@@ -7,24 +8,48 @@ import { AspectRatio, SearchResult } from "../types";
 // Re-export Type for use in agents
 export { Type };
 
+// --- HELPER: ROBUST JSON PARSER ---
+// Flash models often wrap output in markdown code blocks. This strips them.
+export const cleanAndParseJSON = (text: string | undefined): any => {
+    if (!text) return {};
+    try {
+        // Remove markdown code blocks (```json ... ```)
+        const clean = text.replace(/```json\n?|```/g, '').trim();
+        return JSON.parse(clean);
+    } catch (e) {
+        console.warn("JSON Parse Failed. Raw text:", text);
+        // Fallback: Try to find first { and last }
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1) {
+            try {
+                return JSON.parse(text.substring(start, end + 1));
+            } catch (e2) {
+                return {};
+            }
+        }
+        return {};
+    }
+};
+
 // --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s) ---
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
     // Re-init client to ensure freshness and use latest key from process.env.API_KEY
     const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let delay = 2000; // Start with 2s delay
+    let delay = 500; // OPTIMIZATION: Start with 500ms (was 2000ms). Flash is fast; errors are usually transient bursts.
     
-    for (let i = 0; i < 5; i++) { // 5 Retries
+    for (let i = 0; i < 4; i++) { // 4 Retries
         try {
             return await client.models.generateContent(params);
         } catch (e: any) {
             // Check for 429 or Quota errors
             if (e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
-                 if (i === 4) throw e; // Give up after 5 tries
+                 if (i === 3) throw e; // Give up
                  console.warn(`[Gemini] Hit Rate Limit. Retrying in ${delay}ms...`);
                  await new Promise(r => setTimeout(r, delay));
-                 delay *= 2; // Exponential backoff: 2s -> 4s -> 8s -> 16s
+                 delay *= 2; // Exponential backoff: 0.5s -> 1s -> 2s -> 4s
                  continue;
             }
             throw e;

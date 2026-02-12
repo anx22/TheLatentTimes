@@ -14,7 +14,7 @@ import {
   agentFeedReader
 } from "./engine-agents";
 import type { RunConfig } from "../hooks/useNewsroom";
-import { generateImage, safeGenerateContent, Type } from "./gemini";
+import { generateImage, safeGenerateContent, Type, cleanAndParseJSON } from "./gemini";
 
 // Plan v3 Section 12.1: WHITELIST
 const TRUSTED_DOMAINS = [
@@ -83,7 +83,7 @@ export class IssueOrchestrator {
         }
       });
       
-      const raw = JSON.parse(response.text || "{ \"items\": [] }");
+      const raw = cleanAndParseJSON(response.text);
       const items: RetrievalItem[] = (raw.items || []).map((i: any) => ({
           title: i.title || "Untitled", url: i.url || "", source_domain: i.source_domain || "unknown", snippet: i.snippet || "No details."
       })).sort((a: any, b: any) => {
@@ -193,15 +193,21 @@ export class IssueOrchestrator {
         });
 
         // 3. UPDATE STREAM
+        // OPTIMIZATION: Passing context.meta ensures we don't regen tickers
         let currentIssue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
         onUpdate(currentIssue);
 
         // 4. PRODUCTION
         if (['COVER', 'FEATURE', 'COLUMN'].includes(verdict.placement)) {
             this.callbacks.onAgentStart('WRITER', 'Forging Headlines & Outlines');
-            const headlines = await agentHeadlineForge(dossier, verdict);
+            
+            // OPTIMIZATION: Parallel Forge/Outline
+            const [headlines, outline] = await Promise.all([
+                agentHeadlineForge(dossier, verdict),
+                agentOutline(dossier, verdict)
+            ]);
+
             const { selected, log: headlineLog } = await agentHeadlineSelector(headlines, verdict);
-            const outline = await agentOutline(dossier, verdict);
             
             this.callbacks.onAgentUpdate('WRITER', 'Drafting manuscript...', 30);
             
@@ -217,51 +223,50 @@ export class IssueOrchestrator {
             story.headline_log = headlineLog;
             story.headline_candidates = headlines;
 
-            // Rewrite Chain
-            this.callbacks.onAgentUpdate('WRITER', 'Rewrite Pass (Tone Injection)...', 60);
-            const toneInstruction = `${verdict.tone_directives}. Target Audience: ${overrides.audienceLevel || 'Expert'}.`;
-            const rewriteResult = await agentRewrite(story.body, toneInstruction, config);
-            
-            story.rewrite_chain = {
-                id: `rw_${Date.now()}`,
-                draft: { version: 1, text: [...story.body] },
-                rewrite: { version: 2, text: rewriteResult.body, critique: rewriteResult.critique, diff_summary: rewriteResult.diff_summary }
-            };
-            story.body = rewriteResult.body;
-            
-            // Fact Check
-            if (config.qualityPass) {
-                this.callbacks.onAgentStart('CRITIC', 'Fact Checking vs Snapshot');
-                const report = await agentFactCheck(story, dossier);
-                story.fact_check_report = report;
-                this.callbacks.onAgentFinish('CRITIC');
-            }
-
-            this.callbacks.onAgentFinish('WRITER');
-
-            // Visuals
-            if (config.generateImages) {
-                this.callbacks.onAgentStart('ARTIST', 'Dreaming up visuals...');
-                const imageBrief = await agentImageBrief(story);
-                story.img_brief = imageBrief;
-                story.img_prompt = imageBrief.technical_prompt;
-                story.layout = await agentLayoutDirectives(story);
-                try {
-                    story.img_base64 = await generateImage(story.img_prompt, '16:9');
-                } catch (e) { 
-                    this.log('ARTIST', 'Image Gen Failed', {e});
-                    this.callbacks.onAgentFail('ARTIST', 'Image Gen Limit/Error'); 
+            // --- OPTIMIZATION: PARALLEL TRACKS (TEXT vs VISUAL) ---
+            // Track A: Text Polish (Rewrite -> Fact Check)
+            const textTrack = async () => {
+                this.callbacks.onAgentUpdate('WRITER', 'Rewrite Pass (Tone Injection)...', 60);
+                const toneInstruction = `${verdict.tone_directives}. Target Audience: ${overrides.audienceLevel || 'Expert'}.`;
+                const rewriteResult = await agentRewrite(story.body, toneInstruction, config);
+                
+                story.rewrite_chain = {
+                    id: `rw_${Date.now()}`,
+                    draft: { version: 1, text: [...story.body] },
+                    rewrite: { version: 2, text: rewriteResult.body, critique: rewriteResult.critique, diff_summary: rewriteResult.diff_summary }
+                };
+                story.body = rewriteResult.body;
+                
+                if (config.qualityPass) {
+                    this.callbacks.onAgentStart('CRITIC', 'Fact Checking vs Snapshot');
+                    const report = await agentFactCheck(story, dossier);
+                    story.fact_check_report = report;
+                    this.callbacks.onAgentFinish('CRITIC');
                 }
-                this.callbacks.onAgentFinish('ARTIST');
-            } else {
-                // Just get the brief
-                this.callbacks.onAgentStart('ARTIST', 'Drafting visual brief...');
-                const imageBrief = await agentImageBrief(story);
-                story.img_brief = imageBrief;
-                story.img_prompt = imageBrief.technical_prompt;
-                story.layout = await agentLayoutDirectives(story);
-                this.callbacks.onAgentFinish('ARTIST');
-            }
+                this.callbacks.onAgentFinish('WRITER');
+            };
+
+            // Track B: Visuals (Brief -> Layout -> Gen)
+            const visualTrack = async () => {
+                 this.callbacks.onAgentStart('ARTIST', 'Dreaming up visuals...');
+                 const imageBrief = await agentImageBrief(story);
+                 story.img_brief = imageBrief;
+                 story.img_prompt = imageBrief.technical_prompt;
+                 story.layout = await agentLayoutDirectives(story);
+                 
+                 if (config.generateImages) {
+                    try {
+                        story.img_base64 = await generateImage(story.img_prompt, '16:9');
+                    } catch (e) { 
+                        this.log('ARTIST', 'Image Gen Failed', {e});
+                        this.callbacks.onAgentFail('ARTIST', 'Image Gen Limit/Error'); 
+                    }
+                 }
+                 this.callbacks.onAgentFinish('ARTIST');
+            };
+
+            // Run both tracks
+            await Promise.all([textTrack(), visualTrack()]);
             
             context.stories.push(story);
 

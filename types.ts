@@ -65,6 +65,7 @@ export interface IssueMeta {
     avg_confidence: number;
     error_rate: number;
   };
+  ticker?: string[];
 }
 
 // --- PHASE 0.5: SCANNING (NEW) ---

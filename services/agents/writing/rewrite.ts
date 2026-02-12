@@ -11,7 +11,7 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
     const temperature = overrides?.modelTemperature || 0.7;
 
     const response = await safeGenerateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Rewrite
         contents: `Act as SENIOR EDITOR. Rewrite this draft to strictly match the requested tone.
         
         TONE DIRECTIVE: ${toneDirective}
