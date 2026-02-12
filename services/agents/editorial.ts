@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, Pitch, Verdict } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 import { RunConfig } from "../../hooks/useNewsroom";
 
 // PHASE 2: PITCHING (CRITIC, RUNWAY, ATELIER)
@@ -56,8 +56,8 @@ export const agentPitching = async (dossier: SignalDossier, theme: string): Prom
     }
   });
   
-  const rawPitches = JSON.parse(response.text || "[]");
-  return rawPitches.map((p: any, i: number) => ({ ...p, id: `pitch_${dossier.id}_${i}` }));
+  const rawPitches = cleanAndParseJSON(response.text);
+  return (rawPitches || []).map((p: any, i: number) => ({ ...p, id: `pitch_${dossier.id}_${i}` }));
 };
 
 // PHASE 3: DEBATE ROOM (VERDICT)
@@ -105,6 +105,6 @@ export const agentVerdict = async (dossier: SignalDossier, pitches: Pitch[], con
     }
   });
   
-  const raw = JSON.parse(response.text || "{}");
+  const raw = cleanAndParseJSON(response.text);
   return { ...raw, signal_id: dossier.id };
 };

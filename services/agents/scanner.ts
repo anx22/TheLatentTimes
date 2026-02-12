@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { Lead, RetrievalSnapshot } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 import { SYSTEM_SEEDS } from "../curation-seed";
 
 // PHASE 0.5: SCANNER AGENT (Efficient, Low-Cost)
@@ -72,9 +72,9 @@ export const agentScanner = async (target: string, snapshot: RetrievalSnapshot):
     }
   });
 
-  const raw = JSON.parse(response.text || "[]");
+  const raw = cleanAndParseJSON(response.text);
   
-  return raw.map((item: any, i: number) => ({
+  return (raw || []).map((item: any, i: number) => ({
     ...item,
     id: `lead_${Date.now()}_${i}`,
     target_topic: target,

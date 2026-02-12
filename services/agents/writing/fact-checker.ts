@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, StoryArtifact, DropArtifact, FactCheckReport } from "../../../types";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 
 export const agentFactCheck = async (story: StoryArtifact | DropArtifact, dossier: SignalDossier): Promise<FactCheckReport> => {
   // Use the Retrieval Snapshot as Ground Truth if available, fallback to dossier claims
@@ -38,5 +38,5 @@ export const agentFactCheck = async (story: StoryArtifact | DropArtifact, dossie
     }
   });
   
-  return JSON.parse(response.text || "{}");
+  return cleanAndParseJSON(response.text);
 };

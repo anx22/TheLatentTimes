@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, Verdict, StoryOutline, StoryArtifact, ColumnistPersona } from "../../../types";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { STYLE_INSTRUCTION } from "./constants";
 
 export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, headline: string, outline: StoryOutline, persona: ColumnistPersona): Promise<StoryArtifact> => {
@@ -50,7 +50,7 @@ export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, h
         }
     });
 
-    const raw = JSON.parse(response.text || "{}");
+    const raw = cleanAndParseJSON(response.text);
     return {
         id: dossier.id,
         signal_id: dossier.id,

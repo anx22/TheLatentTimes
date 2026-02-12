@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { RunConfig } from "../../../hooks/useNewsroom";
 import { getBannedList } from "./constants";
 
@@ -51,7 +51,7 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
         }
     });
     
-    const raw = JSON.parse(response.text || "{}");
+    const raw = cleanAndParseJSON(response.text);
     return {
         body: raw.rewritten_body || draftBody,
         critique: raw.critique || "No structural changes required.",

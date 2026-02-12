@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, RecipeArtifact } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 
 // PHASE 5.1: ENGINEER GENERATOR
 export const agentEngineer = async (dossier: SignalDossier): Promise<RecipeArtifact> => {
@@ -44,7 +44,7 @@ export const agentEngineer = async (dossier: SignalDossier): Promise<RecipeArtif
     }
   });
   
-  const raw = JSON.parse(response.text || "{}");
+  const raw = cleanAndParseJSON(response.text);
   
   // Transform kv list to object for the frontend
   const params: Record<string, string> = {};
@@ -91,7 +91,7 @@ export const agentRecipeValidator = async (recipe: RecipeArtifact): Promise<{ va
     }
   });
 
-  const raw = JSON.parse(response.text || "{}");
+  const raw = cleanAndParseJSON(response.text);
 
   let adjusted_params: Record<string, string> | undefined = undefined;
   if (raw.adjusted_params_kv && Array.isArray(raw.adjusted_params_kv)) {
@@ -118,5 +118,5 @@ export const agentVariationsGenerator = async (recipe: RecipeArtifact): Promise<
     }
   });
   
-  return JSON.parse(response.text || "[]");
+  return cleanAndParseJSON(response.text) || [];
 };

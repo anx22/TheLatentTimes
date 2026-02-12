@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { RetrievalItem } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 
 const DEFAULT_WHITELIST = [
     'wired.com', 
@@ -45,10 +45,10 @@ export const agentFeedReader = async (customDomains?: string[]): Promise<Retriev
             }
         });
 
-        const raw = JSON.parse(response.text || "[]");
+        const raw = cleanAndParseJSON(response.text);
         
         // Sanitize
-        return raw.map((item: any) => ({
+        return (raw || []).map((item: any) => ({
             title: item.title || "Untitled Feed Item",
             url: item.url || "",
             source_domain: item.source_domain || "unknown",

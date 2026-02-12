@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, RetrievalSnapshot } from "../../types";
-import { safeGenerateContent } from "../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 
 // 1.1 QUERY ORCHESTRATOR
 export const agentQueryOrchestrator = async (topic: string): Promise<string[]> => {
@@ -19,7 +19,7 @@ export const agentQueryOrchestrator = async (topic: string): Promise<string[]> =
       responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
     }
   });
-  return JSON.parse(response.text || "[]");
+  return cleanAndParseJSON(response.text);
 };
 
 // 1.2 DOSSIER COMPILER (The new Scout)
@@ -33,7 +33,8 @@ export const agentDossierCompiler = async (topic: string, snapshot: RetrievalSna
   ).join("\n\n");
 
   const response = await safeGenerateContent({
-    model: "gemini-3-pro-preview",
+    // OPTIMIZATION: Switched to Flash for speed. The schema is strict enough to constrain it.
+    model: "gemini-3-flash-preview", 
     contents: `Act as THE SCOUT (Forensic Analyst). Compile a Signal Dossier for "${topic}" based on these verified signals.
     
     INPUT SIGNALS:
@@ -86,7 +87,8 @@ export const agentDossierCompiler = async (topic: string, snapshot: RetrievalSna
       }
     }
   });
-  const raw = JSON.parse(response.text || "{}");
+  
+  const raw = cleanAndParseJSON(response.text);
   
   // Post-process to ensure IDs
   const claims = (raw.claims || []).map((c: any, i: number) => ({
@@ -121,5 +123,5 @@ export const agentArchivist = async (dossier: SignalDossier): Promise<{ approved
       }
     }
   });
-  return JSON.parse(response.text || "{}");
+  return cleanAndParseJSON(response.text);
 };

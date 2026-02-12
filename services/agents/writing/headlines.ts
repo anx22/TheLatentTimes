@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, Verdict, HeadlineSet, HeadlineDecisionLog } from "../../../types";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 
 // 4.1 Headline Forge
 export const agentHeadlineForge = async (dossier: SignalDossier, verdict: Verdict): Promise<HeadlineSet> => {
@@ -56,7 +56,7 @@ export const agentHeadlineForge = async (dossier: SignalDossier, verdict: Verdic
       }
     }
   });
-  return JSON.parse(response.text || "{}");
+  return cleanAndParseJSON(response.text);
 };
 
 // 4.1.5 Headline Selector
@@ -93,7 +93,7 @@ export const agentHeadlineSelector = async (headlines: HeadlineSet, verdict: Ver
     }
   });
   
-  const raw = JSON.parse(response.text || "{}");
+  const raw = cleanAndParseJSON(response.text);
   const selected = raw.selected_text || options[0];
   
   return {

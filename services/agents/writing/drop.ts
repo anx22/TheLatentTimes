@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { SignalDossier, Verdict, DropArtifact } from "../../../types";
-import { safeGenerateContent } from "../../gemini";
+import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { STYLE_INSTRUCTION } from "./constants";
 
 export const agentDropWriter = async (dossier: SignalDossier, verdict: Verdict): Promise<DropArtifact> => {
@@ -33,7 +33,7 @@ export const agentDropWriter = async (dossier: SignalDossier, verdict: Verdict):
         }
     });
 
-    const raw = JSON.parse(response.text || "{}");
+    const raw = cleanAndParseJSON(response.text);
     return {
         id: `drop_${dossier.id}`,
         signal_id: dossier.id,
