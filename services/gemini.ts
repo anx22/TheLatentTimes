@@ -41,10 +41,19 @@ export const safeGenerateContent = async (
     let delay = 1000; // Start with 1s wait
     const maxRetries = 5;
     
+    const start = performance.now();
+    const modelName = params.model.split('-')[1] || params.model; // e.g. "flash"
+
     for (let i = 0; i < maxRetries; i++) {
         try {
-            return await client.models.generateContent(params);
+            const result = await client.models.generateContent(params);
+            const duration = Math.round(performance.now() - start);
+            // Log successful network calls for debugging latency
+            console.debug(`[NET] ${modelName} (${duration}ms)`);
+            return result;
         } catch (e: any) {
+            const duration = Math.round(performance.now() - start);
+            
             // Check for Rate Limits (429, Resource Exhausted)
             const isRateLimit = e.status === 429 || 
                                 e.code === 429 || 
@@ -62,12 +71,12 @@ export const safeGenerateContent = async (
 
             if (isRateLimit || isTransient) {
                  if (i === maxRetries - 1) {
-                     console.error(`[Gemini] Max retries reached. Last error:`, e);
+                     console.error(`[Gemini] Max retries reached after ${duration}ms. Last error:`, e);
                      throw e; // Give up
                  }
                  
-                 const reason = isRateLimit ? 'Rate Limit' : 'Transient Error';
-                 console.warn(`[Gemini] ${reason} (${e.status || 'Network'}). Retrying in ${delay}ms...`);
+                 const reason = isRateLimit ? 'Rate Limit (429)' : 'Transient Error';
+                 console.warn(`[Gemini] ${reason}. Retrying in ${delay}ms... (Attempt ${i+1}/${maxRetries})`);
                  
                  await new Promise(r => setTimeout(r, delay));
                  delay *= 2; // Exponential backoff: 1s -> 2s -> 4s -> 8s -> 16s
@@ -88,26 +97,36 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
   }
   
   const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const start = performance.now();
 
-  const response = await currentAi.models.generateContent({
-    model: 'gemini-3-pro-image-preview',
-    contents: {
-      parts: [{ text: prompt }],
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: aspectRatio,
-        imageSize: "1K", 
+  try {
+      const response = await currentAi.models.generateContent({
+        model: 'gemini-3-pro-image-preview',
+        contents: {
+          parts: [{ text: prompt }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: "1K", 
+          }
+        },
+      });
+    
+      const duration = Math.round(performance.now() - start);
+      console.debug(`[NET] Image Gen (${duration}ms)`);
+
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
       }
-    },
-  });
-
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
+      throw new Error("No image generated");
+  } catch(e) {
+      const duration = Math.round(performance.now() - start);
+      console.error(`[NET] Image Gen FAILED (${duration}ms)`, e);
+      throw e;
   }
-  throw new Error("No image generated");
 };
 
 // Image Editing using Gemini 2.5 Flash Image

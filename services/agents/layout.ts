@@ -47,6 +47,7 @@ export const agentLayout = async (
   // This prevents hitting the LLM on every partial UI update.
   let tickerItems: string[] = existingMeta?.ticker || [];
   
+  // Only regen ticker if we really have no data and new signals arrived
   if (tickerItems.length === 0 && signals.length > 0) {
       try {
           const tickerPrompt = `Generate 5 punchy, high-fashion ticker tape news items for a magazine issue about "${theme}".

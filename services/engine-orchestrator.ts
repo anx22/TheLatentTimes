@@ -1,5 +1,4 @@
 
-
 import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, ColumnistPersona, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole } from "../types";
 import { 
   agentQueryOrchestrator, agentDossierCompiler, agentArchivist, 
@@ -32,6 +31,13 @@ type OrchestratorCallbacks = {
     onAgentFinish: (role: AgentRole) => void;
     onAgentFail: (role: AgentRole, error: string) => void; // New callback
 };
+
+// UTILITY: Performance Timer
+class Timer {
+    start = performance.now();
+    constructor() {}
+    stop() { return Math.round(performance.now() - this.start); }
+}
 
 // REFACTORED: Stateless Execution Engine
 export class IssueOrchestrator {
@@ -74,7 +80,9 @@ export class IssueOrchestrator {
     if (useDemo) return this.getMockSearchResults(query);
 
     try {
-      this.callbacks.onAgentStart('SCOUT', `Searching ground truth for "${query}"...`);
+      this.callbacks.onAgentStart('SCOUT', `Retrieving grounding data for "${query}"...`);
+      const t = new Timer();
+      
       const response = await safeGenerateContent({
         model: 'gemini-3-flash-preview',
         contents: `Search for: "${query}". Return JSON object with 'items' [{title, url, source_domain, snippet}].`,
@@ -110,6 +118,7 @@ export class IssueOrchestrator {
           return bTrust - aTrust;
       });
 
+      this.log('SCOUT', `Search complete (${t.stop()}ms). Found ${items.length} items.`);
       this.callbacks.onAgentFinish('SCOUT');
       return { id: `snap_${Date.now()}`, query, timestamp: new Date().toISOString(), items: items.slice(0, 8) };
 
@@ -133,10 +142,12 @@ export class IssueOrchestrator {
       useDemo: boolean, 
       history?: { headlines: Set<string> }
   ): Promise<Lead[]> {
-      this.callbacks.onAgentStart('SCOUT', 'Scanning wire targets...');
+      const cycleTimer = new Timer();
+      this.callbacks.onAgentStart('SCOUT', `Scanning ${targets.length} targets...`);
       
       try {
         const promises = targets.map(async (target) => {
+             const t = new Timer();
              if (target === 'FEEDS') {
                 this.callbacks.onAgentUpdate('SCOUT', 'Polling RSS Feed Whitelist...', 20);
                 if (useDemo) return await agentScanner("SYSTEM_SEED", { id: 'mock', query: 'mock', timestamp: '', items: [] });
@@ -149,10 +160,13 @@ export class IssueOrchestrator {
             // Normal Search
             this.callbacks.onAgentUpdate('SCOUT', `Sector scan: ${target}`, 50);
             const snapshot = await this.executeSearch(target, useDemo);
+            
+            let result: Lead[] = [];
             if (snapshot.items.length > 0) {
-              return await agentScanner(target, snapshot);
+              result = await agentScanner(target, snapshot);
             }
-            return [];
+            this.log('SCOUT', `Target "${target}" processed in ${t.stop()}ms. Found ${result.length} leads.`);
+            return result;
         });
 
         const results = await Promise.all(promises);
@@ -167,6 +181,7 @@ export class IssueOrchestrator {
             });
         }
 
+        this.log('SYS', `Scan Cycle Complete (${cycleTimer.stop()}ms). Total Leads: ${flatLeads.length}`);
         this.callbacks.onAgentFinish('SCOUT');
         return flatLeads;
 
@@ -195,6 +210,8 @@ export class IssueOrchestrator {
     }
   ): Promise<IssueContent | null> {
       try {
+        const commissionTimer = new Timer();
+
         // DEDUPLICATION GATE
         if (lead.duplicate) {
              this.log('SYS', `Commission Aborted: Duplicate Detected for "${lead.headline}"`);
@@ -217,19 +234,25 @@ export class IssueOrchestrator {
         // 1. RESEARCH
         const overrides = config.overrides || {};
         this.callbacks.onAgentStart('SCOUT', 'Deep Research & Dossier Compilation');
+        const researchTimer = new Timer();
         
         const searchQuery = overrides.focusQuery || lead.headline;
         const snapshot = await this.executeSearch(searchQuery, useDemo);
         const dossier = await agentDossierCompiler(lead.headline, snapshot);
         context.signals.push(dossier);
+        this.log('SCOUT', `Dossier compiled in ${researchTimer.stop()}ms`);
         this.callbacks.onAgentFinish('SCOUT');
 
         // 2. DEBATE
         this.callbacks.onAgentStart('CRITIC', 'Analyzing Voltage & Risk');
+        const debateTimer = new Timer();
+        
         const pitches = await agentPitching(dossier, theme);
         
         this.callbacks.onAgentStart('EDITOR', 'Deliberating Verdict');
         const verdict = await agentVerdict(dossier, pitches, config);
+        
+        this.log('EDITOR', `Verdict reached in ${debateTimer.stop()}ms: ${verdict.confidence_gate}`);
         this.callbacks.onAgentFinish('CRITIC');
         this.callbacks.onAgentFinish('EDITOR');
         
@@ -244,11 +267,13 @@ export class IssueOrchestrator {
 
         // 3. UPDATE STREAM
         // OPTIMIZATION: Passing context.meta ensures we don't regen tickers
+        // We do this fast so UI updates before the heavy writing starts
         let currentIssue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
         onUpdate(currentIssue);
 
         // 4. PRODUCTION
         if (['COVER', 'FEATURE', 'COLUMN'].includes(verdict.placement)) {
+            const productionTimer = new Timer();
             this.callbacks.onAgentStart('WRITER', 'Forging Headlines & Outlines');
             
             // OPTIMIZATION: Parallel Forge/Outline
@@ -276,6 +301,7 @@ export class IssueOrchestrator {
             // --- OPTIMIZATION: PARALLEL TRACKS (TEXT vs VISUAL) ---
             // Track A: Text Polish (Rewrite -> Fact Check)
             const textTrack = async () => {
+                const textTimer = new Timer();
                 this.callbacks.onAgentUpdate('WRITER', 'Rewrite Pass (Tone Injection)...', 60);
                 const toneInstruction = `${verdict.tone_directives}. Target Audience: ${overrides.audienceLevel || 'Expert'}.`;
                 const rewriteResult = await agentRewrite(story.body, toneInstruction, config);
@@ -293,11 +319,13 @@ export class IssueOrchestrator {
                     story.fact_check_report = report;
                     this.callbacks.onAgentFinish('CRITIC');
                 }
+                this.log('WRITER', `Text Track complete in ${textTimer.stop()}ms`);
                 this.callbacks.onAgentFinish('WRITER');
             };
 
             // Track B: Visuals (Brief -> Layout -> Gen)
             const visualTrack = async () => {
+                 const visTimer = new Timer();
                  this.callbacks.onAgentStart('ARTIST', 'Dreaming up visuals...');
                  const imageBrief = await agentImageBrief(story);
                  story.img_brief = imageBrief;
@@ -306,17 +334,20 @@ export class IssueOrchestrator {
                  
                  if (config.generateImages) {
                     try {
+                        this.log('ARTIST', 'Generating Image (High-Res)...');
                         story.img_base64 = await generateImage(story.img_prompt, '16:9');
                     } catch (e) { 
                         this.log('ARTIST', 'Image Gen Failed', {e});
                         this.callbacks.onAgentFail('ARTIST', 'Image Gen Limit/Error'); 
                     }
                  }
+                 this.log('ARTIST', `Visual Track complete in ${visTimer.stop()}ms`);
                  this.callbacks.onAgentFinish('ARTIST');
             };
 
             // Run both tracks
             await Promise.all([textTrack(), visualTrack()]);
+            this.log('SYS', `Production Phase complete in ${productionTimer.stop()}ms`);
             
             context.stories.push(story);
 
@@ -341,6 +372,7 @@ export class IssueOrchestrator {
         this.callbacks.onAgentFinish('EDITOR');
 
         onUpdate(issue);
+        this.log('SYS', `Total Commission Time: ${commissionTimer.stop()}ms`);
         return issue;
 
       } catch (e: any) {

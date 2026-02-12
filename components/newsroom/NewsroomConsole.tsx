@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { LogStream, ToggleGroup } from './ui-primitives';
+import { ToggleGroup } from './ui-primitives';
 import { AgentLog, Lead, StoryArtifact, IssueContent, AgentJob, AgentRole } from '../../types';
 import { AgentGrid } from './AgentGrid';
 
@@ -24,7 +24,7 @@ interface NewsroomConsoleProps {
 }
 
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
-  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
+  isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
   isAutopilotActive, onToggleAutopilot, agentJobs
 }) => {
   // Config State
@@ -42,7 +42,6 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
   
   // Local UI State
   const [isShipped, setIsShipped] = useState(false);
-  const [expandLogs, setExpandLogs] = useState(false);
 
   useEffect(() => {
       // Reset shipped state when a new story is loaded
@@ -84,8 +83,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
       if (isAutopilotActive) {
           return (
               <div className="w-full bg-accent/10 border border-accent/30 rounded-sm h-14 flex flex-col items-center justify-center gap-1 animate-pulse">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Remote Uplink Active</span>
-                  <span className="text-[9px] font-mono text-neutral-400">Monitoring Cloud Agent...</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Autopilot Active</span>
+                  <span className="text-[9px] font-mono text-neutral-400">System Autonomous...</span>
               </div>
           );
       }
@@ -297,7 +296,7 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                         className={`w-full py-3 font-bold uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 rounded-sm border ${isAutopilotActive ? 'bg-accent text-white border-accent' : 'border-neutral-800 text-neutral-500 hover:text-white hover:border-neutral-600'}`}
                     >
                         <span className={`w-1.5 h-1.5 rounded-full ${isAutopilotActive ? 'bg-white animate-pulse' : 'bg-neutral-600'}`}></span>
-                        {isAutopilotActive ? 'KILL SWITCH (STOP AGENT)' : 'START CLOUD AGENT'}
+                        {isAutopilotActive ? 'KILL SWITCH (STOP AGENT)' : 'ENGAGE AUTOPILOT'}
                     </button>
                 ) : (
                     <button 
@@ -315,21 +314,6 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                     </div>
                 )}
             </div>
-        </div>
-
-        {/* COLLAPSIBLE LOGS */}
-        <div className="border-t border-neutral-900 bg-[#050505]">
-            <button 
-                onClick={() => setExpandLogs(!expandLogs)}
-                className="w-full flex justify-between items-center px-4 py-2 text-[9px] uppercase tracking-widest font-bold text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors"
-            >
-                <span>System Logs {logs.length > 0 && `(${logs.length})`}</span>
-                <span>{expandLogs ? '▼' : '▲'}</span>
-            </button>
-            
-            {expandLogs && (
-                <LogStream logs={logs} />
-            )}
         </div>
     </div>
   );

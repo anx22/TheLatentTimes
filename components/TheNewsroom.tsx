@@ -198,11 +198,12 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
             activeStory={activeStory}
             isScanning={isScanning}
             isCommissioning={isCommissioning}
+            logs={logs}
           />
 
           <NewsroomConsole 
-             logs={logs}
-             isProcessing={isProcessing} // Retain for legacy (Autopilot blocks everything)
+             logs={logs} // Passed but unused in UI, kept for logic compat
+             isProcessing={isProcessing} 
              isCommissioning={isCommissioning}
              selectedLead={selectedLead}
              activeStory={activeStory}
