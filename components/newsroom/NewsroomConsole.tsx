@@ -26,13 +26,20 @@ interface NewsroomConsoleProps {
   onSwitchTemplate: (key: string) => void;
 }
 
+// DEFINING PRESET MACROS (The "Physics" of each style)
+const TONE_PRESETS: Record<string, ToneProfile> = {
+    'Modus': { drama: 3, precision: 3, metaphor_density: 3, adjective_budget: 50, sentence_mode: 'MIXED' },
+    'Gonzo': { drama: 5, precision: 1, metaphor_density: 5, adjective_budget: 90, sentence_mode: 'LONG' },
+    'Academic': { drama: 1, precision: 5, metaphor_density: 1, adjective_budget: 20, sentence_mode: 'TIGHT' },
+    'Minimalist': { drama: 2, precision: 4, metaphor_density: 2, adjective_budget: 10, sentence_mode: 'TIGHT' }
+};
+
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
   logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
   isAutopilotActive, onToggleAutopilot, agentJobs, currentTemplate, onSwitchTemplate
 }) => {
   const [depth, setDepth] = useState<'Standard' | 'Deep'>('Standard');
   const [timeWindow, setTimeWindow] = useState<'24h' | '7d' | '30d'>('7d');
-  const [voice, setVoice] = useState<'Modus' | 'Gonzo' | 'Academic' | 'Minimalist'>('Modus');
   const [risk, setRisk] = useState<'Low' | 'Mid' | 'High'>('Mid');
   const [focusQuery, setFocusQuery] = useState('');
   const [bannedWords, setBannedWords] = useState('');
@@ -42,14 +49,9 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
   const [selectedAgent, setSelectedAgent] = useState<AgentRole | null>(null);
   const [agentOverrides, setAgentOverrides] = useState<Record<string, string>>({});
 
-  // Tone Physics State
-  const [toneProfile, setToneProfile] = useState<ToneProfile>({
-      drama: 3,
-      precision: 3,
-      metaphor_density: 3,
-      adjective_budget: 50,
-      sentence_mode: 'MIXED'
-  });
+  // Tone Physics State (Default to Modus)
+  const [activePreset, setActivePreset] = useState<string>('Modus');
+  const [toneProfile, setToneProfile] = useState<ToneProfile>(TONE_PRESETS['Modus']);
 
   // Source Mix State
   const [sourceMix, setSourceMix] = useState<SourceMix>({
@@ -61,18 +63,29 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
 
   const handleCommissionClick = () => {
     onCommission({ 
-        depth, timeWindow, voice, risk, focusQuery, bannedWords, audience, temperature, sourceMix,
+        depth, timeWindow, risk, focusQuery, bannedWords, audience, temperature, sourceMix,
+        voicePreset: activePreset, // Pass for legacy compatibility, but logic relies on toneProfile
         toneProfile, 
         agentModifiers: agentOverrides
     });
   };
 
-  const toggleSource = (key: keyof SourceMix) => {
-      setSourceMix(prev => ({ ...prev, [key]: !prev[key] }));
+  // MACRO HANDLER: Snaps sliders to preset values
+  const handlePresetChange = (presetName: string) => {
+      setActivePreset(presetName);
+      if (TONE_PRESETS[presetName]) {
+          setToneProfile(TONE_PRESETS[presetName]);
+      }
   };
 
+  // SLIDER HANDLER: Updates specific value, potentially detaching from preset
   const updateTone = (key: keyof ToneProfile, value: number | string) => {
       setToneProfile(prev => ({ ...prev, [key]: value }));
+      setActivePreset('Custom'); // Detach from preset visual if modified
+  };
+
+  const toggleSource = (key: keyof SourceMix) => {
+      setSourceMix(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const isDisabled = isCommissioning || (isProcessing && !isCommissioning) || isAutopilotActive;
@@ -205,12 +218,43 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                           </div>
                         </div>
 
-                        {/* TONE PHYSICS (Expanded) */}
+                        {/* TONE PHYSICS EQ */}
                         <div className="bg-zinc-50 p-4 rounded border border-zinc-100">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-4">Tone Physics</span>
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Tone EQ</span>
+                                <div className="flex gap-1">
+                                    {Object.keys(TONE_PRESETS).map(preset => (
+                                        <button
+                                            key={preset}
+                                            onClick={() => handlePresetChange(preset)}
+                                            className={`px-2 py-0.5 text-[8px] font-bold uppercase rounded border transition-all ${
+                                                activePreset === preset 
+                                                ? 'bg-indigo-600 text-white border-indigo-600' 
+                                                : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300'
+                                            }`}
+                                        >
+                                            {preset}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
                             <ToneEQSlider label="Drama" value={toneProfile.drama} max={5} onChange={(v) => updateTone('drama', v)} />
                             <ToneEQSlider label="Precision" value={toneProfile.precision} max={5} onChange={(v) => updateTone('precision', v)} />
                             <ToneEQSlider label="Metaphor" value={toneProfile.metaphor_density} max={5} onChange={(v) => updateTone('metaphor_density', v)} />
+                            
+                            <div className="mt-4 flex justify-between">
+                                <span className="text-[9px] font-bold uppercase text-zinc-400">Adj. Budget</span>
+                                <span className="text-[9px] font-mono font-bold text-zinc-600">{toneProfile.adjective_budget}%</span>
+                            </div>
+                            <div className="w-full bg-zinc-200 h-1 rounded-full mt-1 relative cursor-pointer" onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = e.clientX - rect.left;
+                                const percent = Math.round((x / rect.width) * 100);
+                                updateTone('adjective_budget', Math.max(0, Math.min(100, percent)));
+                            }}>
+                                <div className="bg-zinc-500 h-1 rounded-full transition-all" style={{width: `${toneProfile.adjective_budget}%`}}></div>
+                            </div>
                         </div>
 
                         {/* ADVANCED TOGGLE */}
@@ -246,13 +290,6 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                         })}
                                     </div>
                                 </div>
-
-                                <ToggleGroup 
-                                  label="Base Preset" 
-                                  options={['Modus', 'Gonzo', 'Academic', 'Minimalist']} 
-                                  value={voice} 
-                                  onChange={setVoice} 
-                                />
                                 
                                 <div>
                                     <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Negative Prompt</label>

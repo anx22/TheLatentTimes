@@ -136,8 +136,8 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                                 inbox={[] as Lead[]} 
                                 working={working}
                                 basket={basket}
-                                onSelectLead={(lead) => onSelectLead(lead.id)}
-                                onSelectStory={(s) => onSelectStory(s.id)}
+                                onSelectLead={(lead: Lead) => onSelectLead(lead.id)}
+                                onSelectStory={(s: StoryArtifact) => onSelectStory(s.id)}
                                 activeItemId={activeStory?.id || undefined}
                                 onShipBatch={onShipBatch}
                             />

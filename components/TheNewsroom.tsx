@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { IssueContent, AgentLog, Lead, StoryArtifact, Proposal } from '../types';
+import { IssueContent, AgentLog, Lead, StoryArtifact, Proposal, DebateArtifact } from '../types';
 import { RunConfig, DbStatus } from '../hooks/useNewsroom'; 
 import { ContentMode } from './newsroom/ContentMode';
 import { LayoutMode } from './newsroom/LayoutMode';
@@ -47,13 +47,15 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [latestIssue, setLatestIssue] = useState<IssueContent | null>(null);
 
-  const inbox = leads; 
-  const working = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status !== 'PUBLISHED' && s.status !== 'APPROVED') : [];
-  const basket = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status === 'APPROVED') : [];
+  const inbox: Lead[] = leads; 
+  
+  // Explicitly type these arrays to ensure downstream components receive correct types
+  const working: StoryArtifact[] = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status !== 'PUBLISHED' && s.status !== 'APPROVED') : [];
+  const basket: StoryArtifact[] = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status === 'APPROVED') : [];
 
   const activeLead = inbox.find(l => l.id === activeItemId);
   const activeStory = latestIssue ? [...latestIssue.features, ...latestIssue.columns].find(s => s.id === activeItemId) : undefined;
-  const activeDebate = latestIssue?.debates.find(d => d.id === activeStory?.signal_id);
+  const activeDebate = latestIssue?.debates.find((d: DebateArtifact) => d.id === activeStory?.signal_id);
   
   const handleCommission = async (configData: any) => {
       if (!activeLead) return;
@@ -170,8 +172,8 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
               isProcessing={isProcessing}
               isScanning={isScanning}
               isCommissioning={isCommissioning}
-              onSelectLead={(id) => setActiveItemId(id)}
-              onSelectStory={(id) => setActiveItemId(id)}
+              onSelectLead={(id: string | null) => setActiveItemId(id)}
+              onSelectStory={(id: string | null) => setActiveItemId(id)}
               onShipBatch={handleShipBatch}
               targets={targets}
               setTargets={setTargets}
