@@ -91,6 +91,9 @@ export interface Lead {
   // Diversity Hints (Pre-Commission)
   detected_topic?: ContentTopic;
   detected_format?: ContentFormat;
+  
+  // Deduplication
+  duplicate?: boolean;
 }
 
 // --- PHASE 1: SIGNAL COLLECTION ---

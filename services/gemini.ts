@@ -32,30 +32,51 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
     }
 };
 
-// --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s) ---
+// --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s & Transient Errors) ---
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
     // Re-init client to ensure freshness and use latest key from process.env.API_KEY
     const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let delay = 500; // OPTIMIZATION: Start with 500ms (was 2000ms). Flash is fast; errors are usually transient bursts.
+    let delay = 1000; // Start with 1s wait
+    const maxRetries = 5;
     
-    for (let i = 0; i < 4; i++) { // 4 Retries
+    for (let i = 0; i < maxRetries; i++) {
         try {
             return await client.models.generateContent(params);
         } catch (e: any) {
-            // Check for 429 or Quota errors
-            if (e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
-                 if (i === 3) throw e; // Give up
-                 console.warn(`[Gemini] Hit Rate Limit. Retrying in ${delay}ms...`);
+            // Check for Rate Limits (429, Resource Exhausted)
+            const isRateLimit = e.status === 429 || 
+                                e.code === 429 || 
+                                e.message?.includes('429') || 
+                                e.message?.includes('quota') || 
+                                e.message?.includes('RESOURCE_EXHAUSTED');
+            
+            // Check for Transient Server/Network Errors (503, 500, fetch failures)
+            const isTransient = e.status === 503 || 
+                                e.status === 500 || 
+                                e.message?.includes('503') || 
+                                e.message?.includes('500') ||
+                                e.message?.includes('network') || 
+                                e.message?.includes('fetch failed');
+
+            if (isRateLimit || isTransient) {
+                 if (i === maxRetries - 1) {
+                     console.error(`[Gemini] Max retries reached. Last error:`, e);
+                     throw e; // Give up
+                 }
+                 
+                 const reason = isRateLimit ? 'Rate Limit' : 'Transient Error';
+                 console.warn(`[Gemini] ${reason} (${e.status || 'Network'}). Retrying in ${delay}ms...`);
+                 
                  await new Promise(r => setTimeout(r, delay));
-                 delay *= 2; // Exponential backoff: 0.5s -> 1s -> 2s -> 4s
+                 delay *= 2; // Exponential backoff: 1s -> 2s -> 4s -> 8s -> 16s
                  continue;
             }
-            throw e;
+            throw e; // Throw other errors (400, 403, etc.) immediately
         }
     }
-    throw new Error("Gemini API Unreachable");
+    throw new Error("Gemini API Unreachable after multiple retries");
 };
 
 // Image Generation using Gemini 3 Pro Image Preview

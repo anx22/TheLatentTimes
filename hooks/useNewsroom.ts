@@ -122,7 +122,18 @@ export const useNewsroom = () => {
   const scanWire = async (targets: string[], useDemo: boolean) => {
     setLeads([]);
     setIsScanning(true);
-    const newLeads = await orchestratorRef.current?.scan(targets, useDemo) || [];
+
+    // Build History Context for Deduplication
+    const history = {
+        headlines: new Set([
+            ...storiesRef.current.map(s => s.headline),
+            ...storiesRef.current.map(s => s.deck), // Also check decks just in case
+            ...dropsRef.current.map(d => d.headline)
+        ]),
+        urls: new Set<string>() // Add URL tracking if needed
+    };
+
+    const newLeads = await orchestratorRef.current?.scan(targets, useDemo, history) || [];
     setLeads(newLeads);
     setIsScanning(false);
   };

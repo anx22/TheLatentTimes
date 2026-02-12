@@ -52,6 +52,21 @@ export class IssueOrchestrator {
     });
   }
 
+  // --- HELPER: DEDUPLICATION ---
+  private normalizeString(str: string): string {
+      return str.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+  }
+
+  private isDuplicate(text: string, existing: Set<string>): boolean {
+      const normalized = this.normalizeString(text);
+      for (const item of existing) {
+          if (this.normalizeString(item) === normalized) return true;
+          // Simple fuzzy check: substring match if length is significant
+          if (normalized.length > 20 && this.normalizeString(item).includes(normalized)) return true;
+      }
+      return false;
+  }
+
   // --- HELPER: SEARCH (RETRIEVAL LAYER) ---
   private async executeSearch(query: string, useDemo: boolean): Promise<RetrievalSnapshot> {
     if (useDemo) return this.getMockSearchResults(query);
@@ -111,7 +126,11 @@ export class IssueOrchestrator {
   }
 
   // --- WORKFLOW 1: SCAN ---
-  public async scan(targets: string[], useDemo: boolean): Promise<Lead[]> {
+  public async scan(
+      targets: string[], 
+      useDemo: boolean, 
+      history?: { headlines: Set<string>, urls: Set<string> }
+  ): Promise<Lead[]> {
       this.callbacks.onAgentStart('SCOUT', 'Scanning wire targets...');
       
       try {
@@ -135,8 +154,19 @@ export class IssueOrchestrator {
         });
 
         const results = await Promise.all(promises);
+        const flatLeads = results.flat();
+
+        // DEDUPLICATION LOGIC
+        if (history) {
+            flatLeads.forEach(lead => {
+                if (this.isDuplicate(lead.headline, history.headlines)) {
+                    lead.duplicate = true;
+                }
+            });
+        }
+
         this.callbacks.onAgentFinish('SCOUT');
-        return results.flat();
+        return flatLeads;
 
       } catch(e: any) {
           this.log('SYS', 'Scan Error', { message: e.message });
@@ -163,6 +193,23 @@ export class IssueOrchestrator {
     }
   ): Promise<IssueContent | null> {
       try {
+        // DEDUPLICATION GATE
+        if (lead.duplicate) {
+             this.log('SYS', `Commission Aborted: Duplicate Detected for "${lead.headline}"`);
+             return null;
+        }
+        
+        const existingHeadlines = new Set([
+            ...context.stories.map(s => s.headline),
+            ...context.stories.map(s => s.deck),
+            ...context.drops.map(d => d.headline)
+        ]);
+        
+        if (this.isDuplicate(lead.headline, existingHeadlines)) {
+             this.log('SYS', `Commission Aborted: Story already exists similar to "${lead.headline}"`);
+             return null;
+        }
+
         this.log('SYS', `Commissioning: ${lead.headline}`);
         
         // 1. RESEARCH
@@ -315,10 +362,21 @@ export class IssueOrchestrator {
       let publishedCount = 0;
       
       // 1. SCAN
-      const leads = await this.scan(targets, useDemo);
+      // Build History for Dedupe
+      const history = {
+          headlines: new Set([
+              ...context.stories.map((s: any) => s.headline),
+              ...context.stories.map((s: any) => s.deck),
+              ...context.drops.map((d: any) => d.headline)
+          ]),
+          urls: new Set<string>()
+      };
+      
+      const leads = await this.scan(targets, useDemo, history);
       
       // 2. STRICT CANDIDATE SELECTION (POLICY GATE A)
       const candidates = leads.filter(l => {
+          if (l.duplicate) return false; // Filter duplicates immediately
           // Rule 1: High Relevance Score
           if (l.score < 8.0) return false;
           // Rule 2: Zero Risk Classification for auto-mode
@@ -330,7 +388,7 @@ export class IssueOrchestrator {
       }).sort((a,b) => b.score - a.score).slice(0, 2); // Cap at 2 to preserve quota/focus
       
       if (candidates.length === 0) {
-          this.log('SYS', 'AUTOPILOT: No candidates passed Policy Gate A (Score/Risk/Trust).');
+          this.log('SYS', 'AUTOPILOT: No candidates passed Policy Gate A (Score/Risk/Trust/Unique).');
           return { issue: await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta), publishedCount: 0 };
       }
       

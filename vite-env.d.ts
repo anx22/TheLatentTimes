@@ -10,12 +10,8 @@ declare global {
     }
   }
 
-  interface AIStudio {
-    hasSelectedApiKey(): Promise<boolean>;
-    openSelectKey(): Promise<void>;
-  }
-
   interface Window {
-    aistudio?: AIStudio;
+    // Using any to avoid conflicts with global AIStudio type definitions if present
+    aistudio?: any;
   }
 }

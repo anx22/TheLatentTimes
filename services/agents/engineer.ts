@@ -13,7 +13,7 @@ export const agentEngineer = async (dossier: SignalDossier): Promise<RecipeArtif
     
     Identify:
     - Ingredients (Models, APIs, Frameworks)
-    - Parameters (System Prompts, Temperatures, Constraints)
+    - Parameters (System Prompts, Temperatures, Constraints) -> Return as Key-Value pairs in 'param_list'.
     - Steps (The logic flow)
     - Failure Modes (Where it breaks)
     `,
@@ -25,7 +25,17 @@ export const agentEngineer = async (dossier: SignalDossier): Promise<RecipeArtif
           title: { type: Type.STRING },
           intent: { type: Type.STRING },
           ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
-          params: { type: Type.OBJECT, additionalProperties: true },
+          // FIXED: Use array of KV pairs instead of open object to prevent "properties should be non-empty" error
+          param_list: { 
+              type: Type.ARRAY, 
+              items: { 
+                  type: Type.OBJECT, 
+                  properties: {
+                      key: { type: Type.STRING },
+                      value: { type: Type.STRING }
+                  }
+              } 
+          },
           steps: { type: Type.ARRAY, items: { type: Type.STRING } },
           failure_modes: { type: Type.ARRAY, items: { type: Type.STRING } },
           warning: { type: Type.STRING }
@@ -35,7 +45,16 @@ export const agentEngineer = async (dossier: SignalDossier): Promise<RecipeArtif
   });
   
   const raw = JSON.parse(response.text || "{}");
-  return { ...raw, id: `recipe_${dossier.id}` };
+  
+  // Transform kv list to object for the frontend
+  const params: Record<string, string> = {};
+  if (raw.param_list && Array.isArray(raw.param_list)) {
+      raw.param_list.forEach((p: any) => {
+          if (p.key) params[p.key] = p.value || "";
+      });
+  }
+
+  return { ...raw, params, id: `recipe_${dossier.id}` };
 };
 
 // PHASE 5.2: RECIPE VALIDATOR
@@ -47,7 +66,7 @@ export const agentRecipeValidator = async (recipe: RecipeArtifact): Promise<{ va
     Check:
     1. Do the parameters match the tools?
     2. Is the logic circular or sound?
-    If invalid, provide fixed parameters.
+    If invalid, provide fixed parameters as a list of Key-Value pairs.
     `,
     config: {
       responseMimeType: "application/json",
@@ -56,13 +75,33 @@ export const agentRecipeValidator = async (recipe: RecipeArtifact): Promise<{ va
         properties: {
           valid: { type: Type.BOOLEAN },
           issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-          adjusted_params: { type: Type.OBJECT, additionalProperties: true }
+          // FIXED: Use array of KV pairs
+          adjusted_params_kv: { 
+             type: Type.ARRAY, 
+             items: { 
+                 type: Type.OBJECT, 
+                 properties: {
+                     key: { type: Type.STRING },
+                     value: { type: Type.STRING }
+                 }
+             }
+          }
         }
       }
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  const raw = JSON.parse(response.text || "{}");
+
+  let adjusted_params: Record<string, string> | undefined = undefined;
+  if (raw.adjusted_params_kv && Array.isArray(raw.adjusted_params_kv)) {
+      adjusted_params = {};
+      raw.adjusted_params_kv.forEach((p: any) => {
+           if (p.key) adjusted_params![p.key] = p.value || "";
+      });
+  }
+
+  return { valid: raw.valid, issues: raw.issues, adjusted_params };
 };
 
 // PHASE 5.3: VARIATIONS GENERATOR
