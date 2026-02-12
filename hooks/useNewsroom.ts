@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { IssueOrchestrator } from '../services/engine-orchestrator';
 import { IssueContent, AgentLog, Lead, StoryArtifact, DropArtifact, AgentJob, AgentRole, AgentStatus, SignalDossier, DebateArtifact, RecipeArtifact, IssueMeta } from '../types';
-import { saveLogs, loadLogs, saveIssue } from '../services/storage';
+import { saveLogs, loadLogs, saveIssue, getOpsState, setOpsState, subscribeToOps, OpsState } from '../services/storage';
 import { DEFAULT_CHANNELS } from '../services/curation-seed';
 import { AGENT_ROSTER } from '../services/agent-registry';
 
@@ -30,7 +30,7 @@ export const useNewsroom = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [isCommissioning, setIsCommissioning] = useState(false);
   
-  // CORE DATA STATE (Now managed here, not in class)
+  // CORE DATA STATE
   const [leads, setLeads] = useState<Lead[]>([]); 
   const signalsRef = useRef<SignalDossier[]>([]);
   const debatesRef = useRef<DebateArtifact[]>([]);
@@ -42,8 +42,13 @@ export const useNewsroom = () => {
   const [dbStatus, setDbStatus] = useState<DbStatus>('CONNECTING');
   const [dbError, setDbError] = useState<string | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
-  const [isAutopilotActive, setIsAutopilotActive] = useState(false);
   
+  // REMOTE AUTOPILOT STATE
+  const [remoteOpsState, setRemoteOpsState] = useState<OpsState | null>(null);
+  
+  // Derived state: Is the Cloud Agent running?
+  const isAutopilotActive = remoteOpsState?.status === 'RUNNING';
+
   // NEW: Agent Visualization State
   const [agentJobs, setAgentJobs] = useState<Record<AgentRole, AgentJob>>({
       SCOUT: { agentId: 'agent_scout', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
@@ -55,9 +60,8 @@ export const useNewsroom = () => {
   });
 
   const orchestratorRef = useRef<IssueOrchestrator | null>(null);
-  const autopilotTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Initial Load
+  // Initial Load & Subscription
   useEffect(() => {
     const init = async () => {
         const savedLogs = await loadLogs();
@@ -66,8 +70,26 @@ export const useNewsroom = () => {
         const storedChannels = localStorage.getItem('modus_active_channels');
         if (storedChannels) setChannels(JSON.parse(storedChannels));
         else setChannels(DEFAULT_CHANNELS);
+
+        // Fetch initial remote state
+        const ops = await getOpsState();
+        if (ops) setRemoteOpsState(ops);
     };
     init();
+
+    // SUBSCRIBE TO REMOTE OPS (Cloud Agent)
+    const sub = subscribeToOps((newState) => {
+        setRemoteOpsState(newState);
+        // If remote task updates, we can update a generic 'Cloud Agent' job visualizer here if we wanted
+        if (newState.current_task) {
+            updateAgent('EDITOR', 'WORKING', newState.current_task, 50);
+        }
+        if (newState.status === 'IDLE') {
+            updateAgent('EDITOR', 'IDLE', 'Cloud Agent Idle', 0);
+        }
+    });
+
+    return () => { sub.unsubscribe(); };
   }, []);
   
   useEffect(() => {
@@ -82,10 +104,6 @@ export const useNewsroom = () => {
         });
     }
   }, [logs]);
-
-  useEffect(() => {
-      return () => { if (autopilotTimer.current) clearInterval(autopilotTimer.current); };
-  }, []);
 
   // UPDATE AGENT JOB HELPER
   const updateAgent = (role: AgentRole, status: AgentStatus, task: string = '', progress: number = 0) => {
@@ -144,7 +162,6 @@ export const useNewsroom = () => {
   ) => {
     setIsCommissioning(true);
     
-    // Pass State Refs into Orchestrator so it can mutate them
     const context = {
         signals: signalsRef.current,
         debates: debatesRef.current,
@@ -156,7 +173,6 @@ export const useNewsroom = () => {
 
     const result = await orchestratorRef.current?.commission(lead, theme, useDemo, config, onUpdate, context);
     
-    // Sync Refs back to updated result if needed (Orchestrator mutates arrays in place, so simple update is fine)
     if (result) {
         metaRef.current = result.meta;
     }
@@ -169,6 +185,7 @@ export const useNewsroom = () => {
       targets: string[], theme: string, useDemo: boolean, 
       onUpdate: (partial: IssueContent) => void
   ) => {
+      // Legacy Manual Run (Client Side)
       setIsScanning(true);
       setIsCommissioning(true);
       
@@ -204,19 +221,19 @@ export const useNewsroom = () => {
       return null;
   };
 
-  const toggleAutopilot = (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => {
-      if (active) {
-          setIsAutopilotActive(true);
-          const runLoop = () => {
-              if (isCommissioning || isScanning) return;
-              runAutopilot(channels, theme, useDemo, onUpdate);
-          };
-          runLoop();
-          autopilotTimer.current = setInterval(runLoop, 300000); 
-      } else {
-          setIsAutopilotActive(false);
-          if (autopilotTimer.current) clearInterval(autopilotTimer.current);
-      }
+  // REMOTE CONTROL: Toggle Cloud Agent via DB
+  const toggleAutopilot = async (active: boolean, theme: string) => {
+      const status = active ? 'RUNNING' : 'IDLE';
+      
+      // We set the Config in the DB so the Edge Function knows what to do
+      await setOpsState(status, {
+          targets: channels,
+          theme: theme,
+          mode: 'REMOTE'
+      });
+
+      // Optimistic update
+      setRemoteOpsState(prev => prev ? { ...prev, status } : null);
   };
 
   const publishArtifact = async (artifact: StoryArtifact | DropArtifact) => {
@@ -224,7 +241,7 @@ export const useNewsroom = () => {
       if (metaRef.current) metaRef.current.status = 'PUBLISHED';
       await saveIssue({
           meta: metaRef.current!,
-          ticker: [], // simplified for save
+          ticker: [], 
           cover: { eyebrow: '', title: '', deck: '', coverlines: [], imgPrompt: '' },
           features: storiesRef.current.filter(s => ['COVER', 'FEATURE'].includes(s.placement)),
           columns: storiesRef.current.filter(s => s.placement === 'COLUMN'),
@@ -235,12 +252,12 @@ export const useNewsroom = () => {
           index_keys: [],
           colophon: { contributors: [], sources: [], corrections: [] }
       });
-      return null; // Return value not critical here
+      return null; 
   };
 
   return {
     logs,
-    agentJobs, // EXPORTED FOR UI
+    agentJobs, 
     leads,
     channels,
     addChannel,
@@ -248,14 +265,15 @@ export const useNewsroom = () => {
     isProcessing: isScanning || isCommissioning, 
     isScanning,
     isCommissioning,
-    isAutopilotActive,
+    isAutopilotActive, // Now reflects Remote Ops State
     toggleAutopilot,
     dbStatus,
     dbError,
     scanWire,
     commissionStory,
-    runAutopilot,
+    runAutopilot, // Legacy Manual
     publishArtifact,
-    shipCurrentIssue: async () => null // Stub
+    shipCurrentIssue: async () => null,
+    remoteOpsState // New: Full remote state
   };
 };

@@ -11,7 +11,7 @@ declare global {
   }
 
   interface Window {
-    // Using any to avoid conflicts with global AIStudio type definitions if present
-    aistudio?: any;
+    // aistudio is declared globally by the environment/SDK types with type 'AIStudio'.
+    // Removing local declaration to avoid "Subsequent property declarations must have the same type" error.
   }
 }

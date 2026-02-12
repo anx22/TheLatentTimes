@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { RiskChip } from './ui-primitives';
 
 interface NewsroomSidebarProps {
   targets: string;
   setTargets: (val: string) => void;
-  onScan: () => void;
+  onScan: (override?: string) => void;
   onFeedScan: () => void;
   leads: Lead[];
   selectedLeadId: string | null;
@@ -36,6 +36,18 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
 }) => {
   const [newChannel, setNewChannel] = useState('');
   const [isAddMode, setIsAddMode] = useState(false);
+  
+  // UX State for Feedback
+  const [hasScanned, setHasScanned] = useState(false);
+  const prevScanning = useRef(isScanning);
+
+  // Detect scan completion
+  useEffect(() => {
+    if (prevScanning.current && !isScanning) {
+        setHasScanned(true);
+    }
+    prevScanning.current = isScanning;
+  }, [isScanning]);
 
   const handleAddSubmit = (e: React.FormEvent) => {
       e.preventDefault();
@@ -44,6 +56,24 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
          setNewChannel('');
          setIsAddMode(false);
       }
+  };
+
+  const handleScanClick = () => {
+      setHasScanned(false);
+      if (!targets.trim() && channels.length > 0) {
+          // Random Serendipity Logic
+          const randomChannel = channels[Math.floor(Math.random() * channels.length)];
+          setTargets(randomChannel);
+          onScan(randomChannel);
+      } else {
+          onScan();
+      }
+  };
+
+  const handleChannelClick = (channel: string) => {
+      setTargets(channel);
+      // Optional: Auto-scan on click? Let's just fill for now to allow editing, 
+      // or standard behavior in tools is fill-and-focus.
   };
 
   return (
@@ -56,15 +86,16 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
                 <input 
                     value={targets}
                     onChange={(e) => setTargets(e.target.value)}
-                    placeholder="Targets (csv)..."
+                    placeholder={channels.length > 0 ? "Target topic (or empty for random)" : "Target topic..."}
                     className="w-full bg-neutral-900 border border-neutral-800 p-2 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 mb-2 rounded-sm"
+                    onKeyDown={(e) => e.key === 'Enter' && handleScanClick()}
                 />
                 <button 
-                    onClick={onScan}
-                    disabled={isScanning || !targets}
+                    onClick={handleScanClick}
+                    disabled={isScanning}
                     className="w-full bg-white hover:bg-neutral-200 text-black py-2 font-bold uppercase tracking-widest text-[10px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
                 >
-                    {isScanning ? 'Scanning...' : 'Scan Targets'}
+                    {isScanning ? 'Scanning...' : (!targets.trim() ? 'Scan Random Target' : 'Scan Targets')}
                 </button>
             </div>
 
@@ -98,9 +129,18 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
 
              <div className="flex flex-wrap gap-2">
                  {channels.map(c => (
-                     <div key={c} className="group flex items-center gap-2 px-2 py-1 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-sm">
-                         <span className="text-[10px] font-mono text-neutral-300">{c}</span>
-                         <button onClick={() => onRemoveChannel(c)} className="text-neutral-600 hover:text-red-500 text-[10px]">×</button>
+                     <div 
+                        key={c} 
+                        className="group flex items-center gap-2 px-2 py-1 bg-neutral-900 border border-neutral-800 hover:border-neutral-500 rounded-sm cursor-pointer transition-colors"
+                        onClick={() => handleChannelClick(c)}
+                     >
+                         <span className="text-[10px] font-mono text-neutral-300 group-hover:text-white">{c}</span>
+                         <button 
+                            onClick={(e) => { e.stopPropagation(); onRemoveChannel(c); }} 
+                            className="text-neutral-600 hover:text-red-500 text-[10px] px-1"
+                         >
+                            ×
+                         </button>
                      </div>
                  ))}
              </div>
@@ -113,28 +153,49 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
                 <span className="text-[10px] font-mono text-neutral-600">{leads.length} Signals</span>
             </div>
             
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
                 {leads.length === 0 ? (
-                    <div className="p-8 text-center opacity-30">
-                        <span className="block text-2xl mb-2">⚡</span>
-                        <span className="text-[10px] uppercase tracking-widest font-bold">No Signals Detected</span>
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-50">
+                        {isScanning ? (
+                            <div className="space-y-4">
+                                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                <span className="text-[10px] uppercase tracking-widest font-bold block">Interpreting Signals...</span>
+                            </div>
+                        ) : hasScanned ? (
+                            <div className="space-y-2 animate-fade-in">
+                                <span className="block text-3xl mb-2 grayscale">∅</span>
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-red-500 block">No Signals Found</span>
+                                <p className="text-[10px] text-neutral-500 max-w-[150px] mx-auto leading-tight">
+                                    The wire returned zero relevant artifacts for this target.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <span className="block text-2xl mb-2">⚡</span>
+                                <span className="text-[10px] uppercase tracking-widest font-bold block">System Idle</span>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="divide-y divide-neutral-900">
                         {leads.map((lead) => {
                             const isSelected = selectedLeadId === lead.id;
                             const isProcessed = processedLeadIds?.has(lead.id);
+                            const isDuplicate = lead.duplicate;
                             
                             return (
                                 <div 
                                     key={lead.id}
                                     onClick={() => onSelectLead(lead.id)}
-                                    className={`p-4 cursor-pointer transition-all hover:bg-neutral-900/50 group ${isSelected ? 'bg-neutral-900 border-l-2 border-accent' : 'border-l-2 border-transparent'} ${isProcessed ? 'opacity-50 grayscale' : ''}`}
+                                    className={`p-4 cursor-pointer transition-all hover:bg-neutral-900/50 group ${isSelected ? 'bg-neutral-900 border-l-2 border-accent' : 'border-l-2 border-transparent'} ${isProcessed || isDuplicate ? 'opacity-50' : ''}`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${lead.type === 'BREAKING' ? 'bg-red-900/20 text-red-500' : 'bg-neutral-800 text-neutral-400'}`}>
-                                            {lead.type}
-                                        </span>
+                                        <div className="flex gap-2">
+                                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${lead.type === 'BREAKING' ? 'bg-red-900/20 text-red-500' : 'bg-neutral-800 text-neutral-400'}`}>
+                                                {lead.type}
+                                            </span>
+                                            {isDuplicate && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500">DUPLICATE</span>}
+                                        </div>
                                         <span className="text-[10px] font-mono text-neutral-600 font-bold">{lead.score}/10</span>
                                     </div>
                                     <h4 className={`text-sm font-medium leading-snug mb-2 line-clamp-2 ${isSelected ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-200'}`}>

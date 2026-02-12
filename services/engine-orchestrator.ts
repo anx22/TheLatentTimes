@@ -60,9 +60,11 @@ export class IssueOrchestrator {
   private isDuplicate(text: string, existing: Set<string>): boolean {
       const normalized = this.normalizeString(text);
       for (const item of existing) {
-          if (this.normalizeString(item) === normalized) return true;
+          const normItem = this.normalizeString(item);
+          if (normItem === normalized) return true;
           // Simple fuzzy check: substring match if length is significant
-          if (normalized.length > 20 && this.normalizeString(item).includes(normalized)) return true;
+          if (normalized.length > 20 && normItem.includes(normalized)) return true;
+          if (normItem.length > 20 && normalized.includes(normItem)) return true;
       }
       return false;
   }
@@ -129,7 +131,7 @@ export class IssueOrchestrator {
   public async scan(
       targets: string[], 
       useDemo: boolean, 
-      history?: { headlines: Set<string>, urls: Set<string> }
+      history?: { headlines: Set<string> }
   ): Promise<Lead[]> {
       this.callbacks.onAgentStart('SCOUT', 'Scanning wire targets...');
       

@@ -20,10 +20,64 @@ export const supabase = createClient(
 
 // CONSTANTS
 const KEY_CURRENT_ISSUE = 'current_issue';
-const KEY_PENDING_ISSUE = 'pending_issue';
 const KEY_LOGS = 'current_logs';
 const MOCK_KEY = 'modus_mock_session';
 const LOCAL_ISSUE_KEY = 'modus_local_issue';
+
+// --- OPS CONTROL CENTER (Remote Autopilot) ---
+
+export interface OpsState {
+    status: 'IDLE' | 'RUNNING' | 'PAUSED' | 'ERROR' | 'PROVISIONING';
+    current_task: string;
+    last_heartbeat: string;
+    error_log?: string;
+    config?: any;
+}
+
+export const getOpsState = async (): Promise<OpsState | null> => {
+    if (!IS_CONFIGURED) return null;
+    const { data, error } = await supabase
+        .from('modus_ops')
+        .select('*')
+        .eq('key', 'global')
+        .maybeSingle();
+    
+    if (error) {
+        console.warn("Ops State Read Error:", error);
+        return null;
+    }
+    return data;
+};
+
+export const setOpsState = async (status: OpsState['status'], config?: any) => {
+    if (!IS_CONFIGURED) return;
+    
+    const update: any = { status, last_heartbeat: new Date().toISOString() };
+    if (config) update.config = config;
+    if (status === 'IDLE') update.current_task = 'System Standby';
+
+    await supabase
+        .from('modus_ops')
+        .upsert({ key: 'global', ...update });
+};
+
+export const subscribeToOps = (callback: (state: OpsState) => void) => {
+    if (!IS_CONFIGURED) return { unsubscribe: () => {} };
+
+    const channel = supabase
+        .channel('modus_ops_changes')
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'modus_ops', filter: 'key=eq.global' },
+            (payload) => {
+                callback(payload.new as OpsState);
+            }
+        )
+        .subscribe();
+
+    return channel;
+};
+
 
 // INTERNAL EVENT BUS FOR MOCK AUTH
 const notifyMockAuth = () => {
@@ -33,9 +87,12 @@ const notifyMockAuth = () => {
 // AUTHENTICATION
 export const getSession = async () => {
     if (!IS_CONFIGURED) {
-        // Mock Session Fallback
-        const mock = localStorage.getItem(MOCK_KEY);
-        return mock ? JSON.parse(mock) : null;
+        // Mock Session Fallback (Client Only)
+        if (typeof window !== 'undefined') {
+            const mock = localStorage.getItem(MOCK_KEY);
+            return mock ? JSON.parse(mock) : null;
+        }
+        return null;
     }
     const { data } = await supabase.auth.getSession();
     return data.session;
@@ -50,7 +107,9 @@ export const login = async (email: string, password: string) => {
             access_token: 'mock-token-xyz',
             expires_at: Date.now() + 3600000
         };
-        localStorage.setItem(MOCK_KEY, JSON.stringify(mockSession));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(MOCK_KEY, JSON.stringify(mockSession));
+        }
         notifyMockAuth();
         return { data: { session: mockSession }, error: null };
     }
@@ -76,7 +135,7 @@ export const signUp = async (email: string, password: string) => {
 
 export const signOut = async () => {
     if (!IS_CONFIGURED) {
-        localStorage.removeItem(MOCK_KEY);
+        if (typeof window !== 'undefined') localStorage.removeItem(MOCK_KEY);
         notifyMockAuth();
         return { error: null };
     }
@@ -326,7 +385,7 @@ export const getArchiveIndex = async (): Promise<Array<{ id: string; vol: string
 export const saveIssue = async (issue: IssueContent) => {
     // If no DB configured, use local storage fallback
     if (!IS_CONFIGURED) {
-        localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
+        if (typeof window !== 'undefined') localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
         return;
     }
 
@@ -338,14 +397,17 @@ export const saveIssue = async (issue: IssueContent) => {
     } catch (e) {
         console.warn("DB Save failed, falling back to local storage:", e);
         // Fallback to local storage on error
-        localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
+        if (typeof window !== 'undefined') localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
     }
 };
 
 export const loadIssue = async (specificId?: string): Promise<IssueContent | null> => {
     if (!IS_CONFIGURED) {
-        const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-        return local ? JSON.parse(local) : null;
+        if (typeof window !== 'undefined') {
+            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
+            return local ? JSON.parse(local) : null;
+        }
+        return null;
     }
 
     try {
@@ -362,12 +424,18 @@ export const loadIssue = async (specificId?: string): Promise<IssueContent | nul
         }
 
         // Fallback
-        const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-        return local ? JSON.parse(local) : null;
+        if (typeof window !== 'undefined') {
+            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
+            return local ? JSON.parse(local) : null;
+        }
+        return null;
     } catch (e) {
         console.warn("Could not load issue from DB, checking local:", e);
-        const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-        return local ? JSON.parse(local) : null;
+        if (typeof window !== 'undefined') {
+            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
+            return local ? JSON.parse(local) : null;
+        }
+        return null;
     }
 };
 
@@ -406,8 +474,11 @@ export const saveLogs = async (logs: AgentLog[]): Promise<StorageResult> => {
 
 export const loadLogs = async (): Promise<AgentLog[]> => {
     if (!IS_CONFIGURED) {
-        const local = localStorage.getItem(KEY_LOGS);
-        return local ? JSON.parse(local).entries : [];
+        if (typeof window !== 'undefined') {
+            const local = localStorage.getItem(KEY_LOGS);
+            return local ? JSON.parse(local).entries : [];
+        }
+        return [];
     }
 
     const { data, error } = await supabase

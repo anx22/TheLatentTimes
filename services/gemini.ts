@@ -81,10 +81,12 @@ export const safeGenerateContent = async (
 
 // Image Generation using Gemini 3 Pro Image Preview
 export const generateImage = async (prompt: string, aspectRatio: AspectRatio): Promise<string> => {
-  if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
+  // SERVER-SIDE GUARD: Check if window exists before accessing window.aistudio
+  if (typeof window !== 'undefined' && window.aistudio && await window.aistudio.hasSelectedApiKey()) {
      // Ensure we use the selected key if available. 
      // The key is automatically injected into process.env.API_KEY by the environment.
   }
+  
   const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const response = await currentAi.models.generateContent({

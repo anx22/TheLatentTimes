@@ -94,9 +94,11 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
       }
   };
 
-  const handleScan = async () => {
-      if (!targets.trim()) return;
-      const targetList = targets.split(',').map(s => s.trim());
+  const handleScan = async (overrideTargets?: string) => {
+      // Use override if provided (e.g. random selection), otherwise use state
+      const t = overrideTargets || targets;
+      if (!t.trim()) return;
+      const targetList = t.split(',').map(s => s.trim());
       await scanWire(targetList, useDemo);
   };
   

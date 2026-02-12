@@ -18,7 +18,7 @@ interface NewsroomConsoleProps {
   onReset?: () => void; 
   // Autopilot
   isAutopilotActive?: boolean;
-  onToggleAutopilot?: () => void;
+  onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
   // NEW: Agent Jobs for Visualization
   agentJobs: Record<AgentRole, AgentJob>;
 }
@@ -42,6 +42,7 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
   
   // Local UI State
   const [isShipped, setIsShipped] = useState(false);
+  const [expandLogs, setExpandLogs] = useState(false);
 
   useEffect(() => {
       // Reset shipped state when a new story is loaded
@@ -74,60 +75,101 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
       }
   };
 
-  const isDisabled = isCommissioning || (isProcessing && !isCommissioning); // Fallback logic
+  // NOTE: isProcessing usually tracks local work. 
+  // If cloud autopilot is active, we might not be locally processing, 
+  // but we should still disable manual controls to prevent collision.
+  const isDisabled = isCommissioning || (isProcessing && !isCommissioning) || isAutopilotActive;
+
+  const renderMainButton = () => {
+      if (isAutopilotActive) {
+          return (
+              <div className="w-full bg-accent/10 border border-accent/30 rounded-sm h-14 flex flex-col items-center justify-center gap-1 animate-pulse">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Remote Uplink Active</span>
+                  <span className="text-[9px] font-mono text-neutral-400">Monitoring Cloud Agent...</span>
+              </div>
+          );
+      }
+
+      if (isDisabled) {
+          // Find the active agent job
+          const activeJob = Object.values(agentJobs).find(j => j.status === 'WORKING');
+          const progress = activeJob ? activeJob.progress : 0;
+          
+          return (
+              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-sm relative overflow-hidden h-14 select-none">
+                  {/* Progress Bar Background */}
+                  <div 
+                    className="absolute top-0 left-0 bottom-0 bg-neutral-800 transition-all duration-500 ease-out" 
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                  
+                  <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-0.5">
+                      <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 border-2 border-neutral-500 border-t-accent rounded-full animate-spin"></div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+                              {activeJob ? `AGENT: ${activeJob.agentId.replace('agent_', '').toUpperCase()}` : 'ORCHESTRATING...'}
+                          </span>
+                      </div>
+                      <span className="text-[9px] font-mono text-neutral-400 max-w-[90%] truncate px-2">
+                          {activeJob?.currentTask || "Initializing neural mesh..."}
+                      </span>
+                  </div>
+              </div>
+          );
+      }
+
+      if (activeStory) {
+          if (isShipped) {
+              return (
+                  <button 
+                    onClick={onReset}
+                    className="w-full border border-neutral-700 hover:bg-white hover:text-black text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm"
+                  >
+                      Initialize Next Assignment
+                  </button>
+              );
+          }
+          return (
+              <button 
+                onClick={handleShipToLive}
+                className="w-full bg-white hover:bg-neutral-200 text-black py-4 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              >
+                  Deploy to Live Stream
+              </button>
+          );
+      }
+
+      if (selectedLead) {
+          return (
+              <button 
+                onClick={handleCommissionClick}
+                className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 rounded-sm"
+              >
+                  Commission Agents
+              </button>
+          );
+      }
+
+      return (
+          <button disabled className="w-full border border-neutral-800 text-neutral-600 py-4 font-bold uppercase tracking-widest text-[10px] cursor-not-allowed rounded-sm">
+              Select Signal to Commission
+          </button>
+      );
+  };
 
   return (
-    <div className="w-[380px] bg-[#050505] flex flex-col border-l border-neutral-900 shrink-0">
-        <div className="flex-1 p-5 flex flex-col overflow-y-auto custom-scrollbar">
+    <div className="w-[380px] bg-[#050505] flex flex-col border-l border-neutral-900 shrink-0 h-full max-h-screen">
+        
+        {/* SCROLLABLE AREA: Agent Status + Configuration Forms */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-6 block border-b border-neutral-900 pb-3">Commissioning Console</span>
             
             {/* NEW: AGENT VISUALIZATION */}
             <AgentGrid jobs={agentJobs} />
 
-            {/* Action Card */}
-            <div className="bg-[#080808] border border-neutral-800 p-5 mb-6 rounded-sm shadow-sm">
-                {isDisabled ? (
-                    <div className="text-center py-8">
-                        <div className="w-8 h-8 border-2 border-neutral-800 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
-                        <span className="text-[10px] text-accent font-bold uppercase tracking-widest animate-pulse">Orchestrating...</span>
-                    </div>
-                ) : activeStory ? (
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-3 mb-2 bg-neutral-900 p-2 rounded">
-                            <span className={`w-2 h-2 rounded-full ${isShipped ? 'bg-emerald-500' : 'bg-accent'}`}></span>
-                            <span className="text-[10px] font-bold uppercase text-white tracking-wider">
-                                {isShipped ? 'Artifact Live' : 'Publish Ready'}
-                            </span>
-                        </div>
-                        
-                        {isShipped ? (
-                            <>
-                                <p className="text-xs text-emerald-500 leading-relaxed font-medium">
-                                    Artifact successfully deployed to the live content stream.
-                                </p>
-                                <button 
-                                  onClick={onReset}
-                                  className="w-full border border-neutral-700 hover:bg-white hover:text-black text-white py-3.5 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm"
-                                >
-                                    Initialize Next Assignment
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <p className="text-xs text-neutral-400 leading-relaxed font-medium">
-                                    Final artifact generated and verified. Ready for deployment.
-                                </p>
-                                <button 
-                                  onClick={handleShipToLive}
-                                  className="w-full bg-white hover:bg-neutral-200 text-black py-3.5 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm shadow-lg shadow-white/5"
-                                >
-                                    Deploy to Live Stream
-                                </button>
-                            </>
-                        )}
-                    </div>
-                ) : selectedLead ? (
-                    <div className="space-y-4">
+            {/* CONFIGURATION FORM */}
+            {!activeStory && selectedLead && !isDisabled && (
+                 <div className="space-y-4 animate-fade-in mb-4">
                         {/* STANDARD CONTROLS */}
                         <div className="grid grid-cols-2 gap-4 mb-2">
                           <div className="col-span-1">
@@ -221,48 +263,74 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                               </div>
                           </div>
                         )}
-
-                        <button 
-                          onClick={handleCommissionClick}
-                          disabled={isDisabled}
-                          className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 mt-4 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Commission Agents
-                        </button>
-                    </div>
-                ) : (
-                    <div className="text-center py-12 opacity-40">
-                        <span className="text-[10px] uppercase tracking-widest block mb-2">Console Idle</span>
-                        <p className="text-xs text-neutral-600">Select a lead to configure.</p>
-                    </div>
-                )}
-            </div>
+                 </div>
+            )}
             
-            {/* Autopilot Button */}
-            {onToggleAutopilot ? (
-                <button 
-                    onClick={onToggleAutopilot}
-                    disabled={isDisabled}
-                    className={`w-full border py-4 font-bold uppercase tracking-widest text-[10px] transition-all mb-4 flex items-center justify-center gap-2 rounded-sm ${isAutopilotActive ? 'bg-accent/10 border-accent text-accent animate-pulse shadow-[0_0_15px_rgba(208,0,0,0.2)]' : 'border-neutral-800 hover:border-accent/50 text-neutral-500 hover:text-white hover:bg-neutral-900'} disabled:opacity-50`}
-                >
-                    <span className={`w-2 h-2 rounded-full ${isAutopilotActive ? 'bg-accent' : 'bg-neutral-600'}`}></span>
-                    {isAutopilotActive ? 'AUTOPILOT ENGAGED (5m CYCLE)' : 'ENGAGE AUTOPILOT'}
-                </button>
-            ) : (
-                <button 
-                    onClick={onAutopilot}
-                    disabled={isDisabled}
-                    className="w-full border border-neutral-800 hover:border-accent/50 hover:bg-accent/5 text-neutral-500 hover:text-accent py-4 font-bold uppercase tracking-widest text-[10px] transition-colors mb-4 flex items-center justify-center gap-2 rounded-sm disabled:opacity-50"
-                >
-                    <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
-                    Engage Autopilot (Single Run)
-                </button>
+            {/* IDLE / DONE STATES IN SCROLL AREA */}
+            {!activeStory && !selectedLead && !isDisabled && (
+                <div className="text-center py-12 opacity-40 border border-dashed border-neutral-800 rounded-sm">
+                    <span className="text-[10px] uppercase tracking-widest block mb-2">Console Idle</span>
+                    <p className="text-xs text-neutral-600">Select a lead from the Wire to configure.</p>
+                </div>
+            )}
+            
+            {activeStory && (
+                 <div className="p-4 bg-neutral-900/50 border border-neutral-800 rounded text-center mb-4">
+                     <span className={`text-xs ${isShipped ? 'text-emerald-500' : 'text-neutral-300'} font-bold uppercase tracking-wider`}>
+                        {isShipped ? 'Artifact Deployed' : 'Review Complete'}
+                     </span>
+                 </div>
             )}
 
         </div>
-        
-        {/* Logs */}
-        <LogStream logs={logs} />
+
+        {/* FIXED ACTION FOOTER */}
+        <div className="p-5 bg-[#0A0A0A] border-t border-neutral-900 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-10">
+            {renderMainButton()}
+            
+            {/* AUTOPILOT TOGGLE (REMOTE MODE) */}
+            <div className="mt-3">
+                {onToggleAutopilot ? (
+                    <button 
+                        onClick={() => onToggleAutopilot && onToggleAutopilot(!isAutopilotActive, 'The Synthetic Real', false, () => {})}
+                        disabled={isDisabled && !isAutopilotActive}
+                        className={`w-full py-3 font-bold uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 rounded-sm border ${isAutopilotActive ? 'bg-accent text-white border-accent' : 'border-neutral-800 text-neutral-500 hover:text-white hover:border-neutral-600'}`}
+                    >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isAutopilotActive ? 'bg-white animate-pulse' : 'bg-neutral-600'}`}></span>
+                        {isAutopilotActive ? 'KILL SWITCH (STOP AGENT)' : 'START CLOUD AGENT'}
+                    </button>
+                ) : (
+                    <button 
+                        onClick={onAutopilot}
+                        disabled={isDisabled}
+                        className="w-full border border-neutral-800 hover:border-accent/50 text-neutral-600 hover:text-accent py-3 font-bold uppercase tracking-widest text-[9px] transition-colors rounded-sm"
+                    >
+                        Single Run (Manual)
+                    </button>
+                )}
+                
+                {isAutopilotActive && (
+                    <div className="mt-2 text-center">
+                        <span className="text-[9px] text-emerald-500 font-mono font-bold">● CLOUD UPLINK SECURE</span>
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* COLLAPSIBLE LOGS */}
+        <div className="border-t border-neutral-900 bg-[#050505]">
+            <button 
+                onClick={() => setExpandLogs(!expandLogs)}
+                className="w-full flex justify-between items-center px-4 py-2 text-[9px] uppercase tracking-widest font-bold text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors"
+            >
+                <span>System Logs {logs.length > 0 && `(${logs.length})`}</span>
+                <span>{expandLogs ? '▼' : '▲'}</span>
+            </button>
+            
+            {expandLogs && (
+                <LogStream logs={logs} />
+            )}
+        </div>
     </div>
   );
 };
