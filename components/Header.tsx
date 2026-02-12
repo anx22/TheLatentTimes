@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { login, signUp, signOut } from '../services/storage';
 import { IssueMeta } from '../types';
@@ -6,13 +7,12 @@ interface HeaderProps {
   onNavigate: (section: string) => void;
   onOpenNewsroom: () => void;
   onOpenArchive: () => void;
-  onOpenTrends: () => void; // New Prop
-  onShare: () => void;
+  onShare: () => void; // New Prop
   session: any;
   meta?: IssueMeta;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOpenArchive, onOpenTrends, onShare, session, meta }) => {
+export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOpenArchive, onShare, session, meta }) => {
   // Login State
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -85,13 +85,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOp
                 className="hidden md:block text-[10px] font-sans font-bold uppercase tracking-[0.15em] hover:text-accent transition-colors"
               >
                   Archive
-              </button>
-
-              <button 
-                onClick={onOpenTrends}
-                className="hidden md:block text-[10px] font-sans font-bold uppercase tracking-[0.15em] hover:text-accent transition-colors"
-              >
-                  Trends
               </button>
               
               <button 

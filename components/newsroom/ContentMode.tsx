@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { NewsroomSidebar } from './NewsroomSidebar';
 import { NewsroomBoard } from './NewsroomBoard';
-import { NewsroomConsole } from './NewsroomConsole';
+import { NewsroomConsole, CommissionConfigState, DEFAULT_COMMISSION_CONFIG } from './NewsroomConsole';
 import { AssetWorkbench } from './AssetWorkbench';
 import { Lead, StoryArtifact, DebateArtifact, AgentLog, IssueContent, Proposal } from '../../types';
 
@@ -55,6 +56,26 @@ export const ContentMode: React.FC<ContentModeProps> = ({
     onApplyProposal, onApproveStory
 }) => {
     
+    // Commission State hosted here to allow CTAs in the main view
+    const [commissionConfig, setCommissionConfig] = useState<CommissionConfigState>(DEFAULT_COMMISSION_CONFIG);
+
+    const handleExecuteCommission = () => {
+        // Flatten config for the hook
+        onCommission({
+            depth: commissionConfig.depth,
+            timeWindow: commissionConfig.timeWindow,
+            risk: commissionConfig.risk,
+            focusQuery: commissionConfig.focusQuery,
+            bannedWords: commissionConfig.bannedWords,
+            audience: commissionConfig.audience,
+            temperature: commissionConfig.temperature,
+            sourceMix: commissionConfig.sourceMix,
+            voicePreset: commissionConfig.activePreset,
+            toneProfile: commissionConfig.toneProfile,
+            agentModifiers: commissionConfig.agentOverrides
+        });
+    };
+
     const isWorkbenchMode = !!(activeLead || activeStory);
 
     return (
@@ -94,15 +115,41 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                             // Commissioning View
                             <div className="w-full flex h-full">
                                 <div className="flex-1 p-8 overflow-y-auto bg-zinc-50 flex items-center justify-center">
-                                    <div className="max-w-2xl w-full bg-white p-10 rounded-lg shadow-sm border border-zinc-200">
-                                        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wide mb-6">
-                                            Incoming Signal
-                                        </span>
-                                        <h2 className="text-3xl font-semibold tracking-tight text-zinc-900 mb-6 leading-tight">{activeLead.headline}</h2>
-                                        <p className="text-zinc-600 text-base leading-relaxed mb-8">{activeLead.context}</p>
-                                        <div className="flex items-center gap-4 text-xs text-zinc-500 border-t border-zinc-100 pt-6">
-                                            <span className="font-medium text-zinc-900">Source:</span> 
-                                            <span className="font-mono bg-zinc-100 px-2 py-1 rounded">{activeLead.source_ref}</span>
+                                    <div className="max-w-2xl w-full bg-white p-10 rounded-lg shadow-sm border border-zinc-200 flex flex-col">
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wide">
+                                                    Incoming Signal
+                                                </span>
+                                                <span className={`text-xs font-mono font-bold ${activeLead.score > 8 ? 'text-emerald-600' : 'text-zinc-400'}`}>
+                                                    SCORE: {activeLead.score}/10
+                                                </span>
+                                            </div>
+                                            <h2 className="text-3xl font-semibold tracking-tight text-zinc-900 mb-6 leading-tight">{activeLead.headline}</h2>
+                                            <p className="text-zinc-600 text-base leading-relaxed mb-8">{activeLead.context}</p>
+                                            <div className="flex items-center gap-4 text-xs text-zinc-500 border-t border-zinc-100 pt-6">
+                                                <span className="font-medium text-zinc-900">Source:</span> 
+                                                <span className="font-mono bg-zinc-100 px-2 py-1 rounded">{activeLead.source_ref}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* --- PRIMARY CTA AREA --- */}
+                                        <div className="mt-8 pt-8 border-t border-zinc-100">
+                                            <div className="flex items-center justify-between bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+                                                <div>
+                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Configuration</span>
+                                                    <span className="text-xs font-semibold text-zinc-900">
+                                                        {commissionConfig.activePreset} Mode • {commissionConfig.depth} Research
+                                                    </span>
+                                                </div>
+                                                <button 
+                                                    onClick={handleExecuteCommission}
+                                                    disabled={isProcessing || isCommissioning}
+                                                    className="bg-black hover:bg-zinc-800 text-white px-6 py-3 rounded text-xs font-bold uppercase tracking-widest shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                                >
+                                                    {isCommissioning ? 'Commissioning...' : 'Initialize Commission →'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -115,7 +162,9 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                                         selectedLead={activeLead}
                                         activeStory={undefined}
                                         latestIssue={latestIssue}
-                                        onCommission={onCommission}
+                                        commissionConfig={commissionConfig}
+                                        setCommissionConfig={setCommissionConfig}
+                                        onCommission={handleExecuteCommission}
                                         onAutopilot={onAutopilot}
                                         onPublish={onPublish}
                                         agentJobs={agentJobs}
@@ -148,7 +197,9 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                                 selectedLead={undefined}
                                 activeStory={undefined}
                                 latestIssue={latestIssue}
-                                onCommission={() => {}}
+                                commissionConfig={commissionConfig}
+                                setCommissionConfig={setCommissionConfig}
+                                onCommission={handleExecuteCommission}
                                 onAutopilot={() => {}}
                                 onPublish={onPublish}
                                 agentJobs={agentJobs}

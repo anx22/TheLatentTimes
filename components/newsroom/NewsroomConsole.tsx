@@ -6,27 +6,35 @@ import { AgentGrid } from './AgentGrid';
 import { AGENT_ROSTER } from '../../services/agent-registry';
 import { TEMPLATE_REGISTRY } from '../../services/templates';
 
-interface NewsroomConsoleProps {
-  logs: AgentLog[];
-  isProcessing: boolean; 
-  isCommissioning?: boolean; 
-  selectedLead: Lead | undefined;
-  activeStory: StoryArtifact | undefined;
-  latestIssue: IssueContent | null;
-  onCommission: (config: any) => void;
-  onAutopilot: () => void;
-  onPublish: (issue: IssueContent) => void;
-  onPublishArtifact?: (artifact: StoryArtifact) => void;
-  onReset?: () => void; 
-  isAutopilotActive?: boolean;
-  onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
-  agentJobs: Record<AgentRole, AgentJob>;
-  // NEW: Template switcher
-  currentTemplate: string;
-  onSwitchTemplate: (key: string) => void;
+// --- SHARED CONFIG DEFINITIONS ---
+export interface CommissionConfigState {
+    depth: 'Standard' | 'Deep';
+    timeWindow: '24h' | '7d' | '30d';
+    risk: 'Low' | 'Mid' | 'High';
+    focusQuery: string;
+    bannedWords: string;
+    audience: 'General' | 'Expert' | 'Insider';
+    temperature: number;
+    sourceMix: SourceMix;
+    toneProfile: ToneProfile;
+    agentOverrides: Record<string, string>;
+    activePreset: string;
 }
 
-// DEFINING PRESET MACROS (The "Physics" of each style)
+export const DEFAULT_COMMISSION_CONFIG: CommissionConfigState = {
+    depth: 'Standard',
+    timeWindow: '7d',
+    risk: 'Mid',
+    focusQuery: '',
+    bannedWords: '',
+    audience: 'Expert',
+    temperature: 0.7,
+    sourceMix: { mainstream: true, indie: true, academic: false, social: false },
+    toneProfile: { drama: 3, precision: 3, metaphor_density: 3, adjective_budget: 50, sentence_mode: 'MIXED' },
+    agentOverrides: {},
+    activePreset: 'Modus'
+};
+
 const TONE_PRESETS: Record<string, ToneProfile> = {
     'Modus': { drama: 3, precision: 3, metaphor_density: 3, adjective_budget: 50, sentence_mode: 'MIXED' },
     'Gonzo': { drama: 5, precision: 1, metaphor_density: 5, adjective_budget: 90, sentence_mode: 'LONG' },
@@ -34,58 +42,70 @@ const TONE_PRESETS: Record<string, ToneProfile> = {
     'Minimalist': { drama: 2, precision: 4, metaphor_density: 2, adjective_budget: 10, sentence_mode: 'TIGHT' }
 };
 
+interface NewsroomConsoleProps {
+  logs: AgentLog[];
+  isProcessing: boolean; 
+  isCommissioning?: boolean; 
+  selectedLead: Lead | undefined;
+  activeStory: StoryArtifact | undefined;
+  latestIssue: IssueContent | null;
+  
+  // Controlled Config Props
+  commissionConfig: CommissionConfigState;
+  setCommissionConfig: (cfg: CommissionConfigState) => void;
+  onCommission: () => void; // No args, uses state from parent
+
+  onAutopilot: () => void;
+  onPublish: (issue: IssueContent) => void;
+  onPublishArtifact?: (artifact: StoryArtifact) => void;
+  isAutopilotActive?: boolean;
+  onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
+  agentJobs: Record<AgentRole, AgentJob>;
+  currentTemplate: string;
+  onSwitchTemplate: (key: string) => void;
+}
+
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
-  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
+  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, 
+  commissionConfig, setCommissionConfig, onCommission, 
+  onAutopilot, onPublish, onPublishArtifact, 
   isAutopilotActive, onToggleAutopilot, agentJobs, currentTemplate, onSwitchTemplate
 }) => {
-  const [depth, setDepth] = useState<'Standard' | 'Deep'>('Standard');
-  const [timeWindow, setTimeWindow] = useState<'24h' | '7d' | '30d'>('7d');
-  const [risk, setRisk] = useState<'Low' | 'Mid' | 'High'>('Mid');
-  const [focusQuery, setFocusQuery] = useState('');
-  const [bannedWords, setBannedWords] = useState('');
-  const [audience, setAudience] = useState<'General' | 'Expert' | 'Insider'>('Expert');
-  const [temperature, setTemperature] = useState(0.7);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentRole | null>(null);
-  const [agentOverrides, setAgentOverrides] = useState<Record<string, string>>({});
 
-  // Tone Physics State (Default to Modus)
-  const [activePreset, setActivePreset] = useState<string>('Modus');
-  const [toneProfile, setToneProfile] = useState<ToneProfile>(TONE_PRESETS['Modus']);
-
-  // Source Mix State
-  const [sourceMix, setSourceMix] = useState<SourceMix>({
-      mainstream: true,
-      indie: true,
-      academic: false,
-      social: false
-  });
-
-  const handleCommissionClick = () => {
-    onCommission({ 
-        depth, timeWindow, risk, focusQuery, bannedWords, audience, temperature, sourceMix,
-        voicePreset: activePreset, // Pass for legacy compatibility, but logic relies on toneProfile
-        toneProfile, 
-        agentModifiers: agentOverrides
-    });
+  // Helper to update specific fields
+  const updateConfig = (updates: Partial<CommissionConfigState>) => {
+      setCommissionConfig({ ...commissionConfig, ...updates });
   };
 
-  // MACRO HANDLER: Snaps sliders to preset values
+  // Tone Handlers
   const handlePresetChange = (presetName: string) => {
-      setActivePreset(presetName);
       if (TONE_PRESETS[presetName]) {
-          setToneProfile(TONE_PRESETS[presetName]);
+          updateConfig({ 
+              activePreset: presetName, 
+              toneProfile: TONE_PRESETS[presetName] 
+          });
       }
   };
 
-  // SLIDER HANDLER: Updates specific value, potentially detaching from preset
   const updateTone = (key: keyof ToneProfile, value: number | string) => {
-      setToneProfile(prev => ({ ...prev, [key]: value }));
-      setActivePreset('Custom'); // Detach from preset visual if modified
+      updateConfig({
+          activePreset: 'Custom',
+          toneProfile: { ...commissionConfig.toneProfile, [key]: value }
+      });
   };
 
   const toggleSource = (key: keyof SourceMix) => {
-      setSourceMix(prev => ({ ...prev, [key]: !prev[key] }));
+      updateConfig({
+          sourceMix: { ...commissionConfig.sourceMix, [key]: !commissionConfig.sourceMix[key] }
+      });
+  };
+
+  const setAgentOverride = (role: string, val: string) => {
+      updateConfig({
+          agentOverrides: { ...commissionConfig.agentOverrides, [role]: val }
+      });
   };
 
   const isDisabled = isCommissioning || (isProcessing && !isCommissioning) || isAutopilotActive;
@@ -165,12 +185,9 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                         <textarea 
                             className="w-full p-3 text-xs border border-zinc-300 rounded focus:border-indigo-500 focus:outline-none min-h-[100px]"
                             placeholder={`Inject temporary instruction for ${AGENT_ROSTER[selectedAgent].name}...`}
-                            value={agentOverrides[selectedAgent] || ''}
-                            onChange={(e) => setAgentOverrides(p => ({ ...p, [selectedAgent]: e.target.value }))}
+                            value={commissionConfig.agentOverrides[selectedAgent] || ''}
+                            onChange={(e) => setAgentOverride(selectedAgent, e.target.value)}
                         />
-                        <p className="text-[9px] text-zinc-400 mt-2">
-                            This instruction will be appended to the agent's system prompt for the next run only.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -194,8 +211,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                   {['Standard', 'Deep'].map(m => (
                                       <button 
                                         key={m}
-                                        onClick={() => setDepth(m as any)}
-                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${depth === m ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                        onClick={() => updateConfig({ depth: m as any })}
+                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${commissionConfig.depth === m ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
                                       >
                                           {m}
                                       </button>
@@ -208,8 +225,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                   {['24h', '7d', '30d'].map(t => (
                                       <button 
                                         key={t}
-                                        onClick={() => setTimeWindow(t as any)}
-                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${timeWindow === t ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                        onClick={() => updateConfig({ timeWindow: t as any })}
+                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${commissionConfig.timeWindow === t ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
                                       >
                                           {t}
                                       </button>
@@ -228,7 +245,7 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                             key={preset}
                                             onClick={() => handlePresetChange(preset)}
                                             className={`px-2 py-0.5 text-[8px] font-bold uppercase rounded border transition-all ${
-                                                activePreset === preset 
+                                                commissionConfig.activePreset === preset 
                                                 ? 'bg-indigo-600 text-white border-indigo-600' 
                                                 : 'bg-white text-zinc-400 border-zinc-200 hover:border-zinc-300'
                                             }`}
@@ -239,13 +256,13 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                 </div>
                             </div>
                             
-                            <ToneEQSlider label="Drama" value={toneProfile.drama} max={5} onChange={(v) => updateTone('drama', v)} />
-                            <ToneEQSlider label="Precision" value={toneProfile.precision} max={5} onChange={(v) => updateTone('precision', v)} />
-                            <ToneEQSlider label="Metaphor" value={toneProfile.metaphor_density} max={5} onChange={(v) => updateTone('metaphor_density', v)} />
+                            <ToneEQSlider label="Drama" value={commissionConfig.toneProfile.drama} max={5} onChange={(v) => updateTone('drama', v)} />
+                            <ToneEQSlider label="Precision" value={commissionConfig.toneProfile.precision} max={5} onChange={(v) => updateTone('precision', v)} />
+                            <ToneEQSlider label="Metaphor" value={commissionConfig.toneProfile.metaphor_density} max={5} onChange={(v) => updateTone('metaphor_density', v)} />
                             
                             <div className="mt-4 flex justify-between">
                                 <span className="text-[9px] font-bold uppercase text-zinc-400">Adj. Budget</span>
-                                <span className="text-[9px] font-mono font-bold text-zinc-600">{toneProfile.adjective_budget}%</span>
+                                <span className="text-[9px] font-mono font-bold text-zinc-600">{commissionConfig.toneProfile.adjective_budget}%</span>
                             </div>
                             <div className="w-full bg-zinc-200 h-1 rounded-full mt-1 relative cursor-pointer" onClick={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect();
@@ -253,7 +270,7 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                 const percent = Math.round((x / rect.width) * 100);
                                 updateTone('adjective_budget', Math.max(0, Math.min(100, percent)));
                             }}>
-                                <div className="bg-zinc-500 h-1 rounded-full transition-all" style={{width: `${toneProfile.adjective_budget}%`}}></div>
+                                <div className="bg-zinc-500 h-1 rounded-full transition-all" style={{width: `${commissionConfig.toneProfile.adjective_budget}%`}}></div>
                             </div>
                         </div>
 
@@ -271,9 +288,9 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                 <div>
                                     <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Source Vectors</label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {Object.keys(sourceMix).map(key => {
+                                        {Object.keys(commissionConfig.sourceMix).map(key => {
                                             const k = key as keyof SourceMix;
-                                            const active = sourceMix[k];
+                                            const active = commissionConfig.sourceMix[k];
                                             return (
                                                 <button 
                                                     key={key}
@@ -294,8 +311,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                 <div>
                                     <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Negative Prompt</label>
                                     <input 
-                                        value={bannedWords}
-                                        onChange={(e) => setBannedWords(e.target.value)}
+                                        value={commissionConfig.bannedWords}
+                                        onChange={(e) => updateConfig({ bannedWords: e.target.value })}
                                         placeholder="Words to ban (comma separated)..."
                                         className="w-full border border-zinc-300 rounded px-2 py-1.5 text-xs focus:border-black outline-none"
                                     />
@@ -305,14 +322,15 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                                 <JsonInspector data={selectedLead} label="Raw Signal Data" />
                             </div>
                         )}
-
-                        <div className="pt-2">
+                        
+                        {/* Note: The main action button is now in ContentMode, but we keep this one as a backup */}
+                        <div className="pt-2 opacity-50 hover:opacity-100 transition-opacity">
                             <button 
-                                onClick={handleCommissionClick}
+                                onClick={onCommission}
                                 disabled={isDisabled}
-                                className="w-full bg-zinc-900 hover:bg-black text-white py-3 font-semibold rounded-md text-xs transition-colors shadow-sm disabled:bg-zinc-200 disabled:text-zinc-400"
+                                className="w-full border border-zinc-300 text-zinc-500 hover:text-black py-2 font-semibold rounded-md text-xs transition-colors"
                             >
-                                {isDisabled ? 'Processing...' : 'Execute Commission'}
+                                Execute (Secondary)
                             </button>
                         </div>
                  </div>
