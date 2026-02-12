@@ -22,6 +22,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOp
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Check for Dev Bypass Session
+  const isDevBypass = session?.user?.id === 'dev-bypass-id';
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setAuthLoading(true);
@@ -102,12 +105,19 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOp
                       >
                           Redaktion
                       </button>
-                      <button 
-                          onClick={handleLogout}
-                          className="text-neutral-400 hover:text-black font-sans font-bold uppercase tracking-[0.15em] text-[9px]"
-                      >
-                          Logout
-                      </button>
+                      
+                      {isDevBypass ? (
+                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded tracking-wide cursor-help" title="Direct access environment detected">
+                              DIRECT ACCESS
+                          </span>
+                      ) : (
+                          <button 
+                              onClick={handleLogout}
+                              className="text-neutral-400 hover:text-black font-sans font-bold uppercase tracking-[0.15em] text-[9px]"
+                          >
+                              Logout
+                          </button>
+                      )}
                   </div>
               ) : (
                   <button 

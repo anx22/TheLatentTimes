@@ -5,6 +5,11 @@ import { AspectRatio, SearchResult } from "../types";
 // The API Key is managed via process.env.API_KEY
 export { Type };
 
+// --- CIRCUIT BREAKER STATE ---
+// If we hit a rate limit on Pro, we downgrade to Flash for this duration.
+let proCooldownUntil = 0;
+const PRO_COOLDOWN_MS = 60000; // 1 Minute
+
 // --- HELPER: ROBUST JSON PARSER ---
 export const cleanAndParseJSON = (text: string | undefined): any => {
     if (!text) return {};
@@ -38,22 +43,34 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
+    // 1. DETERMINE MODEL STRATEGY
+    let currentModel = params.model;
+    const isPro = currentModel.includes('pro') && !currentModel.includes('image'); // Don't downgrade image models
+    
+    // Check Circuit Breaker
+    if (isPro && Date.now() < proCooldownUntil) {
+        const fallbackModel = currentModel.replace('pro', 'flash');
+        console.debug(`[NET] Circuit Open (Quota): Downgrading ${currentModel} -> ${fallbackModel}`);
+        currentModel = fallbackModel;
+    }
+
     // Re-init client to ensure freshness
     const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let delay = 1000; 
-    const maxRetries = 3; // Reduced retry count to fail faster if stuck
+    let delay = 1000;
+    const maxRetries = 3; 
     
     const start = performance.now();
-    const modelName = params.model.split('-')[1] || params.model; 
 
     for (let i = 0; i < maxRetries; i++) {
         try {
-            // console.debug(`[NET] Sending request to ${modelName}...`);
-            const result = await client.models.generateContent(params);
+            const result = await client.models.generateContent({
+                ...params,
+                model: currentModel
+            });
             const duration = Math.round(performance.now() - start);
             
             // Critical Performance Log
-            console.debug(`[NET] ${modelName} OK in ${duration}ms`);
+            console.debug(`[NET] ${currentModel} OK in ${duration}ms`);
             
             return result;
         } catch (e: any) {
@@ -61,12 +78,29 @@ export const safeGenerateContent = async (
             const isRateLimit = e.status === 429 || e.code === 429 || e.message?.includes('429');
             const isTransient = e.status === 503 || e.status === 500 || e.message?.includes('fetch failed');
 
+            // 2. SMART FALLBACK: If Pro fails with Quota, switch to Flash immediately
+            if (isRateLimit && currentModel.includes('pro') && !currentModel.includes('image')) {
+                console.warn(`[NET] Rate Limit on ${currentModel}. Activating Circuit Breaker.`);
+                
+                // Trip the breaker for future requests
+                proCooldownUntil = Date.now() + PRO_COOLDOWN_MS;
+                
+                // Downgrade THIS request immediately
+                currentModel = currentModel.replace('pro', 'flash');
+                console.warn(`[NET] Retrying immediately with ${currentModel}`);
+                
+                // Reset loop counter to give Flash a fair chance (optional, but safer to just continue)
+                // We just continue to the next iteration which uses the new `currentModel`
+                continue; 
+            }
+
+            // 3. STANDARD RETRY: For Flash limits or server errors
             if (isRateLimit || isTransient) {
                  if (i === maxRetries - 1) {
-                     console.error(`[NET] ${modelName} FAILED after ${duration}ms.`, e);
+                     console.error(`[NET] ${currentModel} FAILED after ${duration}ms.`, e);
                      throw e; 
                  }
-                 console.warn(`[NET] ${modelName} Retry ${i+1}/${maxRetries} (${isRateLimit ? 'RateLimit' : 'Error'}) in ${delay}ms`);
+                 console.warn(`[NET] ${currentModel} Retry ${i+1}/${maxRetries} (${isRateLimit ? 'RateLimit' : 'Error'}) in ${delay}ms`);
                  await new Promise(r => setTimeout(r, delay));
                  delay *= 2; 
                  continue;

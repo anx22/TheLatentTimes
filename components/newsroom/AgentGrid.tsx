@@ -11,7 +11,8 @@ interface AgentGridProps {
 export const AgentGrid: React.FC<AgentGridProps> = ({ jobs, onAgentClick }) => {
     return (
         <div className="mb-4 grid grid-cols-2 gap-2">
-            {Object.entries(jobs).map(([role, job]) => {
+            {Object.entries(jobs).map(([role, rawJob]) => {
+                const job = rawJob as AgentJob;
                 const def = AGENT_ROSTER[role];
                 const isActive = job.status === 'WORKING';
                 const isError = job.status === 'ERROR';

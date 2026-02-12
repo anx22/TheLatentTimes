@@ -14,7 +14,7 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
     const toneLogic = formatToneInstruction(targetProfile);
 
     const response = await safeGenerateContent({
-        model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Rewrite
+        model: "gemini-3-pro-preview", // RESTORED TO PRO
         contents: `Act as SENIOR EDITOR. Rewrite this draft to strictly match the requested tone.
         
         TONE DIRECTIVE: ${toneDirective}

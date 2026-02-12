@@ -133,7 +133,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                     <div className="w-full h-full flex">
                         <div className="flex-1 overflow-hidden">
                             <NewsroomBoard 
-                                inbox={[]} 
+                                inbox={[] as Lead[]} 
                                 working={working}
                                 basket={basket}
                                 onSelectLead={(lead) => onSelectLead(lead.id)}

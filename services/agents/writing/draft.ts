@@ -8,7 +8,7 @@ import { getBannedList, STYLE_INSTRUCTION, formatToneInstruction } from "./const
 // 4.2 Outline Builder
 export const agentOutline = async (dossier: SignalDossier, verdict: Verdict): Promise<StoryOutline> => {
   const response = await safeGenerateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-3-pro-preview", // RESTORED TO PRO
     contents: `Create a story outline for "${dossier.topic}".
     Format: ${verdict.placement}.
     Structure:
@@ -51,7 +51,7 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
   const toneLogic = formatToneInstruction(toneProfile);
 
   const response = await safeGenerateContent({
-    model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Drafting (Writer)
+    model: "gemini-3-pro-preview", // RESTORED TO PRO
     contents: `Write the story based on this outline: ${JSON.stringify(outline)}.
     Headline: ${headline}.
     Signal: ${dossier.topic}.

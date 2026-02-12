@@ -87,12 +87,14 @@ const notifyMockAuth = () => {
 // AUTHENTICATION
 export const getSession = async () => {
     if (!IS_CONFIGURED) {
-        // Mock Session Fallback (Client Only)
-        if (typeof window !== 'undefined') {
-            const mock = localStorage.getItem(MOCK_KEY);
-            return mock ? JSON.parse(mock) : null;
-        }
-        return null;
+        // --- BYPASS MODE: AUTO-LOGIN ---
+        // In the AI Studio / Preview environment, we bypass the login screen entirely.
+        // This ensures direct access to the Redaktion tools.
+        return {
+            user: { email: 'editor@modus.news', id: 'dev-bypass-id' },
+            access_token: 'mock-access-token',
+            expires_at: Date.now() + 31536000000 // 1 year
+        };
     }
     const { data } = await supabase.auth.getSession();
     return data.session;
@@ -101,24 +103,21 @@ export const getSession = async () => {
 // Official Login Pattern (Logic Only)
 export const login = async (email: string, password: string) => {
     if (!IS_CONFIGURED) {
-        // MOCK LOGIN FOR DEMO/BUILD ENV
-        const mockSession = {
-            user: { email, id: 'mock-user-id' },
-            access_token: 'mock-token-xyz',
-            expires_at: Date.now() + 3600000
-        };
-        if (typeof window !== 'undefined') {
-            localStorage.setItem(MOCK_KEY, JSON.stringify(mockSession));
-        }
+        // MOCK LOGIN SUCCESS
         notifyMockAuth();
-        return { data: { session: mockSession }, error: null };
+        return { 
+            data: { 
+                session: { user: { email, id: 'dev-bypass-id' }, access_token: 'mock', expires_at: 0 } 
+            }, 
+            error: null 
+        };
     }
     return await supabase.auth.signInWithPassword({ email, password });
 };
 
 export const signUp = async (email: string, password: string) => {
     if (!IS_CONFIGURED) {
-        // MOCK SIGNUP
+        // MOCK SIGNUP SUCCESS
         return { data: { user: { email, id: 'mock-user-id' } }, error: null };
     }
     // Dynamic redirect ensures it works on localhost:5173 or deployed domains
@@ -135,8 +134,8 @@ export const signUp = async (email: string, password: string) => {
 
 export const signOut = async () => {
     if (!IS_CONFIGURED) {
-        if (typeof window !== 'undefined') localStorage.removeItem(MOCK_KEY);
-        notifyMockAuth();
+        // In bypass mode, sign out is a no-op or just reloads to reset state if needed
+        console.log("Sign Out ignored in Direct Access Mode");
         return { error: null };
     }
     return await supabase.auth.signOut();
