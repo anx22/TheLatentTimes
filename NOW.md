@@ -1,8 +1,9 @@
 
+
 # MODUS Redaktionssystem Status
 
-**Current Cycle:** v3.6.0 Agent Gamification
-**Focus:** Visual Intelligence & System Stability
+**Current Cycle:** v3.7.0 Policy & Autonomy
+**Focus:** System Stability & Governance
 
 ## Architecture State (Plan v3.3 Alignment)
 
@@ -42,15 +43,20 @@ We are building an **Agentic Era magazine**: a high-gloss editorial system that 
 - [x] **Agent Split**: `writer.ts` deconstructed into `services/agents/writing/`.
 - [x] **Orchestrator**: Refactored to be stateless; State managed by `useNewsroom`.
 
-### 🔄 Phase 7: Agent Visualization (Gamification) [Active]
+### ✅ Phase 7: Agent Visualization (Gamification)
 - [x] **Agent Grid**: Visual cards for Scout, Critic, Writer, Artist showing real-time status.
 - [x] **Visual Feedback**: Progress bars and specific "Thought" logs on cards.
 - [x] **Error States**: Red-light indicators for failed agents.
 
+### 🔄 Phase 8: Governance Layers [Active]
+- [x] **Autopublish Policy**: Implemented strict gates (Trust > 75, Risk=NONE, Verdict=PUBLISH_READY, FactCheck=PASSED) in `autoPilot`.
+- [ ] **Multi-Modal Artifacts**: Expand `TheAtelier`.
+
 ## Roadmap (Next Steps)
 
-1.  **Autopublish Policy**
-    *   Implement logic to trigger Commission/Publish loops automatically based on score thresholds (The logic exists in `autoPilot`, needs stricter policy tuning).
+1.  **Multi-Modal Artifacts**
+    *   Expand `TheAtelier` to support more complex image workflows.
+    *   Add "Style Transfer" recipes to the Engineer agent.
 
-2.  **Multi-Modal Artifacts**
-    *   Expand `TheAtelier` to support more complex image workflows beyond simple generation.
+2.  **Archive Browser**
+    *   Deeper search within the Archive component.

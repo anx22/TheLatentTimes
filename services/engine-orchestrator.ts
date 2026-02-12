@@ -1,4 +1,5 @@
 
+
 import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, ColumnistPersona, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole } from "../types";
 import { 
   agentQueryOrchestrator, agentDossierCompiler, agentArchivist, 
@@ -313,13 +314,27 @@ export class IssueOrchestrator {
       this.log('SYS', 'AUTOPILOT ENGAGED');
       let publishedCount = 0;
       
+      // 1. SCAN
       const leads = await this.scan(targets, useDemo);
-      const candidates = leads.filter(l => l.score >= 8.5 && l.risk_classification === 'NONE');
+      
+      // 2. STRICT CANDIDATE SELECTION (POLICY GATE A)
+      const candidates = leads.filter(l => {
+          // Rule 1: High Relevance Score
+          if (l.score < 8.0) return false;
+          // Rule 2: Zero Risk Classification for auto-mode
+          if (l.risk_classification !== 'NONE') return false;
+          // Rule 3: Trust Metrics (if available from scanner)
+          if (l.editorial_metrics && l.editorial_metrics.trust < 75) return false;
+          
+          return true;
+      }).sort((a,b) => b.score - a.score).slice(0, 2); // Cap at 2 to preserve quota/focus
       
       if (candidates.length === 0) {
-          this.log('SYS', 'AUTOPILOT: No viable candidates.');
+          this.log('SYS', 'AUTOPILOT: No candidates passed Policy Gate A (Score/Risk/Trust).');
           return { issue: await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta), publishedCount: 0 };
       }
+      
+      this.log('SYS', `AUTOPILOT: Processing ${candidates.length} candidates...`);
 
       for (const lead of candidates) {
           await this.commission(lead, context.theme || "The Synthetic Real", useDemo, config, onUpdate, context);
@@ -327,11 +342,41 @@ export class IssueOrchestrator {
           const story = context.stories[context.stories.length - 1]; 
           const debate = context.debates.find((d: any) => d.id === story?.signal_id);
           
-          if (story && debate?.verdict?.confidence_gate === 'PUBLISH_READY') {
+          // 3. PUBLISHING GATES (POLICY GATE B)
+          let publishable = false;
+          let rejectReason = "Unknown";
+
+          if (!story) {
+             rejectReason = "Generation Failed";
+          } else {
+             const verdict = debate?.verdict;
+             const factCheck = story.fact_check_report;
+             
+             // Gate 1: Editor Verdict
+             const verdictPass = verdict?.confidence_gate === 'PUBLISH_READY';
+             
+             // Gate 2: Fact Check (Critical)
+             // If checking was enabled (config.qualityPass), we must respect the result.
+             // If checked, it must be approved.
+             const factCheckPass = config.qualityPass ? (factCheck?.approved === true) : true;
+             
+             if (verdictPass && factCheckPass) {
+                 publishable = true;
+             } else {
+                 rejectReason = !verdictPass ? `Verdict: ${verdict?.confidence_gate}` : `Fact Check Failed`;
+             }
+          }
+          
+          if (story && publishable) {
              story.status = 'PUBLISHED';
              publishedCount++;
-             this.log('OPS', `AUTOPILOT: Published ${story.headline}`);
+             this.log('OPS', `AUTOPILOT: PUBLISHED "${story.headline}"`);
+          } else if (story) {
+             story.status = 'REVIEW'; // Keep for human review
+             this.log('OPS', `AUTOPILOT: HELD "${story.headline}" (${rejectReason})`);
           }
+          
+          // Cool-down
           await new Promise(r => setTimeout(r, 2000));
       }
 

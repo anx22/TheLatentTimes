@@ -391,18 +391,14 @@ export const saveLogs = async (logs: AgentLog[]): Promise<StorageResult> => {
         });
     
     if (error) {
-        console.warn("DB LOG SYNC FAILED (Using Local Storage Fallback):", error.message);
-        try {
-            localStorage.setItem(KEY_LOGS, JSON.stringify({ 
-                id: KEY_LOGS, 
-                entries: logs.slice(-200),
-                updated_at: new Date().toISOString() 
-            }));
-            // Return success so the UI doesn't flash Red Error for permissions issues
-            return { success: true };
-        } catch (localError) {
-            return { success: false, error: localError };
-        }
+        // Expanded logging for RLS debugging
+        console.error("SUPABASE LOG SYNC ERROR:", {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+        });
+        return { success: false, error };
     }
 
     return { success: true };
@@ -421,9 +417,8 @@ export const loadLogs = async (): Promise<AgentLog[]> => {
         .maybeSingle();
     
     if (error) {
-        console.warn("DB LOG LOAD ERROR (Checking Local):", error.message);
-        const local = localStorage.getItem(KEY_LOGS);
-        return local ? JSON.parse(local).entries : [];
+        console.warn("DB LOG LOAD ERROR:", error.message);
+        return [];
     }
 
     return data?.entries || [];
@@ -432,6 +427,7 @@ export const loadLogs = async (): Promise<AgentLog[]> => {
 export const checkDbConnection = async (): Promise<boolean> => {
     if (!IS_CONFIGURED) return false;
     const { error } = await supabase.from('modus_logs').select('id').limit(1);
+    // If RLS blocks select, this counts as "no connection" for the UI status
     if (error && error.code !== 'PGRST116') return false; 
     return true;
 };
