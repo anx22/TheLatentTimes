@@ -1,43 +1,144 @@
 
-import React, { useEffect, useRef } from 'react';
-import { AgentLog } from '../../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { AgentLog, AgentRole } from '../../types';
+import { AGENT_ROSTER } from '../../services/agent-registry';
 
 export const RiskChip: React.FC<{ risk?: string }> = ({ risk }) => {
-    if (!risk || risk === 'NONE') return <span className="text-[10px] text-emerald-500 font-mono font-bold">SAFE</span>;
-    return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${risk === 'LEGAL' ? 'text-red-500 border-red-900/30 bg-red-900/10' : 'text-amber-500 border-amber-900/30 bg-amber-900/10'}`}>{risk}</span>;
+    if (!risk || risk === 'NONE') return <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">SAFE</span>;
+    
+    let color = 'text-amber-700 bg-amber-50 border-amber-200';
+    if (risk === 'LEGAL') color = 'text-red-700 bg-red-50 border-red-200';
+    
+    return <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${color}`}>{risk}</span>;
 };
 
-export const LogStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({ logs, className }) => {
+// --- NEW: JSON INSPECTOR ---
+export const JsonInspector: React.FC<{ data: any; label?: string }> = ({ data, label = "Raw Object Data" }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="border border-zinc-200 rounded-md bg-white overflow-hidden mt-2">
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex justify-between items-center px-3 py-2 bg-zinc-50 hover:bg-zinc-100 transition-colors text-[10px] font-bold uppercase tracking-widest text-zinc-500"
+            >
+                <span>{label}</span>
+                <span className="font-mono">{isOpen ? '[-]' : '[+]'}</span>
+            </button>
+            {isOpen && (
+                <div className="p-3 bg-[#0A0A0A] overflow-x-auto max-h-[300px] custom-scrollbar border-t border-zinc-200">
+                    <pre className="text-[9px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-all">
+                        {JSON.stringify(data, null, 2)}
+                    </pre>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- NEW: TONE EQ SLIDER (Shared) ---
+export const ToneEQSlider: React.FC<{ label: string; value: number; max: number; onChange?: (v: number) => void }> = ({ label, value, max, onChange }) => (
+    <div className="mb-4">
+        <div className="flex justify-between mb-1">
+            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</span>
+            <span className="text-[9px] font-mono text-zinc-400">{value}/{max}</span>
+        </div>
+        <div className="flex gap-0.5 h-3 cursor-pointer group" onClick={(e) => {
+            if (!onChange) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percent = x / rect.width;
+            const newValue = Math.ceil(percent * max);
+            onChange(Math.max(1, newValue));
+        }}>
+            {Array.from({ length: max }).map((_, i) => (
+                <div 
+                    key={i}
+                    className={`flex-1 rounded-sm transition-all duration-200 ${i < value ? 'bg-indigo-500 group-hover:bg-indigo-400' : 'bg-zinc-200 group-hover:bg-zinc-300'}`}
+                ></div>
+            ))}
+        </div>
+    </div>
+);
+
+// --- NEW: AGENT AVATAR ---
+export const AgentAvatar: React.FC<{ role: string; size?: 'sm' | 'md' }> = ({ role, size = 'sm' }) => {
+    const def = AGENT_ROSTER[role] || { color: 'zinc', icon: '?', name: 'System' };
+    
+    const sizeClasses = size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-8 h-8 text-xs';
+    
+    const colorClasses: Record<string, string> = {
+        emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        red: 'bg-rose-100 text-rose-700 border-rose-200',
+        blue: 'bg-blue-100 text-blue-700 border-blue-200',
+        neutral: 'bg-zinc-100 text-zinc-700 border-zinc-200',
+        purple: 'bg-purple-100 text-purple-700 border-purple-200',
+        white: 'bg-white text-zinc-700 border-zinc-200',
+    };
+
+    const style = colorClasses[def.color] || colorClasses.neutral;
+
+    return (
+        <div className={`${sizeClasses} ${style} rounded-full flex items-center justify-center font-bold border shadow-sm shrink-0`} title={def.name}>
+            {def.icon}
+        </div>
+    );
+};
+
+// --- NEW: TEAM STREAM (Chat Style) ---
+export const TeamStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({ logs, className }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom on new logs
     useEffect(() => {
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [logs.length]);
 
+    // Filter out purely technical logs if needed, or format them
+    const displayLogs = logs.filter(l => l.agent !== 'NET'); 
+
     return (
-        <div className={`overflow-y-auto font-mono text-[10px] space-y-1 opacity-90 custom-scrollbar p-4 bg-[#050505] ${className}`}>
-            {logs.length === 0 && (
-                <div className="text-neutral-700 italic opacity-50 pt-2">System Ready. Awaiting signals...</div>
-            )}
-            {logs.map((l, i) => (
-                <div key={i} className="flex gap-4 border-b border-white/5 pb-1 mb-1 last:border-0 hover:bg-white/5 transition-colors p-1 rounded-sm">
-                    <span className="text-neutral-600 w-16 shrink-0">{l.timestamp.split(' ')[0]}</span>
-                    <span className={`font-bold w-16 shrink-0 text-right ${l.agent === 'SYS' ? 'text-red-500' : l.agent === 'NET' ? 'text-blue-400' : 'text-accent'}`}>
-                        [{l.agent}]
-                    </span>
-                    <span className="text-neutral-300 break-words leading-tight flex-1 font-medium">
-                        {l.message} 
-                        {l.data && (
-                            <span className="block text-neutral-500 mt-1 ml-2 font-mono text-[9px]">
-                                {JSON.stringify(l.data).slice(0, 120)}{JSON.stringify(l.data).length > 120 ? '...' : ''}
-                            </span>
-                        )}
-                    </span>
+        <div className={`overflow-y-auto custom-scrollbar p-4 space-y-4 bg-zinc-50/50 ${className}`}>
+            {displayLogs.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-zinc-300 space-y-2">
+                    <span className="text-xl grayscale opacity-20">👋</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Team Offline</span>
                 </div>
-            ))}
+            )}
+            
+            {displayLogs.map((l, i) => {
+                const isSystem = l.agent === 'SYS' || l.agent === 'OPS';
+                const agentName = AGENT_ROSTER[l.agent]?.name || l.agent;
+                
+                if (isSystem) {
+                    return (
+                        <div key={i} className="flex justify-center my-2">
+                            <span className="text-[9px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                {l.message}
+                            </span>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={i} className="flex gap-3 animate-fade-in group">
+                        <AgentAvatar role={l.agent} />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-2 mb-0.5">
+                                <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-wide">
+                                    {agentName}
+                                </span>
+                                <span className="text-[9px] text-zinc-300 font-mono">
+                                    {l.timestamp.split(' ')[0]}
+                                </span>
+                            </div>
+                            <div className="text-[11px] text-zinc-600 leading-snug bg-white p-2 rounded-tr-lg rounded-br-lg rounded-bl-lg border border-zinc-100 shadow-sm inline-block max-w-full break-words">
+                                {l.message}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
             <div ref={bottomRef} />
         </div>
     );
@@ -49,14 +150,14 @@ export const ToggleGroup: React.FC<{
     value: string; 
     onChange: (val: any) => void 
 }> = ({ label, options, value, onChange }) => (
-    <div className="mb-6">
-        <label className="block text-[10px] font-bold text-neutral-400 mb-3 uppercase tracking-widest">{label}</label>
-        <div className="flex bg-black border border-neutral-800 rounded-sm p-1 gap-1">
+    <div className="mb-4">
+        <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">{label}</label>
+        <div className="flex bg-zinc-100 border border-zinc-200 rounded-md p-1 gap-1">
             {options.map(opt => (
                 <button
                     key={opt}
                     onClick={() => onChange(opt)}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-all rounded-sm ${value === opt ? 'bg-neutral-800 text-white shadow-sm ring-1 ring-neutral-700' : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-900'}`}
+                    className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${value === opt ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
                 >
                     {opt}
                 </button>

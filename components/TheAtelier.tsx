@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { generateImage } from '../services/gemini';
 import { AspectRatio } from '../types';
@@ -23,6 +24,7 @@ export const TheAtelier: React.FC<{ recipe?: any }> = ({ recipe = DEFAULT_RECIPE
   const handleGenerate = async () => {
     if (!prompt) return;
     
+    // Check if key is required for Nanobana, usually good to check for custom key if available
     if (window.aistudio && !await window.aistudio.hasSelectedApiKey()) {
         try {
            await window.aistudio.openSelectKey();
@@ -49,7 +51,7 @@ export const TheAtelier: React.FC<{ recipe?: any }> = ({ recipe = DEFAULT_RECIPE
       <div className="mb-12 border-b border-black pb-4 flex justify-between items-end">
         <div>
           <h2 className="font-display text-5xl mb-2">The Atelier</h2>
-          <p className="font-sans text-xs text-muted-foreground uppercase tracking-[0.2em] font-bold">Generative Studio • Gemini 3 Pro</p>
+          <p className="font-sans text-xs text-muted-foreground uppercase tracking-[0.2em] font-bold">Generative Studio • Gemini 2.5 Flash</p>
         </div>
         <div className="hidden md:block text-[10px] font-sans font-bold tracking-widest">
            SERVER: <span className="text-accent">US-CENTRAL1</span>

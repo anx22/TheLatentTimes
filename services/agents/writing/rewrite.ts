@@ -2,19 +2,23 @@
 import { Type } from "@google/genai";
 import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { RunConfig } from "../../../hooks/useNewsroom";
-import { getBannedList } from "./constants";
+import { getBannedList, formatToneInstruction } from "./constants";
+import { ToneProfile } from "../../../types";
 
-export const agentRewrite = async (draftBody: string[], toneDirective: string, config?: RunConfig): Promise<{ body: string[], critique: string, structured_critique: any[], diff_summary: string }> => {
+export const agentRewrite = async (draftBody: string[], toneDirective: string, config?: RunConfig, targetProfile?: ToneProfile): Promise<{ body: string[], critique: string, structured_critique: any[], diff_summary: string, tone_profile: ToneProfile }> => {
     const text = draftBody.join('\n\n');
     const overrides = config?.overrides;
     const bannedList = getBannedList(overrides?.bannedWords);
     const temperature = overrides?.modelTemperature || 0.7;
+    
+    const toneLogic = formatToneInstruction(targetProfile);
 
     const response = await safeGenerateContent({
         model: "gemini-3-flash-preview", // OPTIMIZATION: Use Flash for Rewrite
         contents: `Act as SENIOR EDITOR. Rewrite this draft to strictly match the requested tone.
         
         TONE DIRECTIVE: ${toneDirective}
+        ${toneLogic}
         GLOBAL BAN LIST: ${bannedList}.
         
         Input Text:
@@ -56,6 +60,7 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
         body: raw.rewritten_body || draftBody,
         critique: raw.critique || "No structural changes required.",
         structured_critique: raw.specific_changes || [],
-        diff_summary: raw.diff_summary || "Minor polish."
+        diff_summary: raw.diff_summary || "Minor polish.",
+        tone_profile: targetProfile || { drama: 3, precision: 3, metaphor_density: 3, adjective_budget: 50, sentence_mode: 'MIXED' }
     };
 };

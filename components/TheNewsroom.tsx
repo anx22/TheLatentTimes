@@ -1,69 +1,62 @@
 
 import React, { useState } from 'react';
-import { IssueContent, AgentLog, Lead, DebateArtifact, StoryArtifact } from '../types';
-import { RunConfig, DbStatus, useNewsroom } from '../hooks/useNewsroom'; 
-import { NewsroomSidebar } from './newsroom/NewsroomSidebar';
-import { NewsroomCanvas } from './newsroom/NewsroomCanvas';
-import { NewsroomConsole } from './newsroom/NewsroomConsole';
+import { IssueContent, AgentLog, Lead, StoryArtifact, Proposal } from '../types';
+import { RunConfig, DbStatus } from '../hooks/useNewsroom'; 
+import { ContentMode } from './newsroom/ContentMode';
+import { LayoutMode } from './newsroom/LayoutMode';
 
 interface NewsroomProps {
   logs: AgentLog[];
-  isProcessing: boolean; // Retained for fallback
-  isScanning?: boolean; // New
-  isCommissioning?: boolean; // New
+  isProcessing: boolean;
+  isScanning?: boolean;
+  isCommissioning?: boolean;
   dbStatus?: DbStatus;
   dbError?: string | null;
   scanWire: (targets: string[], useDemo: boolean) => Promise<void>;
   commissionStory: (lead: Lead, theme: string, useDemo: boolean, config: RunConfig, onUpdate: (partial: IssueContent) => void) => Promise<any>;
   runAutopilot: (targets: string[], theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => Promise<any>;
+  runProposal: (storyId: string, proposal: Proposal, modifiers: { strict: boolean; toneLock: boolean }, onUpdate: (partial: IssueContent) => void) => Promise<any>;
+  approveStory: (storyId: string, onUpdate: (partial: IssueContent) => void) => void;
+  shipBatch: (onUpdate: (partial: IssueContent) => void) => Promise<void>;
+  
   leads: Lead[];
   onPublish: (issue: IssueContent) => void;
   onCancel: () => void;
-  // New props
   channels: string[];
   onAddChannel: (t: string) => void;
   onRemoveChannel: (t: string) => void;
   onPublishArtifact: (artifact: StoryArtifact) => Promise<any>;
-  // Autopilot Control
   isAutopilotActive?: boolean;
   onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
-  
-  // NEW: AGENT VISUALIZATION
   agentJobs: any;
+  currentTemplate: string;
+  onSwitchTemplate: (key: string) => void;
 }
 
 export const TheNewsroom: React.FC<NewsroomProps> = ({ 
-    logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, dbError, scanWire, commissionStory, runAutopilot, leads, onPublish, onCancel,
-    channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot, agentJobs
+    logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, scanWire, commissionStory, runAutopilot, runProposal, approveStory, shipBatch, leads, onPublish, onCancel,
+    channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot, agentJobs,
+    currentTemplate, onSwitchTemplate
 }) => {
-  // Global State
-  const [theme, setTheme] = useState("The Synthetic Real");
+  // MODE SWITCHER STATE
+  const [activeMode, setActiveMode] = useState<'CONTENT' | 'LAYOUT'>('CONTENT');
+
+  const [theme] = useState("The Synthetic Real");
   const [targets, setTargets] = useState(""); 
-  const [useDemo, setUseDemo] = useState(false);
-  
-  // Selection State
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [activeDebate, setActiveDebate] = useState<DebateArtifact | null>(null);
+  const [useDemo] = useState(false);
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [latestIssue, setLatestIssue] = useState<IssueContent | null>(null);
+
+  const inbox = leads; 
+  const working = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status !== 'PUBLISHED' && s.status !== 'APPROVED') : [];
+  const basket = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status === 'APPROVED') : [];
+
+  const activeLead = inbox.find(l => l.id === activeItemId);
+  const activeStory = latestIssue ? [...latestIssue.features, ...latestIssue.columns].find(s => s.id === activeItemId) : undefined;
+  const activeDebate = latestIssue?.debates.find(d => d.id === activeStory?.signal_id);
   
-  // Tracking State
-  const [processedLeadIds, setProcessedLeadIds] = useState<Set<string>>(new Set());
-
-  // View Mode Logic
-  const [viewModeOverride, setViewModeOverride] = useState<'INSPECT' | 'DOSSIER' | 'ARTIFACT' | null>(null);
-  
-  const selectedLead = leads.find(l => l.id === selectedLeadId);
-  const activeStory = latestIssue?.features?.[latestIssue.features.length - 1];
-
-  // Computed View Mode
-  const currentView = viewModeOverride || (activeStory ? 'ARTIFACT' : activeDebate ? 'DOSSIER' : 'INSPECT');
-
   const handleCommission = async (configData: any) => {
-      if (!selectedLead) return;
-      setActiveDebate(null); 
-      setLatestIssue(null);
-      setViewModeOverride('DOSSIER');
-      
+      if (!activeLead) return;
       const config: RunConfig = {
           deepResearch: configData.depth === 'Deep',
           timeWindow: configData.timeWindow,
@@ -79,144 +72,145 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
             modelTemperature: configData.temperature
           }
       };
-
-      const result = await commissionStory(selectedLead, theme, useDemo, config, (partial) => {
-          if (partial.debates && partial.debates.length > 0) {
-              setActiveDebate(partial.debates[partial.debates.length - 1]);
+      await commissionStory(activeLead, theme, useDemo, config, (partial) => {
+          setLatestIssue(partial);
+          const newStories = [...partial.features, ...partial.columns];
+          if (newStories.length > 0) {
+              const newest = newStories[newStories.length - 1];
+              if (activeLead && newest.signal_id.includes(activeLead.id.replace('lead_',''))) {
+                  setActiveItemId(newest.id); 
+              }
           }
       });
-
-      if (result) {
-          setLatestIssue(result);
-          setViewModeOverride('ARTIFACT');
-          // Mark lead as processed locally so we don't re-run it immediately
-          setProcessedLeadIds(prev => new Set(prev).add(selectedLead.id));
-      }
   };
 
   const handleScan = async (overrideTargets?: string) => {
-      // Use override if provided (e.g. random selection), otherwise use state
       const t = overrideTargets || targets;
       if (!t.trim()) return;
       const targetList = t.split(',').map(s => s.trim());
       await scanWire(targetList, useDemo);
   };
   
-  const handleAutopilot = async () => {
-      // Manual single-run triggered from Console (kept for backward compat or manual override)
-      if (!targets.trim()) return;
-      const targetList = targets.split(',').map(s => s.trim());
-      const result = await runAutopilot(targetList, theme, useDemo, (partial) => {
-           if (partial.debates && partial.debates.length > 0) {
-              setActiveDebate(partial.debates[partial.debates.length - 1]);
-          }
+  const handleApplyProposal = async (p: Proposal, modifiers: { strict: boolean; toneLock: boolean }) => {
+      if (!activeStory) return;
+      await runProposal(activeStory.id, p, modifiers, (partial) => {
+          setLatestIssue(partial);
       });
-      if (result) {
-          setLatestIssue(result);
-          setViewModeOverride('ARTIFACT');
-      }
-  };
-  
-  const handleToggleAutopilot = () => {
-      if (onToggleAutopilot) {
-          // Toggle logic
-          onToggleAutopilot(!isAutopilotActive, theme, useDemo, (partial) => {
-              // Update local state when Autopilot finds something
-              if (partial.features && partial.features.length > 0) {
-                  setLatestIssue(partial);
-                  // Don't override view mode aggressively in background mode
-              }
-          });
-      }
   };
 
-  const handlePublishArtifact = async (artifact: StoryArtifact) => {
-      const updatedIssue = await onPublishArtifact(artifact);
-      if (updatedIssue) {
-          onPublish(updatedIssue);
-      }
+  const handleApprove = (id: string) => {
+      approveStory(id, (partial) => setLatestIssue(partial));
+      setActiveItemId(null); 
   };
-  
-  const handleResetWorkspace = () => {
-      setLatestIssue(null);
-      setActiveDebate(null);
-      setSelectedLeadId(null);
-      setViewModeOverride('INSPECT');
+
+  const handleShipBatch = async () => {
+      await shipBatch((partial) => setLatestIssue(partial));
   };
 
   return (
-    <div className="fixed inset-0 bg-black text-white font-mono z-50 flex flex-col text-sm antialiased selection:bg-accent selection:text-white">
+    <div className="fixed inset-0 bg-zinc-50 text-zinc-900 font-sans z-50 flex flex-col antialiased">
       
-      {/* GLOBAL HEADER */}
-      <header className="h-14 border-b border-neutral-900 bg-[#0A0A0A] flex justify-between items-center px-6 shrink-0 select-none">
-          <div className="flex items-center gap-8">
-              <span className="font-bold tracking-[0.2em] text-white text-base">MODUS <span className="text-neutral-600">//</span> OPS</span>
-              <div className="h-4 w-px bg-neutral-800"></div>
-              <span className="text-xs text-neutral-500 font-sans tracking-widest uppercase">
-                  UNIT: <span className="text-neutral-300">{theme.toUpperCase()}</span>
-              </span>
+      {/* HEADER: Clean SaaS Style with Tabs */}
+      <header className="h-14 border-b border-zinc-200 bg-white flex justify-between items-center px-6 shrink-0 z-20 shadow-sm">
+          <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-black rounded flex items-center justify-center text-white font-display font-bold text-xs">M</div>
+                  <span className="font-semibold text-sm tracking-tight text-zinc-900">Modus <span className="text-zinc-400 font-normal">/ OPS</span></span>
+              </div>
+              <div className="h-4 w-px bg-zinc-200 mx-2"></div>
+              
+              {/* MODE TABS */}
+              <div className="flex bg-zinc-100 p-1 rounded-md gap-1">
+                  <button 
+                    onClick={() => setActiveMode('CONTENT')}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-sm transition-all ${activeMode === 'CONTENT' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-zinc-900'}`}
+                  >
+                      1. Content Mode
+                  </button>
+                  <button 
+                    onClick={() => setActiveMode('LAYOUT')}
+                    className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-sm transition-all ${activeMode === 'LAYOUT' ? 'bg-white shadow-sm text-black' : 'text-zinc-500 hover:text-zinc-900'}`}
+                  >
+                      2. Layout Mode
+                  </button>
+              </div>
           </div>
+          
           <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 px-3 py-1 bg-neutral-900 rounded-full border border-neutral-800">
-                  <div className={`w-2 h-2 rounded-full ${dbStatus === 'CONNECTED' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`}></div>
-                  <span className="text-[10px] font-bold text-neutral-400 tracking-wider">{dbStatus}</span>
+              {/* Status Pills */}
+              <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border ${isScanning ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-zinc-200 text-zinc-500'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${isScanning ? 'bg-amber-500 animate-pulse' : 'bg-zinc-300'}`}></div>
+                      <span className="text-[10px] font-semibold tracking-wide">WIRE</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border ${isProcessing ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-zinc-200 text-zinc-500'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${isProcessing ? 'bg-indigo-500 animate-pulse' : 'bg-zinc-300'}`}></div>
+                      <span className="text-[10px] font-semibold tracking-wide">AGENTS</span>
+                  </div>
               </div>
               
-              <button 
-                onClick={onCancel} 
-                className="text-xs font-bold text-neutral-500 hover:text-white border border-transparent hover:border-neutral-700 px-3 py-1 rounded transition-all"
-              >
-                  ESC
+              <div className="h-4 w-px bg-zinc-200"></div>
+
+              <button onClick={onCancel} className="text-zinc-400 hover:text-zinc-900 transition-colors">
+                  <span className="text-xl leading-none">×</span>
               </button>
           </div>
       </header>
 
-      {/* 3-COLUMN LAYOUT */}
-      <div className="flex-1 flex overflow-hidden">
-          
-          <NewsroomSidebar 
-            targets={targets}
-            setTargets={setTargets}
-            onScan={handleScan}
-            onFeedScan={() => scanWire(['FEEDS'], useDemo)}
-            leads={leads}
-            selectedLeadId={selectedLeadId}
-            onSelectLead={setSelectedLeadId}
-            useDemo={useDemo}
-            channels={channels}
-            onAddChannel={onAddChannel}
-            onRemoveChannel={onRemoveChannel}
-            processedLeadIds={processedLeadIds}
-            isScanning={isScanning}
+      {/* DUAL MODE VIEWPORT */}
+      {activeMode === 'CONTENT' ? (
+          <ContentMode 
+              leads={inbox}
+              working={working}
+              basket={basket}
+              activeLead={activeLead}
+              activeStory={activeStory}
+              activeDebate={activeDebate}
+              logs={logs}
+              isProcessing={isProcessing}
+              isScanning={isScanning}
+              isCommissioning={isCommissioning}
+              onSelectLead={(id) => setActiveItemId(id)}
+              onSelectStory={(id) => setActiveItemId(id)}
+              onShipBatch={handleShipBatch}
+              targets={targets}
+              setTargets={setTargets}
+              onScan={handleScan}
+              onFeedScan={() => scanWire(['FEEDS'], useDemo)}
+              useDemo={useDemo}
+              channels={channels}
+              onAddChannel={onAddChannel}
+              onRemoveChannel={onRemoveChannel}
+              latestIssue={latestIssue}
+              onCommission={handleCommission}
+              onAutopilot={() => {}}
+              onPublish={onPublish}
+              agentJobs={agentJobs}
+              currentTemplate={currentTemplate}
+              onSwitchTemplate={onSwitchTemplate}
+              onApplyProposal={handleApplyProposal}
+              onApproveStory={handleApprove}
           />
+      ) : (
+          <LayoutMode 
+              issue={latestIssue || {
+                  meta: { run_id: 'init', issue_id: '', vol: '', theme: '', date: '', editor: '', status: 'COLLECTING' },
+                  ticker: [], cover: { eyebrow: '', title: '', deck: '', coverlines: [], imgPrompt: '' },
+                  features: [], columns: [], drops: [], edit: [], atelier: [], debates: [], index_keys: [], colophon: { contributors: [], sources: [], corrections: [] }
+              }}
+              onUpdateIssue={(updated) => setLatestIssue(updated)}
+              currentTemplate={currentTemplate}
+              onSwitchTemplate={onSwitchTemplate}
+          />
+      )}
 
-          <NewsroomCanvas 
-            currentView={currentView}
-            setViewMode={setViewModeOverride}
-            selectedLead={selectedLead}
-            activeDebate={activeDebate}
-            activeStory={activeStory}
-            isScanning={isScanning}
-            isCommissioning={isCommissioning}
-            logs={logs}
-          />
-
-          <NewsroomConsole 
-             logs={logs} // Passed but unused in UI, kept for logic compat
-             isProcessing={isProcessing} 
-             isCommissioning={isCommissioning}
-             selectedLead={selectedLead}
-             activeStory={activeStory}
-             latestIssue={latestIssue}
-             onCommission={handleCommission}
-             onAutopilot={handleAutopilot}
-             onPublish={onPublish}
-             onPublishArtifact={handlePublishArtifact}
-             onReset={handleResetWorkspace}
-             isAutopilotActive={isAutopilotActive}
-             onToggleAutopilot={handleToggleAutopilot}
-             agentJobs={agentJobs}
-          />
+      {/* STATUS BAR */}
+      <div className="h-8 border-t border-zinc-200 bg-white flex items-center justify-between px-6 text-[10px] font-medium text-zinc-500 shrink-0">
+          <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'CONNECTED' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+              <span>Database: {dbStatus === 'CONNECTED' ? 'Connected' : 'Offline'}</span>
+          </div>
+          <div className="font-mono">{activeItemId ? `ID: ${activeItemId}` : 'IDLE'}</div>
       </div>
     </div>
   );

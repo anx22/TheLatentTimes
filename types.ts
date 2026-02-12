@@ -1,16 +1,128 @@
 
-
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
+// --- v3.0 LAYOUT ENGINE TYPES ---
+
+// 1. CONTENT ENTITIES
+export type MagazineItemStatus = 'ingested' | 'approved' | 'rejected' | 'published' | 'review';
+export type FeaturedLevel = 'none' | 'featured' | 'hero';
+
+export interface MagazineItemScore {
+    recency: number;
+    trust: number;
+    novelty: number;
+    visual_fit: number;
+    final: number;
+}
+
+export interface MagazineItem {
+    id: string;
+    source_id?: string;
+    title: string;
+    dek?: string;
+    url?: string;
+    domain?: string;
+    published_at: string;
+    author?: string;
+    
+    // Content
+    raw_excerpt?: string;
+    media_type: 'text' | 'image' | 'video' | 'audio';
+    hero_image_url?: string;
+    tags: string[];
+    
+    // State
+    status: MagazineItemStatus;
+    featured_level: FeaturedLevel;
+    score?: MagazineItemScore;
+    
+    // Editorial Enrichment
+    editorial_summary?: string;
+    generated_layout_config?: any;
+}
+
+export type StatementType = 'hero_phrase' | 'quote' | 'manifesto' | 'micro_lane';
+
+export interface Statement {
+    id: string;
+    type: StatementType;
+    text: string;
+    tags: string[];
+    status: 'draft' | 'approved';
+}
+
+// 2. LAYOUT & BLOCKS
+export type BlockType = 
+    // Chrome
+    | 'MastheadLane' 
+    | 'TopicTicker' 
+    | 'StatsStrip'
+    // Content
+    | 'HeroTypePlate' 
+    | 'FeatureCard' 
+    | 'FeatureTriptych'
+    | 'QuotePlate' 
+    | 'BlackManifestoPanel' 
+    | 'CategoryColumn'
+    | 'TeaserIndexRail'
+    | 'KitFeatureCTA'
+    | 'MicroIndex';
+
+export type BlockVariant = 'S' | 'M' | 'L' | 'XL';
+export type ChaosType = 'none' | 'breakout_left' | 'breakout_right' | 'overlap_badge' | 'tilt_hover';
+
+export interface BlockInstance {
+    id: string;
+    block_type: BlockType;
+    col_span: number; // 1-12
+    row_span?: number;
+    variant: BlockVariant;
+    chaos_type?: ChaosType; // NEW: Controls grid breaking
+    
+    // Data Binding
+    data_binding: {
+        source: 'static' | 'query' | 'pinned';
+        query_tags?: string[];
+        query_limit?: number;
+        pinned_item_id?: string;
+        static_content?: any;
+    };
+}
+
+export interface Section {
+    id: string;
+    order: number;
+    layout_mode: 'grid_12' | 'flex_row' | 'fixed_height';
+    blocks: BlockInstance[];
+    className?: string; // For chaos moves or specific spacing
+}
+
+export interface PageTemplate {
+    key: string; // e.g., 'T1_CoverRail'
+    name: string;
+    description: string;
+    sections: Section[];
+}
+
+export interface Issue {
+    id: string;
+    issue_no: number;
+    title: string;
+    template_key: string;
+    items: MagazineItem[];
+    statements: Statement[];
+    published_at?: string;
+}
+
+
+// --- LEGACY / MIGRATION TYPES (To be deprecated) ---
 export interface SearchResult {
   text: string;
   groundingUrls: Array<{ title: string; url: string }>;
 }
 
-export type ArtifactStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'REJECTED';
+export type ArtifactStatus = 'DRAFT' | 'REVIEW' | 'APPROVED' | 'PUBLISHED' | 'REJECTED';
 export type ColumnistPersona = 'THE_CRITIC' | 'THE_OPTIMIST' | 'THE_GHOST';
-
-// --- AGENT SYSTEM TYPES ---
 export type AgentRole = 'SCOUT' | 'CRITIC' | 'WRITER' | 'EDITOR' | 'ARTIST' | 'ENGINEER';
 export type AgentStatus = 'IDLE' | 'THINKING' | 'WORKING' | 'WAITING' | 'DONE' | 'ERROR';
 
@@ -19,24 +131,22 @@ export interface AgentDef {
     name: string;
     role: AgentRole;
     description: string;
-    color: string; // Tailwind class partial e.g. "emerald"
+    color: string;
     icon: string;
 }
 
 export interface AgentJob {
     agentId: string;
     status: AgentStatus;
-    currentTask: string; // "Scanning 45 URLs..."
-    progress: number; // 0-100
-    lastActive: number; // Timestamp
+    currentTask: string;
+    progress: number;
+    lastActive: number;
 }
 
-// --- DIVERSITY TAXONOMY (The Mix) ---
 export type ContentTopic = 'CREATIVE' | 'ENGINEERING' | 'BUSINESS' | 'CULTURE';
 export type ContentFormat = 'ESSAY' | 'TOOL' | 'CASE_STUDY' | 'TUTORIAL' | 'MANIFESTO';
 export type MediaType = 'TEXT' | 'VIDEO' | 'AUDIO' | '3D_MODEL';
 
-// --- PHASE 0: RETRIEVAL & SNAPSHOTS (PLAN v3.0 SEC 4) ---
 export interface RetrievalItem {
   title: string;
   url: string;
@@ -51,7 +161,6 @@ export interface RetrievalSnapshot {
   items: RetrievalItem[];
 }
 
-// --- PHASE 0: TRIGGER & METADATA ---
 export interface IssueMeta {
   run_id: string;
   issue_id: string;
@@ -59,104 +168,84 @@ export interface IssueMeta {
   theme: string;
   date: string;
   editor: string;
+  template_key?: string; // NEW: Controls the active layout
+  chaos_budget?: number; // 0-2 (0=Clean, 1=Editorial, 2=Experimental)
   status: 'COLLECTING' | 'DEBATING' | 'WRITING' | 'LAYOUT' | 'PUBLISHED';
   metrics?: {
     signals_ingested: number;
-    diversity_score?: number; // New Metric
+    diversity_score?: number;
     avg_confidence: number;
     error_rate: number;
   };
   ticker?: string[];
 }
 
-// --- PHASE 0.5: SCANNING (NEW) ---
 export interface Lead {
   id: string;
-  target_topic: string; // The search term used
+  target_topic: string;
   headline: string;
-  score: number; // 0-10 Relevance
+  score: number;
   type: 'BREAKING' | 'ANALYSIS' | 'FEATURE' | 'NOISE';
-  context: string; // Brief summary for the editor
-  source_ref?: string; // Domain that triggered this
-  
-  // UI SPEC ADDITIONS (STEP 1)
-  why_now?: string; // Short urgency context
+  context: string;
+  source_ref?: string;
+  why_now?: string;
   risk_classification?: 'LEGAL' | 'MEDICAL' | 'MARKET' | 'BRAND' | 'NONE';
   editorial_metrics?: {
-      trust: number; // 0-100
-      novelty: number; // 0-100
-      impact: number; // 0-100
-      editorial_fit: number; // 0-100
+      trust: number;
+      novelty: number;
+      impact: number;
+      editorial_fit: number;
   };
-
-  // Diversity Hints (Pre-Commission)
   detected_topic?: ContentTopic;
   detected_format?: ContentFormat;
-  
-  // Deduplication
   duplicate?: boolean;
 }
 
-// --- PHASE 1: SIGNAL COLLECTION ---
-export interface ScoringMatrix {
-  novelty: number;        // 0-5
-  cultural_voltage: number; // 0-5
-  practical_craft: number;  // 0-5
-  proof_strength: number;   // 0-5
-  heat: number;           // 0-5
-  longevity: number;      // 0-5
-}
-
-// UPDATED FOR STEP 2: FORENSIC CLAIMS
 export interface SignalClaim {
   id: string;
   text: string;
   status: 'VERIFIED' | 'DISPUTED' | 'SPECULATIVE';
-  confidence: number; // 0-100
-  supporting_sources: number[]; // Indices of RetrievalItems that support this
-  evidence_snippet?: string; // Direct quote from source
-  explanation?: string; // Why is it disputed/speculative?
+  confidence: number;
+  supporting_sources: number[];
+  evidence_snippet?: string;
+  explanation?: string;
 }
 
-// Strict Dossier Schema
+export interface ScoringMatrix {
+  novelty: number;
+  cultural_voltage: number;
+  practical_craft: number;
+  proof_strength: number;
+  heat: number;
+  longevity: number;
+}
+
 export interface SignalDossier {
   id: string;
   topic: string;
-  retrieval_snapshot: RetrievalSnapshot; // AUDIT TRAIL (Now Mandatory)
-  
-  // Optional/Progressive fields
-  title_candidate?: string; // "Working Title"
-  what_happened?: string; // 1 sentence
-  why_now?: string; // 1 sentence
-  
-  // Fields used by agents/legacy code
+  retrieval_snapshot: RetrievalSnapshot;
+  title_candidate?: string;
+  what_happened?: string;
+  why_now?: string;
   one_liner?: string;
   source_url?: string;
   source_urls?: string[];
-
   claims: SignalClaim[];
-  
-  // Categorized Sources
   primary_sources?: Array<{ title: string; url: string; type: 'doc' | 'paper' | 'release' | 'repo' }>;
   secondary_sources?: Array<{ title: string; url: string; type: 'news' | 'opinion' | 'social' }>;
-  
-  entities?: string[]; // Detected Tools/People/Orgs
+  entities?: string[];
   tags?: {
     topic_cluster: string;
     format: string;
     complexity: 'low' | 'mid' | 'high';
   };
-  
   scores: ScoringMatrix;
-  risk_flags?: string[]; // Marketing fluff, unclear demo, etc.
-  
+  risk_flags?: string[];
   timestamp?: string;
-  verdict?: Placement; // Assigned in Phase 2/3
+  verdict?: Placement;
 }
 
 export type Signal = SignalDossier;
-
-// --- PHASE 2 & 3: PITCH & VERDICT ---
 export type Placement = 'COVER' | 'FEATURE' | 'COLUMN' | 'ATELIER' | 'NOTE' | 'INDEX' | 'DROP' | 'HOLD';
 
 export interface Pitch {
@@ -168,9 +257,7 @@ export interface Pitch {
   craft_potential: number;
   suggested_placement: Placement;
   risk_summary: string;
-  suggested_persona?: ColumnistPersona; // New for Iteration 2
-  
-  // Diversity Suggestions
+  suggested_persona?: ColumnistPersona;
   suggested_topic?: ContentTopic;
   suggested_format?: ContentFormat;
 }
@@ -183,37 +270,31 @@ export interface Verdict {
   tone_directives: string;
   reason: string;
   required_assets: string[];
-  assigned_persona?: ColumnistPersona; // New for Iteration 2
-  
-  // Final Diversity Assignment
+  assigned_persona?: ColumnistPersona;
   assigned_topic: ContentTopic;
   assigned_format: ContentFormat;
   primary_media: MediaType;
 }
 
-// NEW FOR ITERATION 8 (The Big Plan): Debate Artifact
 export interface DebateArtifact {
-  id: string; // matches signal_id
+  id: string;
   topic: string;
-  dossier: SignalDossier; // NEW: Full Forensic Context
+  dossier: SignalDossier;
   scores: ScoringMatrix;
   pitches: Pitch[];
   verdict?: Verdict;
 }
 
-// --- PHASE 4: WRITING PIPELINE ARTIFACTS ---
-
 export interface HeadlineSet {
-  vogue_verdict: string[]; // Authoritative
-  new_yorker_wit: string[]; // Dry/Clever
-  paradox: string[]; // Backslash/Contrast
-  neutral: string[]; // Index style
+  vogue_verdict: string[];
+  new_yorker_wit: string[];
+  paradox: string[];
+  neutral: string[];
   deks: string[];
-  // Plan v3 Section 9.3: Headline Types (By Function)
   functional_copy?: {
-      cover_line: string; // Max statement
-      index_line: string; // Signal utility
-      social_teaser: string; // Engagement hook
+      cover_line: string;
+      index_line: string;
+      social_teaser: string;
   };
 }
 
@@ -228,12 +309,12 @@ export interface HeadlineDecisionLog {
 
 export interface CritiquePoint {
     point: string;
-    paragraph_indices: number[]; // Indices in the *rewritten* text
+    paragraph_indices: number[];
 }
 
 export interface RewriteIter {
     version: number;
-    text: string[]; // body paragraphs
+    text: string[];
     critique?: string;
     structured_critique?: CritiquePoint[];
     diff_summary?: string;
@@ -247,12 +328,11 @@ export interface RewriteChain {
 
 export interface StoryOutline {
   lead: string;
-  beats: string[]; // The main points
-  turn: string; // The contrarian or deepening angle
+  beats: string[];
+  turn: string;
   close: string;
 }
 
-// --- PHASE 4 & 5: ASSETS (STORY & RECIPE) ---
 export interface Citation {
   source: string;
   confidence: number;
@@ -271,22 +351,63 @@ export interface FactCheckReport {
   corrections: string[];
 }
 
-// New for Iteration 3: Structured Visual Brief
 export interface ImageBrief {
   concept: string;
   visual_metaphor: string;
   color_palette: string;
   composition: string;
-  technical_prompt: string; // The actual midjourney/flux string
+  technical_prompt: string;
 }
 
-// NEW FOR ITERATION 2.0 (Layout Intelligence)
 export interface LayoutDirectives {
   template: 'MINIMAL' | 'EDITORIAL' | 'IMMERSIVE';
   headline_scale: 'STANDARD' | 'MASSIVE' | 'DISPLAY';
   hero_position: 'TOP' | 'SPLIT_RIGHT' | 'BACKGROUND';
   alignment: 'LEFT' | 'CENTER';
   drop_cap: boolean;
+}
+
+export interface Proposal {
+    id: string;
+    type: 'REWRITE' | 'FACT_CHECK' | 'HEADLINE_GEN' | 'IMAGE_GEN' | 'DROP_CLAIM';
+    label: string;
+    impact: string;
+    agent: AgentRole;
+    scope: 'FULL' | 'HEADLINE' | 'BODY';
+    params?: any;
+    cost_estimate?: string;
+    confidence_delta?: number;
+    risk_delta?: number;
+}
+
+export interface StoryVariant {
+    id: string;
+    timestamp: number;
+    headline: string;
+    body: string[];
+    diff_summary?: string;
+}
+
+export interface SourceMix {
+    mainstream: boolean;
+    indie: boolean;
+    academic: boolean;
+    social: boolean;
+}
+
+export interface ToneProfile {
+    drama: number;
+    precision: number;
+    metaphor_density: number;
+    adjective_budget: number;
+    sentence_mode: 'TIGHT' | 'MIXED' | 'LONG';
+}
+
+export interface SignatureBlock {
+    id: string;
+    type: 'THE_CANON' | 'COUNTERPOINT' | 'VERDICT' | 'DELTA' | 'QUOTE';
+    heading: string;
+    content: string;
 }
 
 export interface StoryArtifact {
@@ -302,25 +423,29 @@ export interface StoryArtifact {
   footnotes: Footnote[];
   pull_quote: string;
   citations: Citation[];
-  img_prompt: string; // Legacy simple prompt
-  img_brief?: ImageBrief; // New detailed brief
-  layout?: LayoutDirectives; // NEW: The Art Director's instructions
+  img_prompt: string;
+  img_brief?: ImageBrief;
+  layout?: LayoutDirectives;
   img_caption: string;
-  img_base64?: string; // NEW: The actual generated image
-  fact_check_report?: FactCheckReport; // NEW: Verification result
-  
-  // Phase 4 Audit Trail
+  img_base64?: string;
+  fact_check_report?: FactCheckReport;
   rewrite_chain?: RewriteChain;
   headline_log?: HeadlineDecisionLog;
-  headline_candidates?: HeadlineSet; // Store full set for UI
-
-  // Diversity Tags
+  headline_candidates?: HeadlineSet;
   topic: ContentTopic;
   format: ContentFormat;
   media_type: MediaType;
+  variants?: StoryVariant[];
+  pending_proposals?: Proposal[];
+  drift_metric?: {
+      score: number;
+      last_check: string;
+      contradictions: string[];
+  };
+  tone_profile?: ToneProfile;
+  signature_blocks?: SignatureBlock[];
 }
 
-// ITERATION 1: DROP ARTIFACT (Strict Format)
 export interface DropArtifact {
   id: string;
   signal_id: string;
@@ -332,7 +457,6 @@ export interface DropArtifact {
   footer_context: string; 
   label: 'Reported' | 'Opinion' | 'Experimental';
   citations: Citation[];
-  
   topic: ContentTopic;
   format: ContentFormat;
 }
@@ -349,37 +473,32 @@ export interface RecipeArtifact {
   steps: string[];
   failure_modes: string[];
   warning?: string;
-  
-  // Recipes are implicitly ENGINEERING / TOOL
 }
 
 export type Recipe = RecipeArtifact;
 
-// --- PHASE 6 & 7: ASSEMBLY & ISSUE ---
 export interface IssueContent {
   meta: IssueMeta;
   ticker: string[];
-  
   cover: {
     eyebrow: string;
     title: string;
     deck: string;
     coverlines: Array<{ eyebrow: string; title: string; deck: string }>;
     imgPrompt: string;
-    img_base64?: string; // NEW: The actual cover image
+    img_base64?: string;
   };
   
-  // Updated for Iteration 1: Now supports full Drops, falls back to legacy simple items if needed
-  drops: DropArtifact[];
-  edit: Array<{ category: string; title: string; desc: string }>; // Legacy/Fallback
-  
-  // NEW: Debate Transcripts (Visible in Newsroom)
-  debates: DebateArtifact[];
+  // v3.0 Content
+  items?: MagazineItem[];
 
+  // Legacy Artifacts (Kept for compat)
+  drops: DropArtifact[];
+  edit: Array<{ category: string; title: string; desc: string }>;
+  debates: DebateArtifact[];
   features: StoryArtifact[];
   columns: StoryArtifact[];
   atelier: RecipeArtifact[];
-  
   index_keys: Array<{ term: string; category: string }>;
   colophon: {
     contributors: string[];

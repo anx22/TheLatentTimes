@@ -1,199 +1,201 @@
 
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { CoverStory } from './components/CoverStory';
-import { TheEdit } from './components/TheEdit';
-import { FeatureSpread } from './components/FeatureSpread';
-import { ColumnSection } from './components/ColumnSection';
-import { RecipeSection } from './components/RecipeSection';
-import { Footer } from './components/Footer';
+import { LayoutEngine } from './components/layout/LayoutEngine';
+import { IssueContent, PageTemplate, MagazineItem } from './types';
+import { getSession } from './services/storage';
 import { TheNewsroom } from './components/TheNewsroom';
-import { TheArchive } from './components/TheArchive'; // New
-import { Ticker } from './components/ui/Ticker';
-import { Spread } from './components/ui/Editorial';
-import { RunwayNotes, Lookbook } from './components/ui/Fashion';
-import { IssueContent } from './types';
 import { useNewsroom } from './hooks/useNewsroom';
-import { loadIssue, saveIssue, getSession, supabase, IS_CONFIGURED } from './services/storage';
+import { TEMPLATE_REGISTRY } from './services/templates';
+import { Header } from './components/Header'; // Restored Import
+
+// --- MOCK V3 CONTENT (The "MagazineItems") ---
+const MOCK_ITEMS: MagazineItem[] = [
+    {
+        id: 'item_1',
+        title: "The Architecture of Latent Space",
+        dek: "Why modern LLMs are developing a spatial understanding of concepts, and what it means for digital geography.",
+        published_at: new Date().toISOString(),
+        tags: ['Theory', 'Engineering'],
+        media_type: 'image',
+        hero_image_url: 'https://picsum.photos/800/600?random=1',
+        status: 'published',
+        featured_level: 'featured',
+        score: { final: 9, recency: 10, trust: 8, novelty: 9, visual_fit: 10 }
+    },
+    {
+        id: 'item_2',
+        title: "Glitch as Currency",
+        dek: "In a world of perfect generation, the artifact is the only proof of humanity left.",
+        published_at: new Date().toISOString(),
+        tags: ['Culture', 'Art'],
+        media_type: 'image',
+        hero_image_url: 'https://picsum.photos/800/600?random=2',
+        status: 'published',
+        featured_level: 'featured',
+        score: { final: 8, recency: 7, trust: 9, novelty: 8, visual_fit: 9 }
+    },
+    {
+        id: 'item_3',
+        title: "Recursive Self-Improvement",
+        dek: "Agents building agents. The loop is closing faster than we thought.",
+        published_at: new Date().toISOString(),
+        tags: ['Engineering', 'Future'],
+        media_type: 'text',
+        hero_image_url: 'https://picsum.photos/800/600?random=3',
+        status: 'published',
+        featured_level: 'none',
+        score: { final: 7, recency: 9, trust: 8, novelty: 7, visual_fit: 6 }
+    },
+    {
+        id: 'item_4',
+        title: "Synthetic Biology",
+        dek: "Designing life from the code up. The new frontier of biological engineering.",
+        published_at: new Date().toISOString(),
+        tags: ['Science', 'Future'],
+        media_type: 'image',
+        hero_image_url: 'https://picsum.photos/800/600?random=4',
+        status: 'published',
+        featured_level: 'none',
+        score: { final: 9, recency: 8, trust: 9, novelty: 10, visual_fit: 8 }
+    },
+    {
+        id: 'item_5',
+        title: "Quantum Supremacy",
+        dek: "Google's Sycamore processor achieves what supercomputers cannot.",
+        published_at: new Date().toISOString(),
+        tags: ['Science', 'Engineering'],
+        media_type: 'image',
+        hero_image_url: 'https://picsum.photos/800/600?random=5',
+        status: 'published',
+        featured_level: 'none',
+        score: { final: 8, recency: 9, trust: 9, novelty: 9, visual_fit: 7 }
+    }
+];
+
+// Initial Data State
+const SHELL_DATA: IssueContent = {
+    meta: {
+        run_id: 'shell_v3',
+        issue_id: 'shell_v3',
+        vol: 'VOL. 3.0',
+        theme: 'SELF-ASSEMBLY',
+        date: 'SEPT 2025',
+        editor: 'SYSTEM',
+        status: 'COLLECTING',
+        template_key: 'T1_CoverRail', // Default
+        metrics: { signals_ingested: 124, avg_confidence: 94, error_rate: 0 }
+    },
+    items: MOCK_ITEMS, 
+    ticker: ["MODUS ENGINE V3.0", "SWISS GRID ACTIVE", "LAYOUT: SELF-ASSEMBLING", "WAITING FOR SIGNAL"],
+    cover: {
+        eyebrow: "SYSTEM UPDATE",
+        title: "TABULA RASA", 
+        deck: "The page is blank. The grid is rigid. The agents are waiting.",
+        coverlines: [],
+        imgPrompt: "Void",
+        img_base64: ""
+    },
+    edit: [],
+    drops: [],
+    debates: [],
+    features: [],
+    columns: [],
+    atelier: [],
+    index_keys: [],
+    colophon: { contributors: [], sources: [], corrections: [] }
+};
 
 const App: React.FC = () => {
-  const [issue, setIssue] = useState<IssueContent | null>(null);
-  const [showNewsroom, setShowNewsroom] = useState(false);
-  const [showArchive, setShowArchive] = useState(false); // New
+  const [issue, setIssue] = useState<IssueContent>(SHELL_DATA);
   const [hydrated, setHydrated] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [showNewsroom, setShowNewsroom] = useState(false);
+  const [session, setSession] = useState<any>(null); // Track session for Header
   
-  // Use new hook destructuring
-  const { 
-      logs, isProcessing, scanWire, commissionStory, runAutopilot, publishArtifact, leads, dbStatus, dbError,
-      channels, addChannel, removeChannel, 
-      isAutopilotActive, toggleAutopilot, // New
-      agentJobs // NEW: AGENT VISUALIZATION
-  } = useNewsroom();
+  // Use Newsroom Hook for logic
+  const newsroom = useNewsroom();
 
-  // 1. Auth Listener
   useEffect(() => {
-    getSession().then(setSession);
-
-    if (IS_CONFIGURED) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setSession(session);
-      });
-      return () => subscription.unsubscribe();
-    } else {
-        // Fallback for Mock Auth events
-        const handleMockAuth = () => {
-            getSession().then(setSession);
-        };
-        window.addEventListener('modus-mock-auth', handleMockAuth);
-        return () => window.removeEventListener('modus-mock-auth', handleMockAuth);
-    }
+    getSession().then((s) => {
+        setSession(s);
+        setHydrated(true);
+    });
+    
+    // Listen for auth events (mock or real)
+    const handleAuth = () => {
+        getSession().then(setSession);
+    };
+    window.addEventListener('modus-mock-auth', handleAuth);
+    return () => window.removeEventListener('modus-mock-auth', handleAuth);
   }, []);
 
-  // 2. Load Content (Trigger on Mount AND Session Change)
-  useEffect(() => {
-    const init = async () => {
-        setHydrated(true);
-        // Reload issue when session status changes (e.g. login) to get protected data
-        const saved = await loadIssue();
-        if (saved) setIssue(saved);
-    };
-    init();
-  }, [session]);
-
-  // 3. Save on change (Only if this is a fresh run/edit, NOT when loading from archive)
-  useEffect(() => {
-    if (hydrated && session && issue && issue.meta.run_id !== 'loaded') {
-      saveIssue(issue);
-    }
-  }, [issue, hydrated, session]);
-  
-  const handleLoadIssue = async (id: string) => {
-      const archived = await loadIssue(id);
-      if (archived) {
-          setIssue(archived);
-          setShowArchive(false);
-          window.scrollTo(0,0);
-      }
+  const handleSwitchTemplate = (key: string) => {
+      setIssue(prev => ({
+          ...prev,
+          meta: { ...prev.meta, template_key: key }
+      }));
   };
 
-  // Ticker Logic
-  const tickerItems = isProcessing 
-    ? logs.slice(-5).reverse().map(l => `[${l.agent}] ${l.message}`)
-    : (issue?.ticker || ["SYSTEM ONLINE", "AWAITING SIGNAL INGESTION", "OPEN NEWSROOM TO BEGIN"]);
+  const handleShare = () => {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url);
+      alert("Issue Link Copied to Clipboard");
+  };
 
-  if (!hydrated) return null; 
-  
+  if (!hydrated) return null;
+
+  // Resolve Template
+  const activeTemplateKey = issue.meta.template_key || 'T1_CoverRail';
+  const activeTemplate = TEMPLATE_REGISTRY[activeTemplateKey] || TEMPLATE_REGISTRY['T1_CoverRail'];
+
   return (
-    <div className="min-h-screen bg-background text-foreground font-display selection:bg-accent selection:text-white relative flex flex-col">
-      {showNewsroom && (
-        <TheNewsroom 
-          logs={logs}
-          isProcessing={isProcessing}
-          scanWire={scanWire}
-          commissionStory={commissionStory}
-          runAutopilot={runAutopilot}
-          leads={leads}
-          dbStatus={dbStatus}
-          dbError={dbError}
-          channels={channels}
-          onAddChannel={addChannel}
-          onRemoveChannel={removeChannel}
-          onPublishArtifact={publishArtifact}
-          onPublish={(newIssue) => {
-            setIssue(newIssue);
-            // We keep newsroom open so user can publish more
-          }} 
-          onCancel={() => setShowNewsroom(false)} 
-          isAutopilotActive={isAutopilotActive}
-          onToggleAutopilot={toggleAutopilot}
-          agentJobs={agentJobs}
-        />
-      )}
-      
-      {showArchive && (
-          <TheArchive 
-            onLoadIssue={handleLoadIssue}
-            onClose={() => setShowArchive(false)}
-          />
-      )}
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-32">
+       
+       {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
+       <Header 
+          onNavigate={() => {}}
+          onOpenNewsroom={() => setShowNewsroom(true)}
+          onOpenArchive={() => {}} // TODO: Hook up archive logic
+          onShare={handleShare}
+          session={session}
+          meta={issue.meta}
+       />
 
-      <Ticker items={tickerItems} />
-      <Header 
-        onNavigate={() => window.scrollTo(0,0)} 
-        onOpenNewsroom={() => setShowNewsroom(true)} 
-        onOpenArchive={() => setShowArchive(true)}
-        session={session}
-      />
-      
-      <main className="flex-grow">
-        {issue ? (
-            // --- RENDER PUBLISHED ISSUE ---
-            <>
-                <CoverStory data={issue.cover} />
-                <TheEdit data={issue.edit} drops={issue.drops} />
-                
-                <section className="max-w-[1536px] mx-auto px-6 md:px-16 py-24 border-t border-black">
-                   <div className="flex justify-between items-end mb-12 border-b-4 border-black pb-4">
-                       <h2 className="font-display text-[8vw] leading-[0.8] uppercase tracking-tighter">Collections</h2>
-                       <span className="text-xs font-sans font-bold tracking-widest uppercase hidden md:block mb-1">FW / 25</span>
-                   </div>
-                   <Spread variant="split">
-                     <RunwayNotes notes={[
-                        { time: "LIVE", text: `Scanning signals for ${issue.meta.theme}`, highlight: true },
-                        { time: "-1H", text: "Compiling latent space datasets", highlight: false },
-                        { time: "-2H", text: `Ingested ${issue.meta.metrics?.signals_ingested || 0} signals`, highlight: false }
-                     ]} />
-                     <Lookbook looks={[
-                       { id: "01", desc: "Latent Walk v1", src: "https://picsum.photos/800/1200?random=1" },
-                       { id: "02", desc: "Latent Walk v2", src: "https://picsum.photos/800/1200?random=2" },
-                     ]} />
-                   </Spread>
-                </section>
+       {/* 2. OPS LAYER (Newsroom Overlay) */}
+       {showNewsroom && (
+           <TheNewsroom 
+               {...newsroom}
+               onAddChannel={newsroom.addChannel}
+               onRemoveChannel={newsroom.removeChannel}
+               onPublishArtifact={newsroom.publishArtifact}
+               onToggleAutopilot={newsroom.toggleAutopilot}
+               onPublish={(newIssue) => {
+                   setIssue(newIssue);
+                   setShowNewsroom(false);
+               }}
+               onCancel={() => setShowNewsroom(false)}
+               currentTemplate={activeTemplateKey}
+               onSwitchTemplate={handleSwitchTemplate}
+           />
+       )}
 
-                {issue.features.map((story, i) => (
-                  <FeatureSpread key={i} data={story} />
-                ))}
-
-                <ColumnSection columns={issue.columns} />
-                <RecipeSection recipes={issue.atelier} />
-                
-                <section className="bg-white py-20 px-6 md:px-16 border-t border-black">
-                   <div className="max-w-[1536px] mx-auto grid grid-cols-12 gap-6">
-                     <div className="col-span-12 md:col-span-3">
-                       <h2 className="font-display text-3xl mb-6 uppercase tracking-tight font-bold">Index</h2>
-                     </div>
-                     <div className="col-span-12 md:col-span-9">
-                        <div className="flex flex-wrap gap-4">
-                          {issue.index_keys.map((k, i) => (
-                            <span key={i} className="text-[10px] uppercase tracking-widest border border-gray-200 px-3 py-1 hover:bg-black hover:text-white transition-colors cursor-pointer font-bold">
-                              {k.term}
-                            </span>
-                          ))}
-                        </div>
-                     </div>
-                   </div>
-                </section>
-            </>
-        ) : (
-            // --- RENDER TABULA RASA (EMPTY STATE) ---
-            <section className="min-h-[80vh] flex flex-col items-center justify-center text-center px-6">
-                <div className="max-w-4xl">
-                    <span className="inline-block px-3 py-1 border border-black text-[10px] font-sans font-bold uppercase tracking-widest mb-8">
-                        System Status: Idle
-                    </span>
-                    <h2 className="font-display text-7xl md:text-9xl font-bold tracking-tighter uppercase mb-6 opacity-10">
-                        Tabula Rasa
-                    </h2>
-                    <p className="font-sans text-lg text-neutral-500 max-w-xl mx-auto mb-12">
-                        The issue is unpublished. The wire is silent. 
-                        Press <strong className="text-black bg-neutral-200 px-1 rounded">ALT</strong> to access the Redaktion.
-                    </p>
-                </div>
-            </section>
-        )}
-      </main>
-      <Footer />
+       {/* 3. CONTENT LAYER (Layout Engine) */}
+       <LayoutEngine 
+          sections={activeTemplate.sections} 
+          data={issue} 
+       />
+       
+       {/* Floating Toggle (Backup access) */}
+       {!showNewsroom && session && (
+           <div className="fixed bottom-6 right-6 z-50">
+               <button 
+                    onClick={() => setShowNewsroom(true)}
+                    className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-2xl hover:scale-110 transition-transform"
+                    title="Open Redaktion"
+               >
+                   Ops
+               </button>
+           </div>
+       )}
     </div>
   );
 };

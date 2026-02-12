@@ -1,5 +1,5 @@
 
-import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, ColumnistPersona, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole } from "../types";
+import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole, Proposal, StoryVariant, Verdict, ColumnistPersona } from "../types";
 import { 
   agentQueryOrchestrator, agentDossierCompiler, agentArchivist, 
   agentPitching, agentVerdict, 
@@ -11,7 +11,8 @@ import {
   agentImageBrief,
   agentLayoutDirectives,
   agentScanner,
-  agentFeedReader
+  agentFeedReader,
+  agentDriftWatcher // Imported
 } from "./engine-agents";
 import type { RunConfig } from "../hooks/useNewsroom";
 import { generateImage, safeGenerateContent, Type, cleanAndParseJSON } from "./gemini";
@@ -236,7 +237,15 @@ export class IssueOrchestrator {
         this.callbacks.onAgentStart('SCOUT', 'Deep Research & Dossier Compilation');
         const researchTimer = new Timer();
         
-        const searchQuery = overrides.focusQuery || lead.headline;
+        // NEW: QUERY ORCHESTRATION WITH SOURCE MIX
+        let queries = [lead.headline];
+        if (config.sourceMix) {
+           queries = await agentQueryOrchestrator(lead.headline, config.sourceMix);
+           this.log('SCOUT', `Orchestrated Queries: ${queries.join(', ')}`);
+        }
+        
+        // Use first query for main search (simplification for now, can be parallelized)
+        const searchQuery = overrides.focusQuery || queries[0];
         const snapshot = await this.executeSearch(searchQuery, useDemo);
         const dossier = await agentDossierCompiler(lead.headline, snapshot);
         context.signals.push(dossier);
@@ -384,7 +393,118 @@ export class IssueOrchestrator {
       }
   }
 
-  // --- WORKFLOW 3: AUTOPILOT ---
+  // --- WORKFLOW 3: PROPOSAL EXECUTION (Layer 3) ---
+  public async executeProposal(
+      artifact: StoryArtifact, 
+      proposal: Proposal, 
+      config: RunConfig
+  ): Promise<StoryArtifact> {
+      this.log('SYS', `Executing Proposal: ${proposal.type} [${proposal.label}]`);
+      
+      const updatedArtifact = { ...artifact };
+      
+      // Store current state as a Variant before modifying
+      const variant: StoryVariant = {
+          id: `v_${Date.now()}`,
+          timestamp: Date.now(),
+          headline: artifact.headline,
+          body: artifact.body,
+          diff_summary: "Pre-Proposal State"
+      };
+      
+      if (!updatedArtifact.variants) updatedArtifact.variants = [];
+      updatedArtifact.variants.push(variant);
+      
+      // Clear proposal
+      updatedArtifact.pending_proposals = (updatedArtifact.pending_proposals || []).filter(p => p.id !== proposal.id);
+
+      try {
+          switch (proposal.type) {
+              case 'REWRITE': {
+                  this.callbacks.onAgentStart('WRITER', `Rewriting: ${proposal.label}`);
+                  const tone = `Target: ${proposal.label}. Impact: ${proposal.impact}.`;
+                  const result = await agentRewrite(artifact.body, tone, config);
+                  
+                  updatedArtifact.body = result.body;
+                  updatedArtifact.rewrite_chain = {
+                      id: `rw_${Date.now()}`,
+                      draft: { version: 1, text: variant.body },
+                      rewrite: { version: 2, text: result.body, critique: result.critique, diff_summary: result.diff_summary }
+                  };
+                  this.callbacks.onAgentFinish('WRITER');
+                  break;
+              }
+              
+              case 'HEADLINE_GEN': {
+                  this.callbacks.onAgentStart('EDITOR', 'Generating Fresh Headlines');
+                  // We need a dossier to generate headlines. Reconstruct a mock one if needed or pass context.
+                  // For now, assume sufficient context in artifact.
+                  const mockDossier: any = { topic: artifact.category || "General", id: artifact.signal_id };
+                  const mockVerdict: any = { placement: artifact.placement, tone_directives: "High Voltage" };
+                  
+                  const headlines = await agentHeadlineForge(mockDossier, mockVerdict);
+                  updatedArtifact.headline_candidates = headlines;
+                  this.callbacks.onAgentFinish('EDITOR');
+                  break;
+              }
+
+              case 'FACT_CHECK': {
+                  this.callbacks.onAgentStart('CRITIC', 'Deep Audit');
+                  // In a real implementation, we would need the dossier. 
+                  // Here we simulate a re-check against the artifact's own citations.
+                  const report = await agentFactCheck(updatedArtifact, { 
+                      id: 'audit', 
+                      claims: updatedArtifact.citations.map((c,i) => ({ id: `c${i}`, text: c.source, status: 'VERIFIED', confidence: c.confidence, supporting_sources: [] })),
+                      scores: {} as any,
+                      topic: artifact.category,
+                      retrieval_snapshot: { id: 'audit', query: '', timestamp: '', items: [] }
+                  } as SignalDossier);
+                  
+                  updatedArtifact.fact_check_report = report;
+                  this.callbacks.onAgentFinish('CRITIC');
+                  break;
+              }
+              
+              case 'IMAGE_GEN': {
+                  this.callbacks.onAgentStart('ARTIST', 'Visual Fabrication');
+                  const prompt = artifact.img_prompt || `Editorial photography of ${artifact.headline}`;
+                  updatedArtifact.img_base64 = await generateImage(prompt, '16:9');
+                  this.callbacks.onAgentFinish('ARTIST');
+                  break;
+              }
+          }
+          
+          this.log('SYS', `Proposal Applied. Artifact updated.`);
+          return updatedArtifact;
+
+      } catch (e: any) {
+          this.log('SYS', `Proposal Execution Failed: ${e.message}`);
+          this.callbacks.onAgentFail(proposal.agent, e.message);
+          return artifact; // Return original on fail
+      }
+  }
+  
+  // --- WORKFLOW 3.5: DRIFT WATCHER ---
+  public async runDriftCheck(story: StoryArtifact, dossier: SignalDossier, verdict: Verdict): Promise<StoryArtifact> {
+      this.callbacks.onAgentStart('CRITIC', 'Auditing Drift...');
+      const result = await agentDriftWatcher(story, dossier, verdict);
+      
+      const updatedStory = { ...story };
+      updatedStory.drift_metric = {
+          score: result.drift_score,
+          contradictions: result.contradictions,
+          last_check: new Date().toISOString()
+      };
+      
+      // Append proposals
+      if (!updatedStory.pending_proposals) updatedStory.pending_proposals = [];
+      updatedStory.pending_proposals = [...updatedStory.pending_proposals, ...result.proposals];
+      
+      this.callbacks.onAgentFinish('CRITIC');
+      return updatedStory;
+  }
+
+  // --- WORKFLOW 4: AUTOPILOT ---
   public async autoPilot(
     targets: string[], 
     useDemo: boolean, 

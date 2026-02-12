@@ -1,17 +1,29 @@
 
 import { Type } from "@google/genai";
-import { SignalDossier, RetrievalSnapshot } from "../../types";
+import { SignalDossier, RetrievalSnapshot, SourceMix } from "../../types";
 import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
 
-// 1.1 QUERY ORCHESTRATOR
-export const agentQueryOrchestrator = async (topic: string): Promise<string[]> => {
+// 1.1 QUERY ORCHESTRATOR (Updated for Source Mix)
+export const agentQueryOrchestrator = async (topic: string, sourceMix?: SourceMix): Promise<string[]> => {
+  let instructions = "Generate 2 distinct Google Search queries to gather comprehensive intel.";
+  
+  if (sourceMix) {
+      const biases = [];
+      if (sourceMix.academic) biases.push("site:.edu OR site:arxiv.org OR 'white paper'");
+      if (sourceMix.indie) biases.push("site:substack.com OR site:medium.com OR 'blog'");
+      if (sourceMix.mainstream) biases.push("site:bloomberg.com OR site:nytimes.com OR site:wired.com");
+      if (sourceMix.social) biases.push("site:reddit.com OR site:twitter.com OR site:ycombinator.com");
+      
+      if (biases.length > 0) {
+          instructions += `\nPRIORITIZE these source vectors: ${biases.join(' AND ')}. Ensure queries target these domains.`;
+      }
+  }
+
   const response = await safeGenerateContent({
     model: "gemini-3-flash-preview",
     contents: `You are the QUERY ORCHESTRATOR. 
     Target Topic: "${topic}".
-    Generate 2 distinct Google Search queries to gather comprehensive intel:
-    1. Direct retrieval (release notes, official docs)
-    2. Sentiment/Analysis (discussions, critiques)
+    ${instructions}
     
     Return ONLY a JSON array of strings.`,
     config: {

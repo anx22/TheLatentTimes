@@ -1,17 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { login, signUp, signOut, supabase } from '../services/storage';
+import React, { useState } from 'react';
+import { login, signUp, signOut } from '../services/storage';
+import { IssueMeta } from '../types';
 
 interface HeaderProps {
   onNavigate: (section: string) => void;
   onOpenNewsroom: () => void;
-  onOpenArchive: () => void; // New prop
+  onOpenArchive: () => void;
+  onShare: () => void; // New Prop
   session: any;
+  meta?: IssueMeta;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOpenArchive, session }) => {
-  const [showStealth, setShowStealth] = useState(false);
-  
+export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOpenArchive, onShare, session, meta }) => {
   // Login State
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -20,22 +21,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOp
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') setShowStealth(true);
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Alt') setShowStealth(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -73,65 +58,65 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onOp
 
   return (
     <>
-      <header className="w-full bg-white border-b border-black py-6 sticky top-0 z-30">
-        <div className="max-w-[1536px] mx-auto px-6 md:px-16 flex justify-between items-end">
+      <header className="w-full bg-white border-b border-zinc-200 py-4 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-[1536px] mx-auto px-6 md:px-16 flex justify-between items-center">
           {/* Left: Branding */}
-          <div className="flex items-baseline gap-4 group cursor-pointer" onClick={() => onNavigate('home')}>
-            <h1 
-              className="font-display font-bold uppercase leading-none text-6xl md:text-7xl tracking-tighter"
-            >
+          <div className="flex items-center gap-4 group cursor-pointer" onClick={() => onNavigate('home')}>
+            <h1 className="font-display font-bold uppercase leading-none text-3xl md:text-4xl tracking-tighter">
               Modus
             </h1>
-            <div className="hidden md:flex flex-col gap-0 text-[9px] font-sans font-bold tracking-[0.2em] uppercase opacity-100 mb-1 group-hover:text-accent transition-colors">
-              <span>Vol. 13</span>
-              <span className="text-neutral-400">Sep. 25</span>
-            </div>
+            {meta && (
+                <div className="hidden md:flex items-center gap-3 text-[10px] font-mono uppercase text-neutral-400 mt-1">
+                    <span>{meta.vol || "Vol. 00"}</span>
+                    <span className="w-px h-3 bg-neutral-200"></span>
+                    <span>{meta.issue_id === 'shell_v3' ? 'PREVIEW' : 'LIVE'}</span>
+                </div>
+            )}
           </div>
 
-          {/* Right: Nav */}
-          <nav className="flex items-center gap-8">
-            {showStealth ? (
-              <div className="flex items-center gap-4 animate-fade-in">
-                  {session ? (
-                      <>
-                          <span className="text-[9px] font-mono text-neutral-400 hidden md:block">
-                              {session.user.email}
-                          </span>
-                          <button 
-                              onClick={onOpenNewsroom}
-                              className="bg-accent text-white hover:bg-black transition-colors duration-300 font-sans font-bold uppercase tracking-[0.2em] px-5 py-2 text-[10px]"
-                          >
-                              Redaktion
-                          </button>
-                          <button 
-                              onClick={handleLogout}
-                              className="text-neutral-500 hover:text-black font-sans font-bold uppercase tracking-[0.2em] text-[9px]"
-                          >
-                              Logout
-                          </button>
-                      </>
-                  ) : (
+          {/* Right: System Nav */}
+          <nav className="flex items-center gap-4 md:gap-6">
+              {/* PUBLIC TOOLS */}
+              <button 
+                onClick={onOpenArchive}
+                className="hidden md:block text-[10px] font-sans font-bold uppercase tracking-[0.15em] hover:text-accent transition-colors"
+              >
+                  Archive
+              </button>
+              
+              <button 
+                onClick={onShare}
+                className="hidden md:block text-[10px] font-sans font-bold uppercase tracking-[0.15em] hover:text-accent transition-colors"
+              >
+                  Share
+              </button>
+
+              <div className="w-px h-4 bg-neutral-200 hidden md:block"></div>
+
+              {/* ADMIN TOOLS */}
+              {session ? (
+                  <div className="flex items-center gap-4 animate-fade-in">
                       <button 
-                          onClick={() => setShowLoginModal(true)}
-                          className="bg-black text-white hover:bg-neutral-800 transition-colors duration-300 font-sans font-bold uppercase tracking-[0.2em] px-5 py-2 text-[10px] border border-transparent hover:border-accent"
+                          onClick={onOpenNewsroom}
+                          className="bg-black text-white hover:bg-accent transition-colors duration-300 font-sans font-bold uppercase tracking-[0.15em] px-4 py-2 text-[10px] rounded-sm"
                       >
-                          Initialize Access
+                          Redaktion
                       </button>
-                  )}
-              </div>
-            ) : (
-              <>
+                      <button 
+                          onClick={handleLogout}
+                          className="text-neutral-400 hover:text-black font-sans font-bold uppercase tracking-[0.15em] text-[9px]"
+                      >
+                          Logout
+                      </button>
+                  </div>
+              ) : (
                   <button 
-                    onClick={onOpenArchive}
-                    className="hidden md:block text-[10px] font-sans font-bold uppercase tracking-[0.2em] hover:text-accent transition-colors"
+                      onClick={() => setShowLoginModal(true)}
+                      className="text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-neutral-500 hover:text-black transition-colors"
                   >
-                      The Archive
+                      Login
                   </button>
-                  <button className="bg-black text-white hover:bg-accent transition-colors duration-300 font-sans font-bold uppercase tracking-[0.2em] px-5 py-2 text-[10px]">
-                      Subscribe
-                  </button>
-              </>
-            )}
+              )}
           </nav>
         </div>
       </header>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Spread, PullQuote, Caption, FootnoteItem, SourceCard } from './ui/Editorial';
 import { Story, LayoutDirectives } from '../types';
+import { SmartImage } from './ui/SmartImage';
 
 interface FeatureSpreadProps {
   data: Story;
@@ -50,8 +51,12 @@ export const FeatureSpread: React.FC<FeatureSpreadProps> = ({ data }) => {
           <section className="relative min-h-screen text-white overflow-hidden group">
               {/* Background Image */}
               <div className="absolute inset-0 z-0">
-                  <img src={data.img_base64} className="w-full h-full object-cover brightness-50 contrast-125 group-hover:scale-105 transition-transform duration-[3s] ease-out" alt="Immersive Cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                  <SmartImage 
+                    src={data.img_base64} 
+                    alt="Immersive Cover"
+                    className="w-full h-full object-cover brightness-50 contrast-125 group-hover:scale-105 transition-transform duration-[3s] ease-out" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none"></div>
               </div>
 
               <div className="relative z-10 max-w-[1536px] mx-auto px-6 md:px-16 pt-32 md:pt-64 pb-20 grid grid-cols-12 gap-8">
@@ -121,12 +126,12 @@ export const FeatureSpread: React.FC<FeatureSpreadProps> = ({ data }) => {
         {/* HERO IMAGE PLACEMENT */}
         {data.img_base64 && layout.hero_position !== 'BACKGROUND' && (
            <div className={`mb-24 relative overflow-hidden bg-neutral-100 group ${layout.hero_position === 'SPLIT_RIGHT' ? 'float-right w-1/2 ml-12 mb-12 aspect-[4/5]' : 'w-full aspect-[21/9]'}`}>
-              <img 
+              <SmartImage 
                  src={data.img_base64} 
                  alt={data.headline} 
                  className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
               />
-              <div className="absolute bottom-0 left-0 bg-white/90 p-4 backdrop-blur-sm">
+              <div className="absolute bottom-0 left-0 bg-white/90 p-4 backdrop-blur-sm z-20">
                  <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">
                      Fig 1.0 // {data.img_brief?.concept || "Visualization"}
                  </span>

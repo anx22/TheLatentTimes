@@ -77,7 +77,7 @@ export const safeGenerateContent = async (
     throw new Error("Gemini API Unreachable");
 };
 
-// Image Generation using Gemini 3 Pro Image Preview
+// Image Generation using Gemini 2.5 Flash Image (Nanobana)
 export const generateImage = async (prompt: string, aspectRatio: AspectRatio): Promise<string> => {
   if (typeof window !== 'undefined' && window.aistudio && await window.aistudio.hasSelectedApiKey()) {
      // Key is injected
@@ -87,9 +87,9 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
 
   try {
       const response = await currentAi.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents: { parts: [{ text: prompt }] },
-        config: { imageConfig: { aspectRatio: aspectRatio, imageSize: "1K" } },
+        config: { imageConfig: { aspectRatio: aspectRatio } },
       });
     
       console.debug(`[NET] Image Gen (${Math.round(performance.now() - start)}ms)`);

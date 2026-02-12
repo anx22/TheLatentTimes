@@ -3,7 +3,6 @@ import React from 'react';
 import { Lead, DebateArtifact, StoryArtifact, IssueContent, AgentLog } from '../../types';
 import { TheDossier } from '../TheDossier';
 import { TheCraft } from '../TheCraft';
-import { LogStream } from './ui-primitives';
 
 interface NewsroomCanvasProps {
   currentView: 'INSPECT' | 'DOSSIER' | 'ARTIFACT';
@@ -70,18 +69,11 @@ export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
                         <span className="text-[10px] text-accent font-bold tracking-wider">COMMISSIONING AGENTS</span>
                     </div>
                 )}
-                {/* Fallback for Autopilot legacy or non-migrated code */}
-                {isProcessing && !isScanning && !isCommissioning && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full border border-accent/20">
-                        <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></span>
-                        <span className="text-[10px] text-accent font-bold tracking-wider">PROCESSING</span>
-                    </div>
-                )}
             </div>
         </div>
 
         {/* Viewport */}
-        <div className="flex-1 overflow-hidden relative border-b border-neutral-900">
+        <div className="flex-1 overflow-hidden relative border-b border-neutral-900 bg-[#050505]">
             {currentView === 'INSPECT' && (
                 selectedLead ? (
                   <div className="p-12 max-w-4xl mx-auto animate-fade-in mt-12 overflow-y-auto custom-scrollbar h-full">
@@ -130,20 +122,6 @@ export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
             {currentView === 'ARTIFACT' && activeStory && (
                 <TheCraft story={activeStory} />
             )}
-        </div>
-
-        {/* SYSTEM LOG PANEL */}
-        <div className="h-64 border-t border-neutral-900 bg-[#0A0A0A] flex flex-col shrink-0 transition-all">
-             <div className="px-4 py-2 border-b border-neutral-800 flex justify-between items-center bg-black/20">
-                 <div className="flex gap-2 items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">System Stream</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700 animate-pulse"></span>
-                 </div>
-                 <span className="text-[10px] font-mono text-neutral-600">LIVE // {logs.length} EVENTS</span>
-             </div>
-             <div className="flex-1 overflow-hidden relative">
-                 <LogStream logs={logs} className="h-full" />
-             </div>
         </div>
     </div>
   );

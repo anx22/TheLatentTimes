@@ -1,61 +1,21 @@
 
-import { Type } from "@google/genai";
 import { RetrievalItem } from "../../types";
-import { safeGenerateContent, cleanAndParseJSON } from "../gemini";
+import { fetchAllFeeds } from "../rss";
 
-const DEFAULT_WHITELIST = [
-    'wired.com', 
-    'theverge.com', 
-    'arxiv.org', 
-    'techcrunch.com', 
-    'bloomberg.com',
-    'vogue.com',
-    'hypebeast.com'
-];
-
+// PHASE 1: REAL RSS INGESTOR
+// Replaces the hallucinating LLM with a deterministic fetcher.
 export const agentFeedReader = async (customDomains?: string[]): Promise<RetrievalItem[]> => {
-    const domains = customDomains && customDomains.length > 0 ? customDomains : DEFAULT_WHITELIST;
+    console.log("[AGENT] Ingestor: Connecting to real-time feeds...");
     
-    // We batch the request to optimize API calls
-    const targetString = domains.join(', ');
+    // In a real backend, we would use customDomains to filter the registry.
+    // For this client-side demo, we use the hardcoded registry in rss.ts to ensure CORS compliance.
     
     try {
-        const response = await safeGenerateContent({
-            model: "gemini-3-flash-preview",
-            contents: `Act as the FEED INGESTOR. 
-            Scan the latest headlines from these high-signal domains: ${targetString}.
-            Find 1 major story from EACH domain published in the last 24 hours.
-            
-            Return a JSON array of items.`,
-            config: {
-                tools: [{ googleSearch: {} }],
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            url: { type: Type.STRING },
-                            source_domain: { type: Type.STRING },
-                            snippet: { type: Type.STRING }
-                        }
-                    }
-                }
-            }
-        });
-
-        const raw = cleanAndParseJSON(response.text);
-        
-        // Sanitize
-        return (raw || []).map((item: any) => ({
-            title: item.title || "Untitled Feed Item",
-            url: item.url || "",
-            source_domain: item.source_domain || "unknown",
-            snippet: item.snippet || "No snippet available."
-        }));
+        const items = await fetchAllFeeds();
+        console.log(`[AGENT] Ingestor: Retrieved ${items.length} items from wire.`);
+        return items;
     } catch (e) {
-        console.warn("Feed Ingestor failed:", e);
+        console.error("[AGENT] Ingestor Failed:", e);
         return [];
     }
 };

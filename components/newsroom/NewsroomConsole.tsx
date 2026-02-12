@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { ToggleGroup } from './ui-primitives';
-import { AgentLog, Lead, StoryArtifact, IssueContent, AgentJob, AgentRole } from '../../types';
+import React, { useState } from 'react';
+import { ToggleGroup, TeamStream, ToneEQSlider, JsonInspector } from './ui-primitives';
+import { AgentLog, Lead, StoryArtifact, IssueContent, AgentJob, AgentRole, SourceMix, ToneProfile } from '../../types';
 import { AgentGrid } from './AgentGrid';
+import { AGENT_ROSTER } from '../../services/agent-registry';
+import { TEMPLATE_REGISTRY } from '../../services/templates';
 
 interface NewsroomConsoleProps {
   logs: AgentLog[];
@@ -16,304 +18,277 @@ interface NewsroomConsoleProps {
   onPublish: (issue: IssueContent) => void;
   onPublishArtifact?: (artifact: StoryArtifact) => void;
   onReset?: () => void; 
-  // Autopilot
   isAutopilotActive?: boolean;
   onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
-  // NEW: Agent Jobs for Visualization
   agentJobs: Record<AgentRole, AgentJob>;
+  // NEW: Template switcher
+  currentTemplate: string;
+  onSwitchTemplate: (key: string) => void;
 }
 
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
-  isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
-  isAutopilotActive, onToggleAutopilot, agentJobs
+  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
+  isAutopilotActive, onToggleAutopilot, agentJobs, currentTemplate, onSwitchTemplate
 }) => {
-  // Config State
   const [depth, setDepth] = useState<'Standard' | 'Deep'>('Standard');
   const [timeWindow, setTimeWindow] = useState<'24h' | '7d' | '30d'>('7d');
   const [voice, setVoice] = useState<'Modus' | 'Gonzo' | 'Academic' | 'Minimalist'>('Modus');
   const [risk, setRisk] = useState<'Low' | 'Mid' | 'High'>('Mid');
-  
-  // Advanced State
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [focusQuery, setFocusQuery] = useState('');
   const [bannedWords, setBannedWords] = useState('');
   const [audience, setAudience] = useState<'General' | 'Expert' | 'Insider'>('Expert');
   const [temperature, setTemperature] = useState(0.7);
-  
-  // Local UI State
-  const [isShipped, setIsShipped] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<AgentRole | null>(null);
+  const [agentOverrides, setAgentOverrides] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-      // Reset shipped state when a new story is loaded
-      if (activeStory) {
-          setIsShipped(false);
-      }
-  }, [activeStory?.id]);
+  // Tone Physics State
+  const [toneProfile, setToneProfile] = useState<ToneProfile>({
+      drama: 3,
+      precision: 3,
+      metaphor_density: 3,
+      adjective_budget: 50,
+      sentence_mode: 'MIXED'
+  });
+
+  // Source Mix State
+  const [sourceMix, setSourceMix] = useState<SourceMix>({
+      mainstream: true,
+      indie: true,
+      academic: false,
+      social: false
+  });
 
   const handleCommissionClick = () => {
-    setIsShipped(false);
-    onCommission({
-        depth,
-        timeWindow,
-        voice,
-        risk,
-        focusQuery,
-        bannedWords,
-        audience,
-        temperature
+    onCommission({ 
+        depth, timeWindow, voice, risk, focusQuery, bannedWords, audience, temperature, sourceMix,
+        toneProfile, 
+        agentModifiers: agentOverrides
     });
   };
 
-  const handleShipToLive = () => {
-      if (activeStory && onPublishArtifact) {
-          onPublishArtifact(activeStory);
-          setIsShipped(true);
-      } else if (latestIssue) {
-          onPublish(latestIssue);
-          setIsShipped(true);
-      }
+  const toggleSource = (key: keyof SourceMix) => {
+      setSourceMix(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // NOTE: isProcessing usually tracks local work. 
-  // If cloud autopilot is active, we might not be locally processing, 
-  // but we should still disable manual controls to prevent collision.
+  const updateTone = (key: keyof ToneProfile, value: number | string) => {
+      setToneProfile(prev => ({ ...prev, [key]: value }));
+  };
+
   const isDisabled = isCommissioning || (isProcessing && !isCommissioning) || isAutopilotActive;
 
-  const renderMainButton = () => {
-      if (isAutopilotActive) {
-          return (
-              <div className="w-full bg-accent/10 border border-accent/30 rounded-sm h-14 flex flex-col items-center justify-center gap-1 animate-pulse">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Autopilot Active</span>
-                  <span className="text-[9px] font-mono text-neutral-400">System Autonomous...</span>
-              </div>
-          );
-      }
-
-      if (isDisabled) {
-          // Find the active agent job
-          const activeJob = Object.values(agentJobs).find(j => j.status === 'WORKING');
-          const progress = activeJob ? activeJob.progress : 0;
-          
-          return (
-              <div className="w-full bg-neutral-900 border border-neutral-800 rounded-sm relative overflow-hidden h-14 select-none">
-                  {/* Progress Bar Background */}
-                  <div 
-                    className="absolute top-0 left-0 bottom-0 bg-neutral-800 transition-all duration-500 ease-out" 
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                  
-                  <div className="relative z-10 w-full h-full flex flex-col items-center justify-center gap-0.5">
-                      <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 border-2 border-neutral-500 border-t-accent rounded-full animate-spin"></div>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-white">
-                              {activeJob ? `AGENT: ${activeJob.agentId.replace('agent_', '').toUpperCase()}` : 'ORCHESTRATING...'}
-                          </span>
-                      </div>
-                      <span className="text-[9px] font-mono text-neutral-400 max-w-[90%] truncate px-2">
-                          {activeJob?.currentTask || "Initializing neural mesh..."}
-                      </span>
-                  </div>
-              </div>
-          );
-      }
-
-      if (activeStory) {
-          if (isShipped) {
-              return (
-                  <button 
-                    onClick={onReset}
-                    className="w-full border border-neutral-700 hover:bg-white hover:text-black text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm"
-                  >
-                      Initialize Next Assignment
-                  </button>
-              );
-          }
-          return (
-              <button 
-                onClick={handleShipToLive}
-                className="w-full bg-white hover:bg-neutral-200 text-black py-4 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-              >
-                  Deploy to Live Stream
-              </button>
-          );
-      }
-
-      if (selectedLead) {
-          return (
-              <button 
-                onClick={handleCommissionClick}
-                className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 rounded-sm"
-              >
-                  Commission Agents
-              </button>
-          );
-      }
-
-      return (
-          <button disabled className="w-full border border-neutral-800 text-neutral-600 py-4 font-bold uppercase tracking-widest text-[10px] cursor-not-allowed rounded-sm">
-              Select Signal to Commission
-          </button>
-      );
-  };
-
   return (
-    <div className="w-[380px] bg-[#050505] flex flex-col border-l border-neutral-900 shrink-0 h-full max-h-screen">
+    <div className="bg-white flex flex-col h-full border-l border-zinc-200 shadow-sm relative z-20">
         
-        {/* SCROLLABLE AREA: Agent Status + Configuration Forms */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-6 block border-b border-neutral-900 pb-3">Commissioning Console</span>
-            
-            {/* NEW: AGENT VISUALIZATION */}
-            <AgentGrid jobs={agentJobs} />
+        {/* HEADER */}
+        <div className="p-5 border-b border-zinc-200 bg-white">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-900 flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                Mission Control
+            </h3>
+        </div>
 
-            {/* CONFIGURATION FORM */}
-            {!activeStory && selectedLead && !isDisabled && (
-                 <div className="space-y-4 animate-fade-in mb-4">
-                        {/* STANDARD CONTROLS */}
-                        <div className="grid grid-cols-2 gap-4 mb-2">
-                          <div className="col-span-1">
-                              <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Mode</label>
-                              <button 
-                                  onClick={() => setDepth(d => d === 'Standard' ? 'Deep' : 'Standard')} 
-                                  className={`w-full py-2.5 border text-[10px] font-bold uppercase rounded-sm transition-colors ${depth === 'Deep' ? 'bg-neutral-800 text-white border-neutral-600' : 'border-neutral-800 text-neutral-500 hover:bg-neutral-900'}`}
-                              >
-                                  {depth}
-                              </button>
+        {/* METAMORPHOSIS ENGINE (Template Switcher) */}
+        <div className="px-5 pt-5 border-b border-zinc-100 pb-5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 block mb-3">Layout Metamorphosis</span>
+            <div className="space-y-2">
+                {Object.values(TEMPLATE_REGISTRY).map(tpl => (
+                    <button
+                        key={tpl.key}
+                        onClick={() => onSwitchTemplate(tpl.key)}
+                        className={`w-full text-left px-3 py-2 rounded border transition-all text-xs flex justify-between items-center ${
+                            currentTemplate === tpl.key 
+                            ? 'bg-zinc-900 text-white border-black shadow-md' 
+                            : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                        }`}
+                    >
+                        <span className="font-bold">{tpl.name}</span>
+                        {currentTemplate === tpl.key && <span className="text-[9px] uppercase tracking-widest text-zinc-400">Active</span>}
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        {/* AGENT ROSTER */}
+        <div className="px-5 pt-5 pb-2">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 block mb-3">Active Personnel</span>
+            <AgentGrid jobs={agentJobs} onAgentClick={(role) => setSelectedAgent(role)} />
+        </div>
+
+        {/* AGENT INSPECTOR OVERLAY */}
+        {selectedAgent && (
+            <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm p-6 flex flex-col animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-3">
+                        <span className={`text-lg p-2 rounded-md bg-zinc-100 text-zinc-600`}>
+                            {AGENT_ROSTER[selectedAgent].icon}
+                        </span>
+                        <div>
+                            <h4 className="font-display text-xl font-bold">{AGENT_ROSTER[selectedAgent].name}</h4>
+                            <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">{AGENT_ROSTER[selectedAgent].role} Unit</span>
+                        </div>
+                    </div>
+                    <button onClick={() => setSelectedAgent(null)} className="p-2 hover:bg-zinc-100 rounded-full">×</button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto">
+                    <div className="mb-6">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">Prime Directive</span>
+                        <p className="p-4 bg-zinc-50 border border-zinc-200 rounded text-sm text-zinc-700 leading-relaxed font-serif italic">
+                            "{AGENT_ROSTER[selectedAgent].description}"
+                        </p>
+                    </div>
+
+                    <div className="mb-6">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">Current Status</span>
+                        <div className="p-3 border border-zinc-200 rounded flex justify-between items-center">
+                            <span className="text-xs font-medium">{agentJobs[selectedAgent].status}</span>
+                            <span className="text-[10px] font-mono text-zinc-400">Last Active: {new Date(agentJobs[selectedAgent].lastActive).toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500 block mb-2">Override Directive</span>
+                        <textarea 
+                            className="w-full p-3 text-xs border border-zinc-300 rounded focus:border-indigo-500 focus:outline-none min-h-[100px]"
+                            placeholder={`Inject temporary instruction for ${AGENT_ROSTER[selectedAgent].name}...`}
+                            value={agentOverrides[selectedAgent] || ''}
+                            onChange={(e) => setAgentOverrides(p => ({ ...p, [selectedAgent]: e.target.value }))}
+                        />
+                        <p className="text-[9px] text-zinc-400 mt-2">
+                            This instruction will be appended to the agent's system prompt for the next run only.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* DYNAMIC CONTENT AREA */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5">
+            
+            {/* COMMISSIONING FORM */}
+            {selectedLead && !activeStory && (
+                 <div className="space-y-6 animate-fade-in border-t border-zinc-100 pt-6 mt-2">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-indigo-600">Commission Config</span>
+                        </div>
+                        
+                        {/* BASIC SETTINGS */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Research</label>
+                              <div className="flex bg-zinc-100 p-1 rounded-md border border-zinc-200">
+                                  {['Standard', 'Deep'].map(m => (
+                                      <button 
+                                        key={m}
+                                        onClick={() => setDepth(m as any)}
+                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${depth === m ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                      >
+                                          {m}
+                                      </button>
+                                  ))}
+                              </div>
                           </div>
-                          <div className="col-span-1">
-                              <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Window</label>
-                              <button 
-                                  onClick={() => setTimeWindow(t => t === '24h' ? '7d' : t === '7d' ? '30d' : '24h')} 
-                                  className="w-full py-2.5 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-900 text-[10px] font-bold uppercase rounded-sm transition-colors"
-                              >
-                                  {timeWindow}
-                              </button>
+                          <div>
+                              <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Window</label>
+                              <div className="flex bg-zinc-100 p-1 rounded-md border border-zinc-200">
+                                  {['24h', '7d', '30d'].map(t => (
+                                      <button 
+                                        key={t}
+                                        onClick={() => setTimeWindow(t as any)}
+                                        className={`flex-1 py-1.5 text-[10px] font-medium transition-all rounded-sm ${timeWindow === t ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-400 hover:text-zinc-600'}`}
+                                      >
+                                          {t}
+                                      </button>
+                                  ))}
+                              </div>
                           </div>
                         </div>
 
-                        <ToggleGroup 
-                          label="Editorial Voice" 
-                          options={['Modus', 'Gonzo', 'Academic', 'Minimalist']} 
-                          value={voice} 
-                          onChange={setVoice} 
-                        />
+                        {/* TONE PHYSICS (Expanded) */}
+                        <div className="bg-zinc-50 p-4 rounded border border-zinc-100">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-4">Tone Physics</span>
+                            <ToneEQSlider label="Drama" value={toneProfile.drama} max={5} onChange={(v) => updateTone('drama', v)} />
+                            <ToneEQSlider label="Precision" value={toneProfile.precision} max={5} onChange={(v) => updateTone('precision', v)} />
+                            <ToneEQSlider label="Metaphor" value={toneProfile.metaphor_density} max={5} onChange={(v) => updateTone('metaphor_density', v)} />
+                        </div>
 
-                        <ToggleGroup 
-                          label="Voltage / Risk" 
-                          options={['Low', 'Mid', 'High']} 
-                          value={risk} 
-                          onChange={setRisk} 
-                        />
-
-                        {/* FINE TUNING TOGGLE */}
+                        {/* ADVANCED TOGGLE */}
                         <button 
-                          onClick={() => setShowAdvanced(!showAdvanced)}
-                          className="w-full text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white py-3 flex items-center justify-between border-t border-neutral-800 mt-2 hover:bg-neutral-900 px-2 rounded-sm transition-colors"
+                            onClick={() => setShowAdvanced(!showAdvanced)}
+                            className="w-full text-center text-[10px] uppercase font-bold text-zinc-400 hover:text-zinc-600 border-b border-zinc-100 pb-2"
                         >
-                          <span>Fine-Tune Parameters</span>
-                          <span>{showAdvanced ? '-' : '+'}</span>
+                            {showAdvanced ? 'Hide Advanced' : 'Show Advanced Settings'}
                         </button>
 
+                        {/* ADVANCED SETTINGS */}
                         {showAdvanced && (
-                          <div className="space-y-5 pt-3 border-t border-neutral-800 animate-fade-in px-1">
-                              {/* AUDIENCE SELECTOR */}
-                              <ToggleGroup 
-                                  label="Audience" 
-                                  options={['General', 'Expert', 'Insider']} 
-                                  value={audience} 
-                                  onChange={setAudience} 
-                              />
-                              
-                              {/* SEARCH OVERRIDE */}
-                              <div>
-                                  <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Focus Query Override</label>
-                                  <input 
-                                      value={focusQuery}
-                                      onChange={(e) => setFocusQuery(e.target.value)}
-                                      placeholder="Force specific search terms..."
-                                      className="w-full bg-neutral-900 border border-neutral-800 p-2.5 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 rounded-sm"
-                                  />
-                              </div>
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Source Vectors</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.keys(sourceMix).map(key => {
+                                            const k = key as keyof SourceMix;
+                                            const active = sourceMix[k];
+                                            return (
+                                                <button 
+                                                    key={key}
+                                                    onClick={() => toggleSource(k)}
+                                                    className={`
+                                                        flex items-center justify-between px-2 py-1.5 border rounded text-[10px] font-medium uppercase transition-all
+                                                        ${active ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-zinc-200 text-zinc-400'}
+                                                    `}
+                                                >
+                                                    {key}
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-indigo-500' : 'bg-zinc-200'}`}></div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
 
-                              {/* NEGATIVE PROMPTS */}
-                              <div>
-                                  <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Negative Prompts (CSV)</label>
-                                  <input 
-                                      value={bannedWords}
-                                      onChange={(e) => setBannedWords(e.target.value)}
-                                      placeholder="delve, tapestry, bustling..."
-                                      className="w-full bg-neutral-900 border border-neutral-800 p-2.5 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 rounded-sm"
-                                  />
-                              </div>
-                              
-                              {/* TEMPERATURE */}
-                              <div>
-                                  <div className="flex justify-between mb-3">
-                                      <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Model Entropy</label>
-                                      <span className="text-[10px] font-mono text-neutral-300 bg-neutral-800 px-1.5 rounded">{temperature}</span>
-                                  </div>
-                                  <input 
-                                      type="range" 
-                                      min="0" max="1" step="0.1"
-                                      value={temperature}
-                                      onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                      className="w-full h-1.5 bg-neutral-800 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
-                                  />
-                              </div>
-                          </div>
+                                <ToggleGroup 
+                                  label="Base Preset" 
+                                  options={['Modus', 'Gonzo', 'Academic', 'Minimalist']} 
+                                  value={voice} 
+                                  onChange={setVoice} 
+                                />
+                                
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 mb-2 uppercase">Negative Prompt</label>
+                                    <input 
+                                        value={bannedWords}
+                                        onChange={(e) => setBannedWords(e.target.value)}
+                                        placeholder="Words to ban (comma separated)..."
+                                        className="w-full border border-zinc-300 rounded px-2 py-1.5 text-xs focus:border-black outline-none"
+                                    />
+                                </div>
+
+                                {/* LEAD INSPECTOR */}
+                                <JsonInspector data={selectedLead} label="Raw Signal Data" />
+                            </div>
                         )}
-                 </div>
-            )}
-            
-            {/* IDLE / DONE STATES IN SCROLL AREA */}
-            {!activeStory && !selectedLead && !isDisabled && (
-                <div className="text-center py-12 opacity-40 border border-dashed border-neutral-800 rounded-sm">
-                    <span className="text-[10px] uppercase tracking-widest block mb-2">Console Idle</span>
-                    <p className="text-xs text-neutral-600">Select a lead from the Wire to configure.</p>
-                </div>
-            )}
-            
-            {activeStory && (
-                 <div className="p-4 bg-neutral-900/50 border border-neutral-800 rounded text-center mb-4">
-                     <span className={`text-xs ${isShipped ? 'text-emerald-500' : 'text-neutral-300'} font-bold uppercase tracking-wider`}>
-                        {isShipped ? 'Artifact Deployed' : 'Review Complete'}
-                     </span>
-                 </div>
-            )}
 
+                        <div className="pt-2">
+                            <button 
+                                onClick={handleCommissionClick}
+                                disabled={isDisabled}
+                                className="w-full bg-zinc-900 hover:bg-black text-white py-3 font-semibold rounded-md text-xs transition-colors shadow-sm disabled:bg-zinc-200 disabled:text-zinc-400"
+                            >
+                                {isDisabled ? 'Processing...' : 'Execute Commission'}
+                            </button>
+                        </div>
+                 </div>
+            )}
         </div>
 
-        {/* FIXED ACTION FOOTER */}
-        <div className="p-5 bg-[#0A0A0A] border-t border-neutral-900 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-10">
-            {renderMainButton()}
-            
-            {/* AUTOPILOT TOGGLE (REMOTE MODE) */}
-            <div className="mt-3">
-                {onToggleAutopilot ? (
-                    <button 
-                        onClick={() => onToggleAutopilot && onToggleAutopilot(!isAutopilotActive, 'The Synthetic Real', false, () => {})}
-                        disabled={isDisabled && !isAutopilotActive}
-                        className={`w-full py-3 font-bold uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 rounded-sm border ${isAutopilotActive ? 'bg-accent text-white border-accent' : 'border-neutral-800 text-neutral-500 hover:text-white hover:border-neutral-600'}`}
-                    >
-                        <span className={`w-1.5 h-1.5 rounded-full ${isAutopilotActive ? 'bg-white animate-pulse' : 'bg-neutral-600'}`}></span>
-                        {isAutopilotActive ? 'KILL SWITCH (STOP AGENT)' : 'ENGAGE AUTOPILOT'}
-                    </button>
-                ) : (
-                    <button 
-                        onClick={onAutopilot}
-                        disabled={isDisabled}
-                        className="w-full border border-neutral-800 hover:border-accent/50 text-neutral-600 hover:text-accent py-3 font-bold uppercase tracking-widest text-[9px] transition-colors rounded-sm"
-                    >
-                        Single Run (Manual)
-                    </button>
-                )}
-                
-                {isAutopilotActive && (
-                    <div className="mt-2 text-center">
-                        <span className="text-[9px] text-emerald-500 font-mono font-bold">● CLOUD UPLINK SECURE</span>
-                    </div>
-                )}
+        {/* TEAM CHAT (Sticky Bottom) */}
+        <div className="border-t border-zinc-200 bg-zinc-50 flex flex-col h-[200px]">
+            <div className="px-4 py-2 border-b border-zinc-200 bg-white flex justify-between items-center">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Team Comms</span>
+                {isProcessing && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>}
             </div>
+            <TeamStream logs={logs.slice(-50)} className="flex-1" />
         </div>
     </div>
   );

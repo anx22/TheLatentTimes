@@ -5,105 +5,77 @@ import { AGENT_ROSTER } from '../../services/agent-registry';
 
 interface AgentGridProps {
     jobs: Record<AgentRole, AgentJob>;
+    onAgentClick?: (role: AgentRole) => void;
 }
 
-export const AgentGrid: React.FC<AgentGridProps> = ({ jobs }) => {
+export const AgentGrid: React.FC<AgentGridProps> = ({ jobs, onAgentClick }) => {
     return (
-        <div className="mb-6 grid grid-cols-2 gap-2">
+        <div className="mb-4 grid grid-cols-2 gap-2">
             {Object.entries(jobs).map(([role, job]) => {
                 const def = AGENT_ROSTER[role];
                 const isActive = job.status === 'WORKING';
                 const isError = job.status === 'ERROR';
                 
-                // Color Mapping
-                const borderColor = {
-                    'emerald': 'border-emerald-500/50',
-                    'red': 'border-red-500/50',
-                    'white': 'border-white/50',
-                    'neutral': 'border-neutral-500/50',
-                    'purple': 'border-purple-500/50',
-                    'blue': 'border-blue-500/50'
-                }[def.color] || 'border-neutral-800';
-
-                const textColor = {
-                    'emerald': 'text-emerald-500',
-                    'red': 'text-red-500',
-                    'white': 'text-white',
-                    'neutral': 'text-neutral-400',
-                    'purple': 'text-purple-500',
-                    'blue': 'text-blue-500'
-                }[def.color] || 'text-neutral-500';
-
-                const bgActive = {
-                    'emerald': 'bg-emerald-950/30',
-                    'red': 'bg-red-950/30',
-                    'white': 'bg-neutral-800',
-                    'neutral': 'bg-neutral-900',
-                    'purple': 'bg-purple-950/30',
-                    'blue': 'bg-blue-950/30'
-                }[def.color] || 'bg-neutral-900';
-
-                // Computed Styles based on State
-                let finalBorder = 'border-neutral-900';
-                let finalBg = 'bg-neutral-950 opacity-60';
-                let finalShadow = '';
-
-                if (isActive) {
-                    finalBorder = borderColor;
-                    finalBg = bgActive;
-                    finalShadow = 'shadow-[0_0_10px_rgba(0,0,0,0.5)]';
-                } else if (isError) {
-                    finalBorder = 'border-red-600';
-                    finalBg = 'bg-red-950/50';
-                    finalShadow = 'shadow-[0_0_15px_rgba(255,0,0,0.3)]';
-                }
+                // Colors based on Agent Definition
+                const colorMap: Record<string, string> = {
+                    emerald: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+                    red: 'text-rose-600 bg-rose-50 border-rose-100',
+                    blue: 'text-blue-600 bg-blue-50 border-blue-100',
+                    purple: 'text-purple-600 bg-purple-50 border-purple-100',
+                    neutral: 'text-zinc-600 bg-zinc-100 border-zinc-200',
+                    white: 'text-zinc-800 bg-white border-zinc-200'
+                };
+                const theme = colorMap[def.color] || colorMap.neutral;
 
                 return (
                     <div 
                         key={role}
+                        onClick={() => onAgentClick && onAgentClick(role as AgentRole)}
                         className={`
-                            relative p-3 rounded-sm border transition-all duration-300 overflow-hidden
-                            ${finalBorder} ${finalBg} ${finalShadow}
+                            relative p-3 rounded-md border transition-all duration-300 overflow-hidden group cursor-pointer
+                            ${isActive ? 'bg-white border-zinc-300 shadow-md scale-[1.02] z-10' : 'bg-zinc-50 border-zinc-100 opacity-80 hover:opacity-100 hover:border-zinc-300'}
                         `}
                     >
                         {/* Header */}
-                        <div className="flex justify-between items-center mb-1">
-                            <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? textColor : isError ? 'text-red-400' : 'text-neutral-600'}`}>
-                                {def.name}
-                            </span>
-                            <span className="text-[10px] grayscale opacity-50">{def.icon}</span>
-                        </div>
-
-                        {/* Status */}
-                        <div className="min-h-[24px]">
-                            {isActive ? (
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-mono text-neutral-300 truncate animate-pulse">
-                                        {job.currentTask}
-                                    </span>
-                                    {/* Progress Bar */}
-                                    <div className="h-0.5 w-full bg-neutral-800 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full ${textColor.replace('text-', 'bg-')}`} 
-                                            style={{ width: `${job.progress > 0 ? job.progress : 100}%`, transition: 'width 0.5s ease-out' }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            ) : isError ? (
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-mono text-red-400 font-bold uppercase tracking-wider">
-                                        SYSTEM FAILURE
-                                    </span>
-                                    <span className="text-[8px] font-mono text-red-300 truncate">
-                                        {job.currentTask || "Process Aborted"}
-                                    </span>
-                                </div>
-                            ) : (
-                                <span className="text-[9px] font-mono text-neutral-700 uppercase tracking-wider">
-                                    {job.status === 'DONE' ? 'Standby' : 'Offline'}
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-1.5">
+                                <span className={`text-[10px] p-1 rounded-sm ${isActive ? theme : 'bg-zinc-200 text-zinc-400 group-hover:text-zinc-600'}`}>
+                                    {def.icon}
+                                </span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wide truncate ${isActive ? 'text-zinc-900' : 'text-zinc-400 group-hover:text-zinc-600'}`}>
+                                    {def.name}
+                                </span>
+                            </div>
+                            {isActive && (
+                                <span className="flex h-1.5 w-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                                 </span>
                             )}
                         </div>
+
+                        {/* Current Task Display */}
+                        <div className="min-h-[24px]">
+                            {isActive ? (
+                                <p className="text-[10px] leading-tight text-zinc-600 line-clamp-2 font-medium">
+                                    {job.currentTask || "Processing..."}
+                                </p>
+                            ) : isError ? (
+                                <span className="text-[9px] font-mono font-bold text-red-500">OFFLINE (ERR)</span>
+                            ) : (
+                                <span className="text-[9px] text-zinc-300 font-mono uppercase tracking-wider group-hover:text-zinc-400">Standing By</span>
+                            )}
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        {isActive && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-100">
+                                <div 
+                                    className="h-full bg-indigo-500 transition-all duration-300 ease-out" 
+                                    style={{ width: `${job.progress > 0 ? job.progress : 15}%` }}
+                                ></div>
+                            </div>
+                        )}
                     </div>
                 );
             })}

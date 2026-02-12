@@ -20,6 +20,7 @@ export default {
       fontFamily: {
         display: ['"Didot"', '"Playfair Display"', 'serif'],
         sans: ['"Helvetica Neue"', '"Inter"', 'sans-serif'],
+        condensed: ['"Archivo Narrow"', '"Helvetica Neue"', 'sans-serif'],
       },
       spacing: {
         gutter: '32px',
@@ -27,6 +28,9 @@ export default {
       },
       fontSize: {
         '2xs': '10px',
+      },
+      borderWidth: {
+        'hairline': '1px',
       }
     },
   },

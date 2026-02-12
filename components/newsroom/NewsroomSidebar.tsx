@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { RiskChip } from './ui-primitives';
@@ -11,8 +12,6 @@ interface NewsroomSidebarProps {
   selectedLeadId: string | null;
   onSelectLead: (id: string) => void;
   useDemo?: boolean;
-  
-  // Channels
   channels: string[];
   onAddChannel: (t: string) => void;
   onRemoveChannel: (t: string) => void;
@@ -36,12 +35,9 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
 }) => {
   const [newChannel, setNewChannel] = useState('');
   const [isAddMode, setIsAddMode] = useState(false);
-  
-  // UX State for Feedback
   const [hasScanned, setHasScanned] = useState(false);
   const prevScanning = useRef(isScanning);
 
-  // Detect scan completion
   useEffect(() => {
     if (prevScanning.current && !isScanning) {
         setHasScanned(true);
@@ -61,7 +57,6 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
   const handleScanClick = () => {
       setHasScanned(false);
       if (!targets.trim() && channels.length > 0) {
-          // Random Serendipity Logic
           const randomChannel = channels[Math.floor(Math.random() * channels.length)];
           setTargets(randomChannel);
           onScan(randomChannel);
@@ -70,147 +65,128 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
       }
   };
 
-  const handleChannelClick = (channel: string) => {
-      setTargets(channel);
-      // Optional: Auto-scan on click? Let's just fill for now to allow editing, 
-      // or standard behavior in tools is fill-and-focus.
-  };
-
   return (
-    <div className="w-[320px] bg-[#050505] flex flex-col border-r border-neutral-900 shrink-0">
-        {/* SECTION 1: WIRE CONTROLS */}
-        <div className="p-5 border-b border-neutral-900">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-4 block">Signal Intercept</span>
+    <div className="flex flex-col h-full">
+        {/* SECTION 1: CONTROLS */}
+        <div className="p-4 border-b border-zinc-200 bg-white space-y-3">
+            <h3 className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">Wire Signal</h3>
             
-            <div className="mb-4">
+            <div className="flex gap-2">
                 <input 
                     value={targets}
                     onChange={(e) => setTargets(e.target.value)}
-                    placeholder={channels.length > 0 ? "Target topic (or empty for random)" : "Target topic..."}
-                    className="w-full bg-neutral-900 border border-neutral-800 p-2 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 mb-2 rounded-sm"
+                    placeholder="Search wire..."
+                    className="flex-1 bg-white border border-zinc-300 rounded px-3 py-2 text-sm text-zinc-900 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200 outline-none transition-all placeholder:text-zinc-400"
                     onKeyDown={(e) => e.key === 'Enter' && handleScanClick()}
                 />
+            </div>
+            
+            <div className="flex gap-2">
                 <button 
                     onClick={handleScanClick}
                     disabled={isScanning}
-                    className="w-full bg-white hover:bg-neutral-200 text-black py-2 font-bold uppercase tracking-widest text-[10px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
+                    className="flex-1 bg-zinc-900 hover:bg-black text-white py-2 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
-                    {isScanning ? 'Scanning...' : (!targets.trim() ? 'Scan Random Target' : 'Scan Targets')}
+                    {isScanning ? 'Scanning...' : 'Scan'}
+                </button>
+                <button 
+                    onClick={onFeedScan}
+                    disabled={isScanning}
+                    className="px-3 border border-zinc-300 hover:border-zinc-400 text-zinc-700 rounded text-xs font-medium transition-colors disabled:opacity-50 bg-white"
+                    title="RSS Ingest"
+                >
+                    RSS
                 </button>
             </div>
-
-            <button 
-                onClick={onFeedScan}
-                disabled={isScanning}
-                className="w-full border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white py-2 font-bold uppercase tracking-widest text-[10px] transition-colors disabled:opacity-50 rounded-sm flex justify-center gap-2"
-            >
-                <span>RSS INGEST</span>
-            </button>
         </div>
 
         {/* SECTION 2: CHANNELS */}
-        <div className="p-5 border-b border-neutral-900 max-h-[200px] overflow-y-auto custom-scrollbar">
-             <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Active Channels</span>
-                 <button onClick={() => setIsAddMode(!isAddMode)} className="text-neutral-500 hover:text-white text-xs">+</button>
-             </div>
-             
-             {isAddMode && (
-                 <form onSubmit={handleAddSubmit} className="mb-3">
-                     <input 
-                        value={newChannel}
-                        onChange={(e) => setNewChannel(e.target.value)}
-                        className="w-full bg-neutral-900 border border-neutral-800 p-1 text-xs text-white focus:border-accent outline-none"
-                        placeholder="New channel..."
-                        autoFocus
-                     />
-                 </form>
-             )}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+             <div className="p-4">
+                 <div className="flex justify-between items-center mb-3">
+                     <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wide">Channels</span>
+                     <button onClick={() => setIsAddMode(!isAddMode)} className="text-zinc-400 hover:text-zinc-900 text-xs font-bold">+</button>
+                 </div>
+                 
+                 {isAddMode && (
+                     <form onSubmit={handleAddSubmit} className="mb-3">
+                         <input 
+                            value={newChannel}
+                            onChange={(e) => setNewChannel(e.target.value)}
+                            className="w-full border border-zinc-300 rounded px-2 py-1 text-xs outline-none focus:border-indigo-500"
+                            placeholder="Add channel..."
+                            autoFocus
+                         />
+                     </form>
+                 )}
 
-             <div className="flex flex-wrap gap-2">
-                 {channels.map(c => (
-                     <div 
-                        key={c} 
-                        className="group flex items-center gap-2 px-2 py-1 bg-neutral-900 border border-neutral-800 hover:border-neutral-500 rounded-sm cursor-pointer transition-colors"
-                        onClick={() => handleChannelClick(c)}
-                     >
-                         <span className="text-[10px] font-mono text-neutral-300 group-hover:text-white">{c}</span>
-                         <button 
-                            onClick={(e) => { e.stopPropagation(); onRemoveChannel(c); }} 
-                            className="text-neutral-600 hover:text-red-500 text-[10px] px-1"
+                 <div className="space-y-1">
+                     {channels.map(c => (
+                         <div 
+                            key={c} 
+                            className="group flex items-center justify-between px-2.5 py-1.5 rounded-md hover:bg-zinc-100 cursor-pointer transition-colors"
+                            onClick={() => setTargets(c)}
                          >
-                            ×
-                         </button>
-                     </div>
-                 ))}
+                             <div className="flex items-center gap-2">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-zinc-400"></div>
+                                 <span className="text-sm font-medium text-zinc-700 group-hover:text-zinc-900">{c}</span>
+                             </div>
+                             <button 
+                                onClick={(e) => { e.stopPropagation(); onRemoveChannel(c); }} 
+                                className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 text-xs px-1 transition-opacity"
+                             >
+                                ×
+                             </button>
+                         </div>
+                     ))}
+                 </div>
              </div>
-        </div>
 
-        {/* SECTION 3: INCOMING LEADS */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="p-4 bg-[#0A0A0A] border-b border-neutral-900 flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-accent animate-pulse">Live Wire</span>
-                <span className="text-[10px] font-mono text-neutral-600">{leads.length} Signals</span>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-                {leads.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-50">
-                        {isScanning ? (
-                            <div className="space-y-4">
-                                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto"></div>
-                                <span className="text-[10px] uppercase tracking-widest font-bold block">Interpreting Signals...</span>
-                            </div>
-                        ) : hasScanned ? (
-                            <div className="space-y-2 animate-fade-in">
-                                <span className="block text-3xl mb-2 grayscale">∅</span>
-                                <span className="text-[10px] uppercase tracking-widest font-bold text-red-500 block">No Signals Found</span>
-                                <p className="text-[10px] text-neutral-500 max-w-[150px] mx-auto leading-tight">
-                                    The wire returned zero relevant artifacts for this target.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <span className="block text-2xl mb-2">⚡</span>
-                                <span className="text-[10px] uppercase tracking-widest font-bold block">System Idle</span>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="divide-y divide-neutral-900">
-                        {leads.map((lead) => {
+             {/* SECTION 3: INCOMING LEADS */}
+             <div className="border-t border-zinc-200">
+                <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wide">Live Feed</span>
+                    <span className="text-[10px] font-mono bg-zinc-200 px-1.5 rounded text-zinc-600">{leads.length}</span>
+                </div>
+                
+                <div className="p-2 space-y-2">
+                    {leads.length === 0 ? (
+                        <div className="py-8 text-center text-zinc-400 text-xs italic">
+                            {isScanning ? 'Acquiring targets...' : 'No active signals'}
+                        </div>
+                    ) : (
+                        leads.map((lead) => {
                             const isSelected = selectedLeadId === lead.id;
                             const isProcessed = processedLeadIds?.has(lead.id);
-                            const isDuplicate = lead.duplicate;
                             
                             return (
                                 <div 
                                     key={lead.id}
                                     onClick={() => onSelectLead(lead.id)}
-                                    className={`p-4 cursor-pointer transition-all hover:bg-neutral-900/50 group ${isSelected ? 'bg-neutral-900 border-l-2 border-accent' : 'border-l-2 border-transparent'} ${isProcessed || isDuplicate ? 'opacity-50' : ''}`}
+                                    className={`
+                                        p-3 rounded-md cursor-pointer border transition-all relative
+                                        ${isSelected 
+                                            ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-500/10 z-10' 
+                                            : 'bg-white border-zinc-200 hover:border-zinc-300 hover:shadow-sm'
+                                        }
+                                        ${isProcessed ? 'opacity-50' : ''}
+                                    `}
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex gap-2">
-                                            <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${lead.type === 'BREAKING' ? 'bg-red-900/20 text-red-500' : 'bg-neutral-800 text-neutral-400'}`}>
-                                                {lead.type}
-                                            </span>
-                                            {isDuplicate && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-500">DUPLICATE</span>}
-                                        </div>
-                                        <span className="text-[10px] font-mono text-neutral-600 font-bold">{lead.score}/10</span>
+                                    <div className="flex justify-between items-start mb-1.5">
+                                        <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${lead.type === 'BREAKING' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-zinc-50 text-zinc-500 border-zinc-100'}`}>
+                                            {lead.type}
+                                        </span>
+                                        <span className={`text-[10px] font-mono font-semibold ${lead.score > 8 ? 'text-emerald-600' : 'text-zinc-400'}`}>{lead.score}</span>
                                     </div>
-                                    <h4 className={`text-sm font-medium leading-snug mb-2 line-clamp-2 ${isSelected ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-200'}`}>
+                                    <h4 className={`text-sm font-medium leading-snug line-clamp-2 ${isSelected ? 'text-indigo-900' : 'text-zinc-800'}`}>
                                         {lead.headline}
                                     </h4>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] uppercase text-neutral-600 tracking-wider truncate max-w-[120px]">{lead.target_topic}</span>
-                                        <RiskChip risk={lead.risk_classification} />
-                                    </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
-            </div>
+                        })
+                    )}
+                </div>
+             </div>
         </div>
     </div>
   );

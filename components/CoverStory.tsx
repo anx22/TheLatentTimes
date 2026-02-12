@@ -2,6 +2,7 @@
 import React from 'react';
 import { Coverlines, Caption, DebugScaffold } from './ui/Editorial';
 import { IssueContent } from '../types';
+import { SmartImage } from './ui/SmartImage';
 
 interface CoverStoryProps {
   data: IssueContent['cover'];
@@ -38,12 +39,13 @@ export const CoverStory: React.FC<CoverStoryProps> = ({ data }) => {
         
         {/* Left: Image (Dominant) */}
         <div className="col-span-12 md:col-span-8 relative group overflow-hidden bg-neutral-100 aspect-[4/5] md:aspect-[16/9] animate-fade-in delay-200">
-            <img 
+            <SmartImage 
               src={data.img_base64 || "https://picsum.photos/1200/1600?random=cover"} 
               alt="Cover Model" 
-              className="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-[1.5s] ease-in-out mix-blend-multiply"
+              priority={true} // Eager load the LCP element
+              className="w-full h-full object-cover mix-blend-multiply hover:grayscale-0 transition-all duration-[1.5s]"
             />
-            <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-20">
                  <Caption text="Fig 1.0" credit={`PROMPT: ${data.imgPrompt?.slice(0, 20)}...`} className="text-white border-white/50" />
             </div>
         </div>
