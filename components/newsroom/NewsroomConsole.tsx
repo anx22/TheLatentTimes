@@ -71,70 +71,70 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
   };
 
   return (
-    <div className="w-[300px] bg-[#050505] flex flex-col border-l border-neutral-900">
-        <div className="flex-1 p-4 flex flex-col overflow-y-auto custom-scrollbar">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500 mb-4 block border-b border-neutral-800 pb-2">Commissioning Console</span>
+    <div className="w-[380px] bg-[#050505] flex flex-col border-l border-neutral-900 shrink-0">
+        <div className="flex-1 p-5 flex flex-col overflow-y-auto custom-scrollbar">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-6 block border-b border-neutral-900 pb-3">Commissioning Console</span>
             
             {/* Action Card */}
-            <div className="bg-[#0A0A0A] border border-neutral-800 p-4 mb-4">
+            <div className="bg-[#080808] border border-neutral-800 p-5 mb-6 rounded-sm shadow-sm">
                 {isProcessing ? (
-                    <div className="text-center py-4">
-                        <div className="w-6 h-6 border-2 border-neutral-700 border-t-accent rounded-full animate-spin mx-auto mb-3"></div>
-                        <span className="text-[9px] text-accent font-bold uppercase tracking-widest animate-pulse">Agents Active</span>
+                    <div className="text-center py-8">
+                        <div className="w-8 h-8 border-2 border-neutral-800 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
+                        <span className="text-[10px] text-accent font-bold uppercase tracking-widest animate-pulse">Orchestrating Agents...</span>
                     </div>
                 ) : activeStory ? (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2">
+                    <div className="space-y-5">
+                        <div className="flex items-center gap-3 mb-2 bg-neutral-900 p-2 rounded">
                             <span className={`w-2 h-2 rounded-full ${isShipped ? 'bg-emerald-500' : 'bg-accent'}`}></span>
-                            <span className="text-[10px] font-bold uppercase text-white">
+                            <span className="text-[10px] font-bold uppercase text-white tracking-wider">
                                 {isShipped ? 'Artifact Live' : 'Publish Ready'}
                             </span>
                         </div>
                         
                         {isShipped ? (
                             <>
-                                <p className="text-[10px] text-emerald-500 leading-relaxed font-bold">
-                                    Successfully shipped to live stream.
+                                <p className="text-xs text-emerald-500 leading-relaxed font-medium">
+                                    Artifact successfully deployed to the live content stream.
                                 </p>
                                 <button 
                                   onClick={onReset}
-                                  className="w-full border border-neutral-800 hover:bg-white hover:text-black text-white py-3 font-bold uppercase tracking-widest text-[9px] transition-colors"
+                                  className="w-full border border-neutral-700 hover:bg-white hover:text-black text-white py-3.5 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm"
                                 >
-                                    Next Assignment
+                                    Initialize Next Assignment
                                 </button>
                             </>
                         ) : (
                             <>
-                                <p className="text-[10px] text-neutral-400 leading-relaxed">
-                                    Artifact generated. Ship to live stream immediately?
+                                <p className="text-xs text-neutral-400 leading-relaxed font-medium">
+                                    Final artifact generated and verified. Ready for deployment.
                                 </p>
                                 <button 
                                   onClick={handleShipToLive}
-                                  className="w-full bg-white hover:bg-neutral-200 text-black py-3 font-bold uppercase tracking-widest text-[9px] transition-colors"
+                                  className="w-full bg-white hover:bg-neutral-200 text-black py-3.5 font-bold uppercase tracking-widest text-[10px] transition-all rounded-sm shadow-lg shadow-white/5"
                                 >
-                                    Ship to Live Stream
+                                    Deploy to Live Stream
                                 </button>
                             </>
                         )}
                     </div>
                 ) : selectedLead ? (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         {/* STANDARD CONTROLS */}
                         <div className="grid grid-cols-2 gap-4 mb-2">
                           <div className="col-span-1">
-                              <label className="block text-[9px] font-bold text-neutral-500 mb-2 uppercase tracking-widest">Mode</label>
+                              <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Mode</label>
                               <button 
                                   onClick={() => setDepth(d => d === 'Standard' ? 'Deep' : 'Standard')} 
-                                  className={`w-full py-1.5 border text-[9px] font-bold uppercase rounded-sm transition-colors ${depth === 'Deep' ? 'bg-neutral-800 text-white border-neutral-600' : 'border-neutral-800 text-neutral-500'}`}
+                                  className={`w-full py-2.5 border text-[10px] font-bold uppercase rounded-sm transition-colors ${depth === 'Deep' ? 'bg-neutral-800 text-white border-neutral-600' : 'border-neutral-800 text-neutral-500 hover:bg-neutral-900'}`}
                               >
                                   {depth}
                               </button>
                           </div>
                           <div className="col-span-1">
-                              <label className="block text-[9px] font-bold text-neutral-500 mb-2 uppercase tracking-widest">Window</label>
+                              <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Window</label>
                               <button 
                                   onClick={() => setTimeWindow(t => t === '24h' ? '7d' : t === '7d' ? '30d' : '24h')} 
-                                  className="w-full py-1.5 border border-neutral-800 text-neutral-400 hover:text-white text-[9px] font-bold uppercase rounded-sm"
+                                  className="w-full py-2.5 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-900 text-[10px] font-bold uppercase rounded-sm transition-colors"
                               >
                                   {timeWindow}
                               </button>
@@ -158,14 +158,14 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                         {/* FINE TUNING TOGGLE */}
                         <button 
                           onClick={() => setShowAdvanced(!showAdvanced)}
-                          className="w-full text-[9px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white py-2 flex items-center justify-between border-t border-neutral-800 mt-2"
+                          className="w-full text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white py-3 flex items-center justify-between border-t border-neutral-800 mt-2 hover:bg-neutral-900 px-2 rounded-sm transition-colors"
                         >
-                          <span>Fine-Tune</span>
+                          <span>Fine-Tune Parameters</span>
                           <span>{showAdvanced ? '-' : '+'}</span>
                         </button>
 
                         {showAdvanced && (
-                          <div className="space-y-4 pt-2 border-t border-neutral-800 animate-fade-in">
+                          <div className="space-y-5 pt-3 border-t border-neutral-800 animate-fade-in px-1">
                               {/* AUDIENCE SELECTOR */}
                               <ToggleGroup 
                                   label="Audience" 
@@ -176,38 +176,38 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                               
                               {/* SEARCH OVERRIDE */}
                               <div>
-                                  <label className="block text-[9px] font-bold text-neutral-500 mb-2 uppercase tracking-widest">Focus Query</label>
+                                  <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Focus Query Override</label>
                                   <input 
                                       value={focusQuery}
                                       onChange={(e) => setFocusQuery(e.target.value)}
-                                      placeholder="Override search term..."
-                                      className="w-full bg-neutral-900 border border-neutral-800 p-2 text-[10px] text-white focus:border-accent outline-none font-mono placeholder-neutral-700"
+                                      placeholder="Force specific search terms..."
+                                      className="w-full bg-neutral-900 border border-neutral-800 p-2.5 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 rounded-sm"
                                   />
                               </div>
 
                               {/* NEGATIVE PROMPTS */}
                               <div>
-                                  <label className="block text-[9px] font-bold text-neutral-500 mb-2 uppercase tracking-widest">Banned Words</label>
+                                  <label className="block text-[10px] font-bold text-neutral-400 mb-2 uppercase tracking-widest">Negative Prompts (CSV)</label>
                                   <input 
                                       value={bannedWords}
                                       onChange={(e) => setBannedWords(e.target.value)}
-                                      placeholder="delve, tapestry..."
-                                      className="w-full bg-neutral-900 border border-neutral-800 p-2 text-[10px] text-white focus:border-accent outline-none font-mono placeholder-neutral-700"
+                                      placeholder="delve, tapestry, bustling..."
+                                      className="w-full bg-neutral-900 border border-neutral-800 p-2.5 text-xs text-white focus:border-accent outline-none font-mono placeholder-neutral-600 rounded-sm"
                                   />
                               </div>
                               
                               {/* TEMPERATURE */}
                               <div>
-                                  <div className="flex justify-between mb-2">
-                                      <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Temperature</label>
-                                      <span className="text-[9px] font-mono text-neutral-400">{temperature}</span>
+                                  <div className="flex justify-between mb-3">
+                                      <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Model Entropy</label>
+                                      <span className="text-[10px] font-mono text-neutral-300 bg-neutral-800 px-1.5 rounded">{temperature}</span>
                                   </div>
                                   <input 
                                       type="range" 
                                       min="0" max="1" step="0.1"
                                       value={temperature}
                                       onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                                      className="w-full h-1 bg-neutral-800 appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-accent"
+                                      className="w-full h-1.5 bg-neutral-800 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
                                   />
                               </div>
                           </div>
@@ -215,14 +215,15 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
 
                         <button 
                           onClick={handleCommissionClick}
-                          className="w-full bg-accent hover:bg-red-600 text-white py-3 font-bold uppercase tracking-widest text-[9px] transition-colors shadow-lg shadow-accent/10 mt-2"
+                          className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 mt-4 rounded-sm"
                         >
-                            Commission
+                            Commission Agents
                         </button>
                     </div>
                 ) : (
-                    <div className="text-center py-8 opacity-30">
-                        <span className="text-[9px] uppercase tracking-widest">System Idle</span>
+                    <div className="text-center py-12 opacity-40">
+                        <span className="text-[10px] uppercase tracking-widest block mb-2">Console Idle</span>
+                        <p className="text-xs text-neutral-600">Select a lead to configure.</p>
                     </div>
                 )}
             </div>
@@ -231,15 +232,15 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
             {onToggleAutopilot ? (
                 <button 
                     onClick={onToggleAutopilot}
-                    className={`w-full border py-3 font-bold uppercase tracking-widest text-[9px] transition-colors mb-4 flex items-center justify-center gap-2 ${isAutopilotActive ? 'bg-accent/10 border-accent text-accent animate-pulse' : 'border-neutral-800 hover:border-accent/50 text-neutral-500 hover:text-white'}`}
+                    className={`w-full border py-4 font-bold uppercase tracking-widest text-[10px] transition-all mb-4 flex items-center justify-center gap-2 rounded-sm ${isAutopilotActive ? 'bg-accent/10 border-accent text-accent animate-pulse shadow-[0_0_15px_rgba(208,0,0,0.2)]' : 'border-neutral-800 hover:border-accent/50 text-neutral-500 hover:text-white hover:bg-neutral-900'}`}
                 >
-                    <span className={`w-1.5 h-1.5 rounded-full ${isAutopilotActive ? 'bg-accent' : 'bg-neutral-500'}`}></span>
-                    {isAutopilotActive ? 'AUTOPILOT ENGAGED (60s LOOP)' : 'ENGAGE AUTOPILOT'}
+                    <span className={`w-2 h-2 rounded-full ${isAutopilotActive ? 'bg-accent' : 'bg-neutral-600'}`}></span>
+                    {isAutopilotActive ? 'AUTOPILOT ENGAGED (5m CYCLE)' : 'ENGAGE AUTOPILOT'}
                 </button>
             ) : (
                 <button 
                     onClick={onAutopilot}
-                    className="w-full border border-neutral-800 hover:border-accent/50 hover:bg-accent/5 text-neutral-500 hover:text-accent py-2 font-bold uppercase tracking-widest text-[9px] transition-colors mb-4 flex items-center justify-center gap-2"
+                    className="w-full border border-neutral-800 hover:border-accent/50 hover:bg-accent/5 text-neutral-500 hover:text-accent py-4 font-bold uppercase tracking-widest text-[10px] transition-colors mb-4 flex items-center justify-center gap-2 rounded-sm"
                 >
                     <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
                     Engage Autopilot (Single Run)

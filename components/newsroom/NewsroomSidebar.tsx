@@ -46,61 +46,71 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
   };
 
   return (
-    <div className="w-[280px] bg-[#050505] flex flex-col border-r border-neutral-900">
+    <div className="w-[340px] bg-[#050505] flex flex-col border-r border-neutral-900 shrink-0">
       {/* Scan Input */}
-      <div className="p-3 border-b border-neutral-900 space-y-3">
-         <input 
-             value={targets} 
-             onChange={e => setTargets(e.target.value)}
-             onKeyDown={(e) => e.key === 'Enter' && onScan()}
-             placeholder="Topic (e.g. AI, Crypto)..."
-             className="w-full bg-neutral-900/50 border border-neutral-800 p-2 text-[10px] focus:border-accent outline-none text-white font-mono placeholder-neutral-700"
-         />
-         <div className="flex gap-2">
-             <button onClick={onScan} className="flex-1 bg-white hover:bg-neutral-200 text-black py-2 font-bold uppercase tracking-widest text-[9px] transition-colors">
-                 Scan
+      <div className="p-4 border-b border-neutral-900 space-y-4 bg-[#080808]">
+         <div className="flex flex-col gap-1">
+             <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Signal Wire Targets</label>
+             <input 
+                 value={targets} 
+                 onChange={e => setTargets(e.target.value)}
+                 onKeyDown={(e) => e.key === 'Enter' && onScan()}
+                 placeholder="Search topics (e.g. AI, Crypto)..."
+                 className="w-full bg-neutral-900 border border-neutral-800 p-3 text-xs focus:border-accent outline-none text-white font-mono placeholder-neutral-600 rounded-sm"
+             />
+         </div>
+         <div className="flex gap-3">
+             <button 
+                 onClick={onScan} 
+                 className="flex-1 bg-white hover:bg-neutral-200 text-black py-2.5 font-bold uppercase tracking-widest text-[10px] transition-colors rounded-sm shadow-sm"
+             >
+                 Initiate Scan
              </button>
-             <button onClick={onFeedScan} className="px-3 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white" title="Scan RSS Feeds">
+             <button 
+                 onClick={onFeedScan} 
+                 className="px-4 border border-neutral-800 bg-neutral-900 hover:border-neutral-600 text-neutral-400 hover:text-white rounded-sm transition-colors" 
+                 title="Scan RSS Feeds"
+             >
                  ⚡
              </button>
          </div>
       </div>
 
       {/* Active Channels */}
-      <div className="p-3 border-b border-neutral-900">
-          <div className="flex justify-between items-center mb-2">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">Active Channels</span>
+      <div className="p-4 border-b border-neutral-900">
+          <div className="flex justify-between items-center mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Monitor Channels</span>
               <button 
                 onClick={() => setIsAddMode(!isAddMode)} 
-                className="text-neutral-500 hover:text-white text-[10px]"
+                className="text-neutral-500 hover:text-white text-xs px-2 py-1 rounded hover:bg-neutral-900"
               >
-                  {isAddMode ? '×' : '+'}
+                  {isAddMode ? 'Close' : 'Add'}
               </button>
           </div>
           
           {isAddMode && (
-              <form onSubmit={handleAddSubmit} className="mb-2">
+              <form onSubmit={handleAddSubmit} className="mb-3 animate-fade-in">
                   <input 
                       autoFocus
                       value={newChannel} 
                       onChange={e => setNewChannel(e.target.value)}
-                      placeholder="Add topic..."
-                      className="w-full bg-black border border-neutral-700 p-1 text-[10px] text-white focus:border-accent outline-none"
+                      placeholder="New channel name..."
+                      className="w-full bg-black border border-neutral-700 p-2 text-xs text-white focus:border-accent outline-none mb-2"
                   />
               </form>
           )}
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
               {channels.map((channel) => (
                   <button
                       key={channel}
                       onClick={() => setTargets(channel)} // Quick select
-                      className="group flex items-center gap-1.5 px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-neutral-800 rounded-sm transition-colors"
+                      className="group flex items-center gap-2 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-[10px] font-mono font-medium text-neutral-300 border border-neutral-800 rounded-sm transition-all hover:border-neutral-600"
                   >
                       {channel}
                       <span 
                           onClick={(e) => { e.stopPropagation(); onRemoveChannel(channel); }}
-                          className="text-neutral-600 group-hover:text-red-500 font-bold hover:bg-neutral-900 rounded px-1"
+                          className="text-neutral-600 group-hover:text-red-500 font-bold ml-1 hover:bg-neutral-950 px-1 rounded"
                       >
                           ×
                       </span>
@@ -110,39 +120,47 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
       </div>
 
       {/* Lead Stream */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-         <div className="p-2 sticky top-0 bg-[#050505] z-10 border-b border-neutral-900">
-             <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-500">
-                 Incoming Wire ({leads.length})
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505]">
+         <div className="px-4 py-3 sticky top-0 bg-[#050505]/95 backdrop-blur-sm z-10 border-b border-neutral-900 flex justify-between items-center">
+             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                 Incoming Wire
              </span>
+             <span className="text-[10px] font-mono text-neutral-600">{leads.length} Signals</span>
          </div>
-         {leads.map((lead) => {
-             const isProcessed = processedLeadIds?.has(lead.id);
-             return (
-                 <div 
-                     key={lead.id}
-                     onClick={() => onSelectLead(lead.id)}
-                     className={`p-3 border-b border-neutral-900/50 cursor-pointer transition-colors group ${selectedLeadId === lead.id ? 'bg-[#111]' : 'hover:bg-[#0A0A0A]'} ${isProcessed ? 'opacity-40' : 'opacity-100'}`}
-                 >
-                     <div className="flex justify-between items-center mb-1">
-                         <RiskChip risk={lead.risk_classification} />
-                         <span className={`text-[9px] font-mono px-1 rounded ${lead.score >= 8 ? 'bg-accent/10 text-accent' : 'text-neutral-600'}`}>
-                             {lead.score}/10
-                         </span>
+         
+         <div className="pb-8">
+             {leads.map((lead) => {
+                 const isProcessed = processedLeadIds?.has(lead.id);
+                 return (
+                     <div 
+                         key={lead.id}
+                         onClick={() => onSelectLead(lead.id)}
+                         className={`px-4 py-4 border-b border-neutral-900 cursor-pointer transition-all group relative ${selectedLeadId === lead.id ? 'bg-[#111] border-l-2 border-l-accent' : 'hover:bg-[#0A0A0A] border-l-2 border-l-transparent'} ${isProcessed ? 'opacity-50' : 'opacity-100'}`}
+                     >
+                         <div className="flex justify-between items-center mb-2">
+                             <RiskChip risk={lead.risk_classification} />
+                             <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-bold ${lead.score >= 8 ? 'bg-accent/10 text-accent' : 'text-neutral-600 bg-neutral-900'}`}>
+                                 {lead.score}/10
+                             </span>
+                         </div>
+                         <h4 className={`text-sm font-bold leading-snug mb-2 ${selectedLeadId === lead.id ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-200'}`}>
+                             {isProcessed && <span className="text-emerald-500 mr-2" title="Processed">✓</span>}
+                             {lead.headline}
+                         </h4>
+                         <div className="flex justify-between items-end">
+                            <span className="text-[10px] text-neutral-600 uppercase font-mono truncate max-w-[180px]">{lead.source_ref}</span>
+                            {lead.type === 'BREAKING' && <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}
+                         </div>
                      </div>
-                     <h4 className={`text-xs font-bold leading-tight mb-1 ${selectedLeadId === lead.id ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-200'}`}>
-                         {isProcessed && <span className="text-emerald-500 mr-1">✓</span>}
-                         {lead.headline}
-                     </h4>
-                     <span className="text-[9px] text-neutral-600 uppercase block truncate">{lead.source_ref}</span>
+                 );
+             })}
+             {leads.length === 0 && (
+                 <div className="p-12 text-center opacity-40">
+                     <span className="text-[10px] uppercase tracking-widest block mb-2">No Signals Detected</span>
+                     <p className="text-xs text-neutral-600">Run a scan to populate the wire.</p>
                  </div>
-             );
-         })}
-         {leads.length === 0 && (
-             <div className="p-8 text-center opacity-30">
-                 <span className="text-[9px] uppercase tracking-widest">No Signals</span>
-             </div>
-         )}
+             )}
+         </div>
       </div>
     </div>
   );

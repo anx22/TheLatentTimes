@@ -138,24 +138,29 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black text-white font-mono z-50 flex flex-col text-xs antialiased selection:bg-accent selection:text-white">
+    <div className="fixed inset-0 bg-black text-white font-mono z-50 flex flex-col text-sm antialiased selection:bg-accent selection:text-white">
       
       {/* GLOBAL HEADER */}
-      <header className="h-10 border-b border-neutral-900 bg-[#0A0A0A] flex justify-between items-center px-4 shrink-0 select-none">
-          <div className="flex items-center gap-6">
-              <span className="font-bold tracking-[0.2em] text-white">MODUS <span className="text-neutral-600">//</span> OPS</span>
-              <div className="h-3 w-px bg-neutral-800"></div>
-              <span className="text-[10px] text-neutral-500 font-sans tracking-wide">
-                  UNIT: {theme.toUpperCase()}
+      <header className="h-14 border-b border-neutral-900 bg-[#0A0A0A] flex justify-between items-center px-6 shrink-0 select-none">
+          <div className="flex items-center gap-8">
+              <span className="font-bold tracking-[0.2em] text-white text-base">MODUS <span className="text-neutral-600">//</span> OPS</span>
+              <div className="h-4 w-px bg-neutral-800"></div>
+              <span className="text-xs text-neutral-500 font-sans tracking-widest uppercase">
+                  UNIT: <span className="text-neutral-300">{theme.toUpperCase()}</span>
               </span>
           </div>
-          <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'CONNECTED' ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-                  <span className="text-[9px] font-bold text-neutral-600">{dbStatus}</span>
+          <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 px-3 py-1 bg-neutral-900 rounded-full border border-neutral-800">
+                  <div className={`w-2 h-2 rounded-full ${dbStatus === 'CONNECTED' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`}></div>
+                  <span className="text-[10px] font-bold text-neutral-400 tracking-wider">{dbStatus}</span>
               </div>
               
-              <button onClick={onCancel} className="text-[10px] font-bold text-neutral-500 hover:text-white">ESC</button>
+              <button 
+                onClick={onCancel} 
+                className="text-xs font-bold text-neutral-500 hover:text-white border border-transparent hover:border-neutral-700 px-3 py-1 rounded transition-all"
+              >
+                  ESC
+              </button>
           </div>
       </header>
 

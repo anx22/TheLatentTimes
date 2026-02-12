@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 export {};
 
 declare global {
@@ -10,13 +12,10 @@ declare global {
     }
   }
 
-  interface AIStudio {
-    hasSelectedApiKey(): Promise<boolean>;
-    openSelectKey(): Promise<void>;
-  }
-
   interface Window {
-    // aistudio is already declared on Window in the environment types (as type AIStudio).
-    // We implicitly extend it by augmenting the AIStudio interface above.
+    aistudio?: {
+      hasSelectedApiKey(): Promise<boolean>;
+      openSelectKey(): Promise<void>;
+    };
   }
 }
