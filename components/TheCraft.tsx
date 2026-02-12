@@ -36,7 +36,10 @@ const HeadlineCard: React.FC<{
 
 export const TheCraft: React.FC<TheCraftProps> = ({ story }) => {
     const [viewMode, setViewMode] = useState<ViewMode>('DIFF');
-    const [activeCritiqueId, setActiveCritiqueId] = useState<number | null>(null);
+    
+    // Separate hover and selection states for robust interaction
+    const [hoveredCritiqueId, setHoveredCritiqueId] = useState<number | null>(null);
+    const [selectedCritiqueId, setSelectedCritiqueId] = useState<number | null>(null);
     
     // Headline Data
     const candidates = story.headline_candidates;
@@ -50,23 +53,35 @@ export const TheCraft: React.FC<TheCraftProps> = ({ story }) => {
     const structuredCritique = story.rewrite_chain?.rewrite.structured_critique;
     const hasRewriteChain = !!story.rewrite_chain;
 
+    // Determine active indices based on priority: Hover > Selected
+    const activeCritiqueId = hoveredCritiqueId !== null ? hoveredCritiqueId : selectedCritiqueId;
+    
     const activeIndices = activeCritiqueId !== null && structuredCritique 
         ? structuredCritique[activeCritiqueId].paragraph_indices 
         : [];
 
-    const renderParagraphs = (paragraphs: string[], highlights: number[] = [], highlightColor = 'bg-accent/20') => {
-        return paragraphs.map((p, i) => (
-            <p 
-                key={i} 
-                className={`mb-4 transition-all duration-300 rounded px-1 -mx-1 border-l-2 ${
-                    highlights.includes(i) 
-                        ? `${highlightColor} border-accent text-white shadow-sm` 
-                        : 'border-transparent'
-                }`}
-            >
-                {p}
-            </p>
-        ));
+    const hasActiveHighlight = activeIndices.length > 0;
+
+    const renderParagraphs = (paragraphs: string[], highlights: number[] = [], highlightColor = 'bg-accent/10') => {
+        return paragraphs.map((p, i) => {
+            const isHighlighted = highlights.includes(i);
+            const isDimmed = hasActiveHighlight && !isHighlighted;
+            
+            return (
+                <p 
+                    key={i} 
+                    className={`mb-4 transition-all duration-300 rounded px-3 -mx-3 border-l-2 ${
+                        isHighlighted 
+                            ? `${highlightColor} border-accent text-white shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-10 relative scale-[1.01]` 
+                            : isDimmed
+                                ? 'border-transparent text-neutral-600 blur-[0.5px]'
+                                : 'border-transparent text-neutral-300'
+                    }`}
+                >
+                    {p}
+                </p>
+            );
+        });
     };
 
     return (
@@ -173,32 +188,40 @@ export const TheCraft: React.FC<TheCraftProps> = ({ story }) => {
 
                     {/* CRITIQUE FOOTER */}
                     {hasRewriteChain && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-[#080808] border-t border-neutral-800 p-4 shadow-2xl max-h-[160px] overflow-y-auto custom-scrollbar z-20">
+                        <div className="absolute bottom-0 left-0 right-0 bg-[#080808] border-t border-neutral-800 p-4 shadow-2xl max-h-[200px] overflow-y-auto custom-scrollbar z-20">
                             {structuredCritique && structuredCritique.length > 0 ? (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2">
-                                        <span className="block text-[9px] uppercase tracking-widest text-accent font-bold">Specific Improvements</span>
-                                        <span className="text-[9px] text-neutral-500">(Hover or click to highlight)</span>
+                                        <span className="block text-[9px] uppercase tracking-widest text-accent font-bold">Senior Editor Critique</span>
+                                        <span className="text-[9px] text-neutral-500">(Hover to locate, Click to lock)</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
                                         {structuredCritique.map((point, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => setActiveCritiqueId(activeCritiqueId === idx ? null : idx)}
-                                                onMouseEnter={() => setActiveCritiqueId(idx)}
-                                                onMouseLeave={() => setActiveCritiqueId(null)}
-                                                className={`text-[10px] px-3 py-1.5 rounded border transition-all text-left font-mono leading-tight max-w-[300px] truncate ${
+                                                onClick={() => setSelectedCritiqueId(selectedCritiqueId === idx ? null : idx)}
+                                                onMouseEnter={() => setHoveredCritiqueId(idx)}
+                                                onMouseLeave={() => setHoveredCritiqueId(null)}
+                                                className={`text-[10px] px-3 py-2 rounded border transition-all text-left font-mono leading-tight max-w-[400px] truncate ${
                                                     activeCritiqueId === idx 
-                                                    ? 'bg-accent/20 text-accent border-accent shadow-[0_0_10px_rgba(208,0,0,0.2)]' 
-                                                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-white'
+                                                    ? 'bg-accent/10 text-accent border-accent shadow-[0_0_10px_rgba(208,0,0,0.2)]' 
+                                                    : selectedCritiqueId !== null && selectedCritiqueId !== idx
+                                                        ? 'bg-neutral-900/20 text-neutral-600 border-neutral-800'
+                                                        : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-600 hover:text-white'
                                                 }`}
                                                 title={point.point}
                                             >
+                                                <span className="font-bold mr-2">{idx + 1}.</span>
                                                 {point.point}
                                             </button>
                                         ))}
                                     </div>
-                                    {critique && <p className="text-[10px] text-neutral-600 pt-2 border-t border-neutral-900 mt-2 italic">{critique}</p>}
+                                    {critique && (
+                                        <div className="mt-4 pt-3 border-t border-neutral-900">
+                                            <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest block mb-1">General Notes</span>
+                                            <p className="text-[10px] text-neutral-500 italic leading-relaxed">{critique}</p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 // Fallback to general critique
