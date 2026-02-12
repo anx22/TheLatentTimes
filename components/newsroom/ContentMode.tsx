@@ -58,6 +58,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
 }) => {
     
     const isWorkbenchMode = !!(activeLead || activeStory);
+    const emptyInbox: Lead[] = []; // Typed constant to prevent 'never[]' inference
 
     return (
         <div className="flex-1 flex overflow-hidden">
@@ -133,7 +134,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                     <div className="w-full h-full flex">
                         <div className="flex-1 overflow-hidden">
                             <NewsroomBoard 
-                                inbox={[] as Lead[]} 
+                                inbox={emptyInbox} 
                                 working={working}
                                 basket={basket}
                                 onSelectLead={(lead: Lead) => onSelectLead(lead.id)}

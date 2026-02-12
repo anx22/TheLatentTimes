@@ -36,7 +36,7 @@ export const NewsroomBoard: React.FC<NewsroomBoardProps> = ({ inbox, working, ba
                             <span className="text-xs font-medium">No active tasks</span>
                         </div>
                     )}
-                    {working.map(story => (
+                    {working.map((story: StoryArtifact) => (
                         <AssetCard 
                             key={story.id} 
                             type="STORY" 
@@ -62,7 +62,7 @@ export const NewsroomBoard: React.FC<NewsroomBoardProps> = ({ inbox, working, ba
                             <span className="text-xs font-medium">Basket empty</span>
                         </div>
                     )}
-                    {basket.map(story => (
+                    {basket.map((story: StoryArtifact) => (
                         <AssetCard 
                             key={story.id} 
                             type="STORY" 
