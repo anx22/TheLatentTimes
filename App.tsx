@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
 import { IssueContent, PageTemplate, MagazineItem } from './types';
 import { getSession } from './services/storage';
 import { TheNewsroom } from './components/TheNewsroom';
+import { TrendWatch } from './components/TrendWatch';
 import { useNewsroom } from './hooks/useNewsroom';
 import { TEMPLATE_REGISTRY } from './services/templates';
-import { Header } from './components/Header'; // Restored Import
+import { Header } from './components/Header';
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -109,6 +109,7 @@ const App: React.FC = () => {
   const [issue, setIssue] = useState<IssueContent>(SHELL_DATA);
   const [hydrated, setHydrated] = useState(false);
   const [showNewsroom, setShowNewsroom] = useState(false);
+  const [showTrends, setShowTrends] = useState(false);
   const [session, setSession] = useState<any>(null); // Track session for Header
   
   // Use Newsroom Hook for logic
@@ -155,6 +156,7 @@ const App: React.FC = () => {
           onNavigate={() => {}}
           onOpenNewsroom={() => setShowNewsroom(true)}
           onOpenArchive={() => {}} // TODO: Hook up archive logic
+          onOpenTrends={() => setShowTrends(true)}
           onShare={handleShare}
           session={session}
           meta={issue.meta}
@@ -178,7 +180,12 @@ const App: React.FC = () => {
            />
        )}
 
-       {/* 3. CONTENT LAYER (Layout Engine) */}
+       {/* 3. TREND WATCH LAYER */}
+       {showTrends && (
+           <TrendWatch onClose={() => setShowTrends(false)} />
+       )}
+
+       {/* 4. CONTENT LAYER (Layout Engine) */}
        <LayoutEngine 
           sections={activeTemplate.sections} 
           data={issue} 

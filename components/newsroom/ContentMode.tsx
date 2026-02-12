@@ -1,11 +1,9 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { NewsroomSidebar } from './NewsroomSidebar';
 import { NewsroomBoard } from './NewsroomBoard';
 import { NewsroomConsole } from './NewsroomConsole';
 import { AssetWorkbench } from './AssetWorkbench';
 import { Lead, StoryArtifact, DebateArtifact, AgentLog, IssueContent, Proposal } from '../../types';
-import { RunConfig } from '../../hooks/useNewsroom';
 
 interface ContentModeProps {
     leads: Lead[];
