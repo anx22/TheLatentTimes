@@ -13,7 +13,7 @@ import {
   agentScanner,
   agentFeedReader
 } from "./engine-agents";
-import { RunConfig } from "../hooks/useNewsroom";
+import type { RunConfig } from "../hooks/useNewsroom";
 import { generateImage, safeGenerateContent, Type } from "./gemini";
 
 type State = 'IDLE' | 'SCANNING' | 'COLLECTING' | 'DEBATING' | 'WRITING' | 'ASSEMBLING' | 'PUBLISHED';
