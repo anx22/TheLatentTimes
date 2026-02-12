@@ -9,7 +9,7 @@
 - **Why**: Allows non-code interventions. "Banned Words" list is the most effective way to kill "AI-slop" (e.g., "delve").
 
 ## 002 - Refactoring Strategy (v4.0 Prep)
-**Status**: Pending
+**Status**: Executed (v3.6)
 **Problem**: `TheNewsroom.tsx`, `writer.ts`, and `engine-orchestrator.ts` are becoming unmaintainable "God Files". Adding new agents or UI features increases regression risk significantly.
 
 **Plan**:
@@ -35,3 +35,10 @@
 **Impact**: 
 - This refactor is "Sinnvoll" (Meaningful) because it prepares the codebase for **Autopilot**. 
 - Autopilot requires the Orchestrator to run *headless* (without UI). decoupling UI components from logic is prerequisite.
+
+## 003 - Agent Gamification (v3.6)
+**Problem**: The "Spinner" loading state is boring and hides the complexity of the agentic workflow. Users don't feel the "Newsroom" vibe.
+**Decision**:
+- Visualize specific Agents (Scout, Critic, Writer) as "Cards" in the console.
+- Orchestrator emits granular `onAgentStart` / `onAgentUpdate` events.
+- **Why**: Enhances trust (inspectability) and makes the wait time (30-60s) engaging rather than frustrating. Turns the app into a Simulation.

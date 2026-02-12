@@ -1,5 +1,5 @@
 
-import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, ColumnistPersona, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta } from "../types";
+import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, ColumnistPersona, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole } from "../types";
 import { 
   agentQueryOrchestrator, agentDossierCompiler, agentArchivist, 
   agentPitching, agentVerdict, 
@@ -16,9 +16,7 @@ import {
 import type { RunConfig } from "../hooks/useNewsroom";
 import { generateImage, safeGenerateContent, Type } from "./gemini";
 
-type State = 'IDLE' | 'SCANNING' | 'COLLECTING' | 'DEBATING' | 'WRITING' | 'ASSEMBLING' | 'PUBLISHED';
-
-// Plan v3 Section 12.1: WHITELIST (UPDATED FOR NORMPROMPT AESTHETIC)
+// Plan v3 Section 12.1: WHITELIST
 const TRUSTED_DOMAINS = [
     'arxiv.org', 'github.com', 'huggingface.co', 'civitai.com',
     'techcrunch.com', 'theverge.com', 'vogue.com', 'dazeddigital.com',
@@ -26,82 +24,42 @@ const TRUSTED_DOMAINS = [
     'simonwillison.net', 'interconnected.org', 'stratechery.com'
 ];
 
-export class IssueOrchestrator {
-  private state: State = 'IDLE';
-  private logs: AgentLog[] = [];
-  private onLog: (log: AgentLog) => void;
-  
-  // State
-  private leads: Lead[] = [];
-  private signals: SignalDossier[] = [];
-  private debates: DebateArtifact[] = [];
-  private stories: StoryArtifact[] = [];
-  private recipes: RecipeArtifact[] = [];
-  private drops: DropArtifact[] = [];
-  private dropItems: Array<{ category: string; title: string; desc: string }> = [];
-  
-  // Persistence State
-  private currentMeta?: IssueMeta;
-  private currentTheme: string = "The Synthetic Real";
+type OrchestratorCallbacks = {
+    onLog: (log: AgentLog) => void;
+    onAgentStart: (role: AgentRole, task: string) => void;
+    onAgentUpdate: (role: AgentRole, task: string, progress: number) => void;
+    onAgentFinish: (role: AgentRole) => void;
+    onAgentFail: (role: AgentRole, error: string) => void; // New callback
+};
 
-  constructor(logCallback: (log: AgentLog) => void) {
-    this.onLog = logCallback;
+// REFACTORED: Stateless Execution Engine
+export class IssueOrchestrator {
+  private callbacks: OrchestratorCallbacks;
+  
+  constructor(callbacks: OrchestratorCallbacks) {
+    this.callbacks = callbacks;
   }
 
-  private log(agent: AgentLog['agent'], message: string, data?: any) {
-    const entry: AgentLog = {
+  private log(agent: string, message: string, data?: any) {
+    this.callbacks.onLog({
       id: Math.random().toString(36),
       timestamp: new Date().toLocaleTimeString(),
-      phase: this.state,
+      phase: 'EXEC',
       agent,
       message,
       data
-    };
-    this.logs.push(entry);
-    this.onLog(entry);
+    });
   }
 
-  // Helper to create a temporary issue snapshot for UI streaming
-  private async assembleSnapshot(): Promise<IssueContent> {
-      return agentLayout(
-          this.currentTheme,
-          this.signals,
-          this.stories,
-          this.recipes,
-          this.dropItems,
-          this.drops,
-          this.debates,
-          this.currentMeta // Pass existing meta to preserve ID
-      );
-  }
-
-  // --- MOCK SEARCH (SYSTEM TEST DATA) ---
-  private getMockSearchResults(query: string): RetrievalSnapshot {
-    return {
-        id: `snap_${Date.now()}`,
-        query,
-        timestamp: new Date().toISOString(),
-        items: [
-            { title: "System Test: Signal A", url: "https://test.local/a", snippet: "This is a test signal for system validation.", source_domain: "test.local" },
-            { title: "System Test: Signal B", url: "https://test.local/b", snippet: "Another test signal to verify pipeline integrity.", source_domain: "test.local" }
-        ]
-    };
-  }
-
-  // --- EXECUTOR: SEARCH (RETRIEVAL LAYER) ---
-  // Plan v3 Section 4.2 & 12.2: Extract & Snapshot
-  // IMPLEMENTATION: Robust Search-to-JSON
+  // --- HELPER: SEARCH (RETRIEVAL LAYER) ---
   private async executeSearch(query: string, useDemo: boolean): Promise<RetrievalSnapshot> {
     if (useDemo) return this.getMockSearchResults(query);
 
     try {
-      // Powerful single-step: Search using tool, then synthesize into JSON.
+      this.callbacks.onAgentStart('SCOUT', `Searching ground truth for "${query}"...`);
       const response = await safeGenerateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Search for: "${query}". 
-        Then, based on the results, return a JSON object with a list of 'items'.
-        Each item must have: 'title', 'url', 'source_domain', and a 'snippet' (approx 30 words).
-        Only include real results found.`,
+        contents: `Search for: "${query}". Return JSON object with 'items' [{title, url, source_domain, snippet}].`,
         config: { 
             tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
@@ -126,169 +84,126 @@ export class IssueOrchestrator {
       });
       
       const raw = JSON.parse(response.text || "{ \"items\": [] }");
-      
-      // SANITIZE ITEMS: Ensure fields exist to prevent crashes during sort/map
-      let items: RetrievalItem[] = (raw.items || []).map((i: any) => ({
-          title: i.title || "Untitled Signal",
-          url: i.url || "",
-          source_domain: i.source_domain || "unknown", 
-          snippet: i.snippet || "No details available."
-      }));
-
-      // Sort by Trust (Plan Section 12.4)
-      items.sort((a, b) => {
+      const items: RetrievalItem[] = (raw.items || []).map((i: any) => ({
+          title: i.title || "Untitled", url: i.url || "", source_domain: i.source_domain || "unknown", snippet: i.snippet || "No details."
+      })).sort((a: any, b: any) => {
           const aTrust = TRUSTED_DOMAINS.some(d => a.source_domain.includes(d)) ? 1 : 0;
           const bTrust = TRUSTED_DOMAINS.some(d => b.source_domain.includes(d)) ? 1 : 0;
           return bTrust - aTrust;
       });
 
-      return {
-          id: `snap_${Date.now()}_${Math.random().toString(36).substr(2,5)}`,
-          query,
-          timestamp: new Date().toISOString(),
-          items: items.slice(0, 8) // Limit to top 8
-      };
+      this.callbacks.onAgentFinish('SCOUT');
+      return { id: `snap_${Date.now()}`, query, timestamp: new Date().toISOString(), items: items.slice(0, 8) };
 
     } catch (e: any) {
-      this.log('SYS', `Search Error for "${query}"`, {error: e.message});
+      this.log('SYS', `Search Error`, {error: e.message});
+      this.callbacks.onAgentFail('SCOUT', e.message);
       return { id: 'error', query, timestamp: new Date().toISOString(), items: [] };
     }
   }
 
-  // --- PHASE 1: SCANNING (The Wire) ---
-  public async scan(targets: string[], useDemo: boolean): Promise<Lead[]> {
-      this.state = 'SCANNING';
-      this.leads = []; // Reset leads
-      this.log('SYS', 'PHASE 1: SCANNING WIRE (Parallel Execution)');
-
-      try {
-        // Define a worker function that handles a single target
-        const processTarget = async (target: string): Promise<Lead[]> => {
-             // SPECIAL MODE: FEEDS
-             if (target === 'FEEDS') {
-                this.log('INGEST', `Polling Feed Whitelist...`);
-                if (useDemo) {
-                     // Simulate feeds in demo mode
-                     return await agentScanner("SYSTEM_SEED", { id: 'mock', query: 'mock', timestamp: '', items: [] });
-                } else {
-                     const feedItems = await agentFeedReader();
-                     if (feedItems.length > 0) {
-                        const snapshot: RetrievalSnapshot = {
-                            id: `feed_snap_${Date.now()}`,
-                            query: 'RSS_INGEST',
-                            timestamp: new Date().toISOString(),
-                            items: feedItems
-                        };
-                        const feedLeads = await agentScanner("FEED_INGEST", snapshot);
-                        this.log('INGEST', `Extracted ${feedLeads.length} leads from feeds.`);
-                        return feedLeads;
-                     } else {
-                        this.log('INGEST', 'No active feed signals found.');
-                        return [];
-                     }
-                }
-            }
-
-            // NORMAL MODE: TOPIC SEARCH
-            this.log('SCOUT', `Scanning sector: "${target}"...`);
-            
-            // 1. Retrieve Snapshot
-            const snapshot = await this.executeSearch(target, useDemo);
-            
-            // 2. Scan (Flash Lite)
-            if (snapshot.items.length > 0) {
-              const resultLeads = await agentScanner(target, snapshot);
-              this.log('SCOUT', `Found ${resultLeads.length} leads for ${target}`);
-              return resultLeads;
-            } else {
-              this.log('SCOUT', `No signals found for ${target}`);
-              return [];
-            }
-        };
-
-        // Execution: Run all targets concurrently using Promise.all
-        // This is crucial for speed. We map each target to a promise.
-        const promises = targets.map(async (target) => {
-            try {
-                return await processTarget(target);
-            } catch (e: any) {
-                this.log('SYS', `Error processing target "${target}"`, { message: e.message });
-                return []; // Return empty array on failure so other targets proceed
-            }
-        });
-
-        // Wait for all agents to report back
-        const results = await Promise.all(promises);
-        
-        // Flatten the array of arrays into a single Lead list
-        const allLeads = results.flat();
-        
-        this.leads = allLeads;
-        this.log('SYS', `SCAN COMPLETE. ${allLeads.length} total leads found.`);
-
-      } catch(e: any) {
-          this.log('SYS', 'CRITICAL ERROR IN SCAN', { message: e.message });
-      }
-      
-      return this.leads;
+  private getMockSearchResults(query: string): RetrievalSnapshot {
+    return {
+        id: `snap_${Date.now()}`, query, timestamp: new Date().toISOString(),
+        items: [{ title: "Mock Signal A", url: "https://test.local/a", snippet: "Test signal A.", source_domain: "test.local" }]
+    };
   }
 
-  // --- PHASE 2: COMMISSION (Deep Dive) ---
+  // --- WORKFLOW 1: SCAN ---
+  public async scan(targets: string[], useDemo: boolean): Promise<Lead[]> {
+      this.callbacks.onAgentStart('SCOUT', 'Scanning wire targets...');
+      
+      try {
+        const promises = targets.map(async (target) => {
+             if (target === 'FEEDS') {
+                this.callbacks.onAgentUpdate('SCOUT', 'Polling RSS Feed Whitelist...', 20);
+                if (useDemo) return await agentScanner("SYSTEM_SEED", { id: 'mock', query: 'mock', timestamp: '', items: [] });
+                const feedItems = await agentFeedReader();
+                if (feedItems.length === 0) return [];
+                const feedLeads = await agentScanner("FEED_INGEST", { id: `feed_${Date.now()}`, query: 'RSS', timestamp: '', items: feedItems });
+                return feedLeads;
+            }
+
+            // Normal Search
+            this.callbacks.onAgentUpdate('SCOUT', `Sector scan: ${target}`, 50);
+            const snapshot = await this.executeSearch(target, useDemo);
+            if (snapshot.items.length > 0) {
+              return await agentScanner(target, snapshot);
+            }
+            return [];
+        });
+
+        const results = await Promise.all(promises);
+        this.callbacks.onAgentFinish('SCOUT');
+        return results.flat();
+
+      } catch(e: any) {
+          this.log('SYS', 'Scan Error', { message: e.message });
+          this.callbacks.onAgentFail('SCOUT', e.message);
+          return [];
+      }
+  }
+
+  // --- WORKFLOW 2: COMMISSION ---
   public async commission(
     lead: Lead, 
     theme: string, 
     useDemo: boolean, 
     config: RunConfig, 
-    onUpdate: (partial: IssueContent) => void
+    onUpdate: (partial: IssueContent) => void,
+    // Context needed for state rebuilding
+    context: {
+        signals: SignalDossier[],
+        debates: DebateArtifact[],
+        stories: StoryArtifact[],
+        recipes: RecipeArtifact[],
+        drops: DropArtifact[],
+        meta?: IssueMeta
+    }
   ): Promise<IssueContent | null> {
       try {
-        this.state = 'COLLECTING';
-        this.currentTheme = theme;
-        const overrides = config.overrides || {};
-        this.log('EDITOR', `COMMISSIONED: "${lead.headline}" (Risk: ${config.riskTolerance}, Voice: ${config.voicePreset})`);
-        if (overrides.focusQuery) this.log('EDITOR', `OVERRIDE: Focus Query "${overrides.focusQuery}"`);
-
-        // Initialize Issue Identity if not exists
-        if (!this.currentMeta) {
-             const tempIssue = await this.assembleSnapshot(); // Generate initial ID
-             this.currentMeta = tempIssue.meta;
-        }
-
-        // 1. Dossier Compilation (Deep Dive on specific lead)
-        this.log('SCOUT', `Deep Research active... (Window: ${config.timeWindow})`);
+        this.log('SYS', `Commissioning: ${lead.headline}`);
         
-        // Use override query if present, otherwise default to headline
+        // 1. RESEARCH
+        const overrides = config.overrides || {};
+        this.callbacks.onAgentStart('SCOUT', 'Deep Research & Dossier Compilation');
+        
         const searchQuery = overrides.focusQuery || lead.headline;
         const snapshot = await this.executeSearch(searchQuery, useDemo);
-        const dossier = await agentDossierCompiler(lead.headline, snapshot); // Pass structured snapshot
-        this.signals.push(dossier);
+        const dossier = await agentDossierCompiler(lead.headline, snapshot);
+        context.signals.push(dossier);
+        this.callbacks.onAgentFinish('SCOUT');
 
-        // 2. Pitch & Verdict
-        this.state = 'DEBATING';
+        // 2. DEBATE
+        this.callbacks.onAgentStart('CRITIC', 'Analyzing Voltage & Risk');
         const pitches = await agentPitching(dossier, theme);
-        const verdict = await agentVerdict(dossier, pitches, config); // Updated signature
         
-        this.debates.push({
+        this.callbacks.onAgentStart('EDITOR', 'Deliberating Verdict');
+        const verdict = await agentVerdict(dossier, pitches, config);
+        this.callbacks.onAgentFinish('CRITIC');
+        this.callbacks.onAgentFinish('EDITOR');
+        
+        context.debates.push({
           id: dossier.id,
           topic: dossier.topic,
-          dossier: dossier, // FORENSIC LINK
+          dossier: dossier,
           scores: dossier.scores,
           pitches: pitches,
           verdict: verdict
         });
 
-        // STREAM UPDATE: Show Debate Result immediately
-        const debateSnapshot = await this.assembleSnapshot();
-        onUpdate(debateSnapshot);
+        // 3. UPDATE STREAM
+        let currentIssue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
+        onUpdate(currentIssue);
 
-        // 3. Routing
-        this.state = 'WRITING';
-        
+        // 4. PRODUCTION
         if (['COVER', 'FEATURE', 'COLUMN'].includes(verdict.placement)) {
-            // Full Article Pipeline
+            this.callbacks.onAgentStart('WRITER', 'Forging Headlines & Outlines');
             const headlines = await agentHeadlineForge(dossier, verdict);
             const { selected, log: headlineLog } = await agentHeadlineSelector(headlines, verdict);
             const outline = await agentOutline(dossier, verdict);
+            
+            this.callbacks.onAgentUpdate('WRITER', 'Drafting manuscript...', 30);
             
             let story: StoryArtifact;
             if (verdict.placement === 'COLUMN') {
@@ -299,180 +214,123 @@ export class IssueOrchestrator {
                 story = await agentDraft(dossier, verdict, selected, outline, config);
             }
 
-            // ATTACH AUDIT LOGS
             story.headline_log = headlineLog;
             story.headline_candidates = headlines;
 
-            // 4. REWRITE CHAIN (Plan v3 Phase 4)
-            this.log('EDITOR', `Initiating Rewrite Chain (Tone: ${verdict.tone_directives})...`);
-            
-            // Capture Draft
-            const draftVersion = { version: 1, text: [...story.body] };
-
-            // Rewrite pass 1: Enforce Specific Tone from Verdict
-            // Inject Audience Level into the rewrite pass
+            // Rewrite Chain
+            this.callbacks.onAgentUpdate('WRITER', 'Rewrite Pass (Tone Injection)...', 60);
             const toneInstruction = `${verdict.tone_directives}. Target Audience: ${overrides.audienceLevel || 'Expert'}.`;
             const rewriteResult = await agentRewrite(story.body, toneInstruction, config);
             
-            // Store the chain
             story.rewrite_chain = {
                 id: `rw_${Date.now()}`,
-                draft: draftVersion,
-                rewrite: { 
-                    version: 2, 
-                    text: rewriteResult.body, 
-                    critique: rewriteResult.critique, 
-                    diff_summary: rewriteResult.diff_summary 
-                }
+                draft: { version: 1, text: [...story.body] },
+                rewrite: { version: 2, text: rewriteResult.body, critique: rewriteResult.critique, diff_summary: rewriteResult.diff_summary }
             };
-            
-            // Apply the rewrite to the main artifact
             story.body = rewriteResult.body;
             
-            // 5. FACT CHECK GATE (Plan v3 Section 8)
+            // Fact Check
             if (config.qualityPass) {
-                this.log('SCOUT', 'Verifying facts against dossier snapshot...');
+                this.callbacks.onAgentStart('CRITIC', 'Fact Checking vs Snapshot');
                 const report = await agentFactCheck(story, dossier);
                 story.fact_check_report = report;
-                if (!report.approved) {
-                    this.log('SCOUT', 'Fact Check Warning', { issues: report.issues });
-                    story.status = 'REVIEW'; 
-                }
+                this.callbacks.onAgentFinish('CRITIC');
             }
+
+            this.callbacks.onAgentFinish('WRITER');
 
             // Visuals
-            const imageBrief = await agentImageBrief(story);
-            story.img_brief = imageBrief;
-            story.img_prompt = imageBrief.technical_prompt;
-            story.layout = await agentLayoutDirectives(story);
-
             if (config.generateImages) {
-                this.log('ATELIER', `Generating Asset...`);
+                this.callbacks.onAgentStart('ARTIST', 'Dreaming up visuals...');
+                const imageBrief = await agentImageBrief(story);
+                story.img_brief = imageBrief;
+                story.img_prompt = imageBrief.technical_prompt;
+                story.layout = await agentLayoutDirectives(story);
                 try {
                     story.img_base64 = await generateImage(story.img_prompt, '16:9');
-                } catch (e) { this.log('ATELIER', 'Image Gen Failed', {e}); }
+                } catch (e) { 
+                    this.log('ARTIST', 'Image Gen Failed', {e});
+                    this.callbacks.onAgentFail('ARTIST', 'Image Gen Limit/Error'); 
+                }
+                this.callbacks.onAgentFinish('ARTIST');
+            } else {
+                // Just get the brief
+                this.callbacks.onAgentStart('ARTIST', 'Drafting visual brief...');
+                const imageBrief = await agentImageBrief(story);
+                story.img_brief = imageBrief;
+                story.img_prompt = imageBrief.technical_prompt;
+                story.layout = await agentLayoutDirectives(story);
+                this.callbacks.onAgentFinish('ARTIST');
             }
             
-            this.stories.push(story);
+            context.stories.push(story);
 
         } else if (verdict.placement === 'DROP' || verdict.placement === 'NOTE') {
-            // Drop Pipeline
+            this.callbacks.onAgentStart('WRITER', 'Writing Drop...');
             const drop = await agentDropWriter(dossier, verdict);
-            this.drops.push(drop);
+            context.drops.push(drop);
+            this.callbacks.onAgentFinish('WRITER');
         }
 
-        // 6. Recipes (Optional)
+        // Recipes
         if (config.includeAtelier && dossier.scores.practical_craft > 3) {
+            this.callbacks.onAgentStart('ENGINEER', 'Reverse-engineering recipe...');
             const recipe = await agentEngineer(dossier);
-            this.recipes.push(recipe);
+            context.recipes.push(recipe);
+            this.callbacks.onAgentFinish('ENGINEER');
         }
 
-        // 7. Final Assembly
-        this.state = 'ASSEMBLING';
-        const issue = await this.assembleSnapshot();
-        
-        // Update Local Meta State
-        this.currentMeta = issue.meta;
+        // Final Layout
+        this.callbacks.onAgentStart('EDITOR', 'Final Layout Assembly');
+        const issue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
+        this.callbacks.onAgentFinish('EDITOR');
 
         onUpdate(issue);
         return issue;
+
       } catch (e: any) {
-        this.log('SYS', 'CRITICAL ERROR IN COMMISSION', { message: e.message, stack: e.stack });
-        console.error("Commission Error:", e);
+        this.log('SYS', 'CRITICAL ERROR IN COMMISSION', { message: e.message });
+        console.error(e);
+        // Reset Agents to Error State
+        ['SCOUT', 'CRITIC', 'WRITER', 'EDITOR', 'ARTIST', 'ENGINEER'].forEach(r => this.callbacks.onAgentFail(r as AgentRole, "Process Aborted"));
         return null;
       }
   }
 
-  // --- PHASE 3: AUTO-PILOT (The Agentic Loop) ---
-  // Plan v3 Section 2.2: Autopublish Mode
+  // --- WORKFLOW 3: AUTOPILOT ---
   public async autoPilot(
     targets: string[], 
     useDemo: boolean, 
     config: RunConfig,
-    onUpdate: (partial: IssueContent) => void
+    onUpdate: (partial: IssueContent) => void,
+    context: any // State object from hook
   ): Promise<{ issue: IssueContent, publishedCount: number } | null> {
-      this.log('SYS', 'ENGAGING AUTOPILOT. Threshold: SCORE > 8.5');
+      this.log('SYS', 'AUTOPILOT ENGAGED');
       let publishedCount = 0;
       
-      // 1. Scan
       const leads = await this.scan(targets, useDemo);
-      
-      // 2. Filter High-Value Candidates
       const candidates = leads.filter(l => l.score >= 8.5 && l.risk_classification === 'NONE');
       
       if (candidates.length === 0) {
-          this.log('SYS', 'AUTOPILOT: No leads met threshold. Aborting commission.');
-          return { issue: await this.assembleSnapshot(), publishedCount: 0 };
+          this.log('SYS', 'AUTOPILOT: No viable candidates.');
+          return { issue: await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta), publishedCount: 0 };
       }
 
-      this.log('SYS', `AUTOPILOT: Locked ${candidates.length} candidates. Executing sequential commission.`);
-
-      // 3. Sequential Commission (to avoid rate limits)
       for (const lead of candidates) {
-          this.log('SYS', `AUTOPILOT: Processing ${lead.headline}...`);
-          await this.commission(lead, this.currentTheme, useDemo, config, onUpdate);
+          await this.commission(lead, context.theme || "The Synthetic Real", useDemo, config, onUpdate, context);
           
-          // 4. AUTO-PUBLISH LOGIC (Plan v3 Section 2.2)
-          // Find the last debate generated for this lead
-          const debate = this.debates[this.debates.length - 1];
-          const story = this.stories[this.stories.length - 1]; // Heuristic: Last added story
+          const story = context.stories[context.stories.length - 1]; 
+          const debate = context.debates.find((d: any) => d.id === story?.signal_id);
           
-          // Gate Check: If the editor said "PUBLISH_READY", we ship it.
           if (story && debate?.verdict?.confidence_gate === 'PUBLISH_READY') {
-             this.log('OPS', `AUTOPILOT: Confidence Gate Passed (${debate.verdict.confidence_gate}). Publishing...`);
-             await this.publishArtifact(story);
+             story.status = 'PUBLISHED';
              publishedCount++;
-          } else {
-             this.log('OPS', `AUTOPILOT: Held for Review. Verdict: ${debate?.verdict?.confidence_gate || 'UNKNOWN'}`);
+             this.log('OPS', `AUTOPILOT: Published ${story.headline}`);
           }
-          
-          // Small cool-down between deep dives
           await new Promise(r => setTimeout(r, 2000));
       }
 
-      this.log('SYS', 'AUTOPILOT: Sequence Complete.');
-      return { issue: await this.assembleSnapshot(), publishedCount };
-  }
-
-  // --- PHASE 4: PUBLISHING (The Seal) ---
-  
-  // Publish a SINGLE artifact (Story/Drop) to the live state
-  // This allows "Continuous Publishing" instead of batch shipping
-  public async publishArtifact(artifact: StoryArtifact | DropArtifact): Promise<IssueContent> {
-      this.log('OPS', `PUBLISHING ARTIFACT: ${artifact.headline}`);
-      
-      // Mark as Published
-      artifact.status = 'PUBLISHED';
-      
-      // Update global issue status to 'PUBLISHED' implicitly if it wasn't already
-      if (this.currentMeta) {
-          this.currentMeta.status = 'PUBLISHED';
-      }
-      
-      // We don't need to "move" it, because it is already in this.stories/this.drops.
-      // We just ensure the status is updated and the snapshot reflects it.
-      
-      return this.assembleSnapshot();
-  }
-
-  public async shipIssue(): Promise<IssueContent> {
-      this.log('OPS', 'FINALIZING VOLUME. Sealing artifacts...');
-      
-      // 1. Final Assembly with status 'PUBLISHED'
-      this.state = 'PUBLISHED';
-      const issue = await this.assembleSnapshot();
-      issue.meta.status = 'PUBLISHED';
-      
-      // 2. Clear internal state for next run
-      this.currentMeta = undefined;
-      this.leads = [];
-      this.signals = [];
-      this.debates = [];
-      this.stories = [];
-      this.recipes = [];
-      this.drops = [];
-      this.state = 'IDLE';
-
-      return issue;
+      const finalIssue = await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
+      return { issue: finalIssue, publishedCount };
   }
 }

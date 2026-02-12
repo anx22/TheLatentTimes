@@ -27,7 +27,8 @@ const App: React.FC = () => {
   const { 
       logs, isProcessing, scanWire, commissionStory, runAutopilot, publishArtifact, leads, dbStatus, dbError,
       channels, addChannel, removeChannel, 
-      isAutopilotActive, toggleAutopilot // New
+      isAutopilotActive, toggleAutopilot, // New
+      agentJobs // NEW: AGENT VISUALIZATION
   } = useNewsroom();
 
   // 1. Auth Listener
@@ -106,6 +107,7 @@ const App: React.FC = () => {
           onCancel={() => setShowNewsroom(false)} 
           isAutopilotActive={isAutopilotActive}
           onToggleAutopilot={toggleAutopilot}
+          agentJobs={agentJobs}
         />
       )}
       

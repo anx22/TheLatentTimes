@@ -9,6 +9,27 @@ export interface SearchResult {
 export type ArtifactStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'REJECTED';
 export type ColumnistPersona = 'THE_CRITIC' | 'THE_OPTIMIST' | 'THE_GHOST';
 
+// --- AGENT SYSTEM TYPES ---
+export type AgentRole = 'SCOUT' | 'CRITIC' | 'WRITER' | 'EDITOR' | 'ARTIST' | 'ENGINEER';
+export type AgentStatus = 'IDLE' | 'THINKING' | 'WORKING' | 'WAITING' | 'DONE' | 'ERROR';
+
+export interface AgentDef {
+    id: string;
+    name: string;
+    role: AgentRole;
+    description: string;
+    color: string; // Tailwind class partial e.g. "emerald"
+    icon: string;
+}
+
+export interface AgentJob {
+    agentId: string;
+    status: AgentStatus;
+    currentTask: string; // "Scanning 45 URLs..."
+    progress: number; // 0-100
+    lastActive: number; // Timestamp
+}
+
 // --- DIVERSITY TAXONOMY (The Mix) ---
 export type ContentTopic = 'CREATIVE' | 'ENGINEERING' | 'BUSINESS' | 'CULTURE';
 export type ContentFormat = 'ESSAY' | 'TOOL' | 'CASE_STUDY' | 'TUTORIAL' | 'MANIFESTO';

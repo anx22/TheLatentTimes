@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { LogStream, ToggleGroup } from './ui-primitives';
-import { AgentLog, Lead, StoryArtifact, IssueContent } from '../../types';
+import { AgentLog, Lead, StoryArtifact, IssueContent, AgentJob, AgentRole } from '../../types';
+import { AgentGrid } from './AgentGrid';
 
 interface NewsroomConsoleProps {
   logs: AgentLog[];
-  isProcessing: boolean;
+  isProcessing: boolean; 
+  isCommissioning?: boolean; 
   selectedLead: Lead | undefined;
   activeStory: StoryArtifact | undefined;
   latestIssue: IssueContent | null;
@@ -13,15 +15,17 @@ interface NewsroomConsoleProps {
   onAutopilot: () => void;
   onPublish: (issue: IssueContent) => void;
   onPublishArtifact?: (artifact: StoryArtifact) => void;
-  onReset?: () => void; // New Reset Prop
+  onReset?: () => void; 
   // Autopilot
   isAutopilotActive?: boolean;
   onToggleAutopilot?: () => void;
+  // NEW: Agent Jobs for Visualization
+  agentJobs: Record<AgentRole, AgentJob>;
 }
 
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
-  logs, isProcessing, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
-  isAutopilotActive, onToggleAutopilot
+  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, onCommission, onAutopilot, onPublish, onPublishArtifact, onReset,
+  isAutopilotActive, onToggleAutopilot, agentJobs
 }) => {
   // Config State
   const [depth, setDepth] = useState<'Standard' | 'Deep'>('Standard');
@@ -70,17 +74,22 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
       }
   };
 
+  const isDisabled = isCommissioning || (isProcessing && !isCommissioning); // Fallback logic
+
   return (
     <div className="w-[380px] bg-[#050505] flex flex-col border-l border-neutral-900 shrink-0">
         <div className="flex-1 p-5 flex flex-col overflow-y-auto custom-scrollbar">
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-6 block border-b border-neutral-900 pb-3">Commissioning Console</span>
             
+            {/* NEW: AGENT VISUALIZATION */}
+            <AgentGrid jobs={agentJobs} />
+
             {/* Action Card */}
             <div className="bg-[#080808] border border-neutral-800 p-5 mb-6 rounded-sm shadow-sm">
-                {isProcessing ? (
+                {isDisabled ? (
                     <div className="text-center py-8">
                         <div className="w-8 h-8 border-2 border-neutral-800 border-t-accent rounded-full animate-spin mx-auto mb-4"></div>
-                        <span className="text-[10px] text-accent font-bold uppercase tracking-widest animate-pulse">Orchestrating Agents...</span>
+                        <span className="text-[10px] text-accent font-bold uppercase tracking-widest animate-pulse">Orchestrating...</span>
                     </div>
                 ) : activeStory ? (
                     <div className="space-y-5">
@@ -215,7 +224,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
 
                         <button 
                           onClick={handleCommissionClick}
-                          className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 mt-4 rounded-sm"
+                          disabled={isDisabled}
+                          className="w-full bg-accent hover:bg-red-600 text-white py-4 font-bold uppercase tracking-widest text-[10px] transition-colors shadow-lg shadow-accent/20 mt-4 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Commission Agents
                         </button>
@@ -232,7 +242,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
             {onToggleAutopilot ? (
                 <button 
                     onClick={onToggleAutopilot}
-                    className={`w-full border py-4 font-bold uppercase tracking-widest text-[10px] transition-all mb-4 flex items-center justify-center gap-2 rounded-sm ${isAutopilotActive ? 'bg-accent/10 border-accent text-accent animate-pulse shadow-[0_0_15px_rgba(208,0,0,0.2)]' : 'border-neutral-800 hover:border-accent/50 text-neutral-500 hover:text-white hover:bg-neutral-900'}`}
+                    disabled={isDisabled}
+                    className={`w-full border py-4 font-bold uppercase tracking-widest text-[10px] transition-all mb-4 flex items-center justify-center gap-2 rounded-sm ${isAutopilotActive ? 'bg-accent/10 border-accent text-accent animate-pulse shadow-[0_0_15px_rgba(208,0,0,0.2)]' : 'border-neutral-800 hover:border-accent/50 text-neutral-500 hover:text-white hover:bg-neutral-900'} disabled:opacity-50`}
                 >
                     <span className={`w-2 h-2 rounded-full ${isAutopilotActive ? 'bg-accent' : 'bg-neutral-600'}`}></span>
                     {isAutopilotActive ? 'AUTOPILOT ENGAGED (5m CYCLE)' : 'ENGAGE AUTOPILOT'}
@@ -240,7 +251,8 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
             ) : (
                 <button 
                     onClick={onAutopilot}
-                    className="w-full border border-neutral-800 hover:border-accent/50 hover:bg-accent/5 text-neutral-500 hover:text-accent py-4 font-bold uppercase tracking-widest text-[10px] transition-colors mb-4 flex items-center justify-center gap-2 rounded-sm"
+                    disabled={isDisabled}
+                    className="w-full border border-neutral-800 hover:border-accent/50 hover:bg-accent/5 text-neutral-500 hover:text-accent py-4 font-bold uppercase tracking-widest text-[10px] transition-colors mb-4 flex items-center justify-center gap-2 rounded-sm disabled:opacity-50"
                 >
                     <span className="w-1.5 h-1.5 bg-current rounded-full"></span>
                     Engage Autopilot (Single Run)

@@ -1,14 +1,16 @@
 
 import React, { useState } from 'react';
 import { IssueContent, AgentLog, Lead, DebateArtifact, StoryArtifact } from '../types';
-import { RunConfig, DbStatus } from '../hooks/useNewsroom'; 
+import { RunConfig, DbStatus, useNewsroom } from '../hooks/useNewsroom'; 
 import { NewsroomSidebar } from './newsroom/NewsroomSidebar';
 import { NewsroomCanvas } from './newsroom/NewsroomCanvas';
 import { NewsroomConsole } from './newsroom/NewsroomConsole';
 
 interface NewsroomProps {
   logs: AgentLog[];
-  isProcessing: boolean;
+  isProcessing: boolean; // Retained for fallback
+  isScanning?: boolean; // New
+  isCommissioning?: boolean; // New
   dbStatus?: DbStatus;
   dbError?: string | null;
   scanWire: (targets: string[], useDemo: boolean) => Promise<void>;
@@ -25,11 +27,14 @@ interface NewsroomProps {
   // Autopilot Control
   isAutopilotActive?: boolean;
   onToggleAutopilot?: (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => void;
+  
+  // NEW: AGENT VISUALIZATION
+  agentJobs: any;
 }
 
 export const TheNewsroom: React.FC<NewsroomProps> = ({ 
-    logs, isProcessing, dbStatus, dbError, scanWire, commissionStory, runAutopilot, leads, onPublish, onCancel,
-    channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot
+    logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, dbError, scanWire, commissionStory, runAutopilot, leads, onPublish, onCancel,
+    channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot, agentJobs
 }) => {
   // Global State
   const [theme, setTheme] = useState("The Synthetic Real");
@@ -180,6 +185,7 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
             onAddChannel={onAddChannel}
             onRemoveChannel={onRemoveChannel}
             processedLeadIds={processedLeadIds}
+            isScanning={isScanning}
           />
 
           <NewsroomCanvas 
@@ -188,12 +194,14 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
             selectedLead={selectedLead}
             activeDebate={activeDebate}
             activeStory={activeStory}
-            isProcessing={isProcessing}
+            isScanning={isScanning}
+            isCommissioning={isCommissioning}
           />
 
           <NewsroomConsole 
              logs={logs}
-             isProcessing={isProcessing}
+             isProcessing={isProcessing} // Retain for legacy (Autopilot blocks everything)
+             isCommissioning={isCommissioning}
              selectedLead={selectedLead}
              activeStory={activeStory}
              latestIssue={latestIssue}
@@ -204,6 +212,7 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
              onReset={handleResetWorkspace}
              isAutopilotActive={isAutopilotActive}
              onToggleAutopilot={handleToggleAutopilot}
+             agentJobs={agentJobs}
           />
       </div>
     </div>

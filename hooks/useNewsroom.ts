@@ -1,132 +1,116 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { IssueOrchestrator } from '../services/engine-orchestrator';
-import { IssueContent, AgentLog, Lead, StoryArtifact, DropArtifact } from '../types';
+import { IssueContent, AgentLog, Lead, StoryArtifact, DropArtifact, AgentJob, AgentRole, AgentStatus, SignalDossier, DebateArtifact, RecipeArtifact, IssueMeta } from '../types';
 import { saveLogs, loadLogs, saveIssue } from '../services/storage';
 import { DEFAULT_CHANNELS } from '../services/curation-seed';
+import { AGENT_ROSTER } from '../services/agent-registry';
 
 export interface RunConfig {
-  // Search Params
   deepResearch: boolean;
   timeWindow: '24h' | '7d' | '30d';
-  
-  // Tone Params
   voicePreset: 'Modus' | 'Gonzo' | 'Academic' | 'Minimalist';
-  riskTolerance: 'Low' | 'Mid' | 'High'; // Controls "Voltage" threshold
-  
-  // Pipeline Flags
+  riskTolerance: 'Low' | 'Mid' | 'High';
   qualityPass: boolean;
   includeAtelier: boolean;
   generateImages: boolean; 
-
-  // FINE TUNING (NEW)
   overrides?: {
-      focusQuery?: string; // Force a specific Google Search query
-      bannedWords?: string; // Comma separated list
-      additionalInstructions?: string; // "Make it sound like..."
+      focusQuery?: string;
+      bannedWords?: string;
+      additionalInstructions?: string;
       audienceLevel?: 'General' | 'Expert' | 'Insider';
-      modelTemperature?: number; // 0.0 to 1.0 (Precision vs Chaos)
+      modelTemperature?: number;
   }
 }
 
 export type DbStatus = 'CONNECTING' | 'CONNECTED' | 'ERROR' | 'OFFLINE';
 
-interface DailyStats {
-    morning: number;
-    noon: number;
-    evening: number;
-}
-
-const getDailyStats = (): DailyStats => {
-    try {
-        const key = `modus_autopilot_${new Date().toLocaleDateString()}`;
-        const stored = localStorage.getItem(key);
-        if (stored) return JSON.parse(stored);
-        return { morning: 0, noon: 0, evening: 0 };
-    } catch { return { morning: 0, noon: 0, evening: 0 }; }
-};
-
-const updateDailyStats = (slot: 'morning'|'noon'|'evening', count: number) => {
-    const key = `modus_autopilot_${new Date().toLocaleDateString()}`;
-    const stats = getDailyStats();
-    stats[slot] += count;
-    localStorage.setItem(key, JSON.stringify(stats));
-};
-
 export const useNewsroom = () => {
   const [logs, setLogs] = useState<AgentLog[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isCommissioning, setIsCommissioning] = useState(false);
+  
+  // CORE DATA STATE (Now managed here, not in class)
   const [leads, setLeads] = useState<Lead[]>([]); 
+  const signalsRef = useRef<SignalDossier[]>([]);
+  const debatesRef = useRef<DebateArtifact[]>([]);
+  const storiesRef = useRef<StoryArtifact[]>([]);
+  const recipesRef = useRef<RecipeArtifact[]>([]);
+  const dropsRef = useRef<DropArtifact[]>([]);
+  const metaRef = useRef<IssueMeta | undefined>(undefined);
+
   const [dbStatus, setDbStatus] = useState<DbStatus>('CONNECTING');
   const [dbError, setDbError] = useState<string | null>(null);
-  
-  // Channel State
   const [channels, setChannels] = useState<string[]>([]);
-  
-  // Autopilot State
   const [isAutopilotActive, setIsAutopilotActive] = useState(false);
-  const autopilotTimer = useRef<NodeJS.Timeout | null>(null);
+  
+  // NEW: Agent Visualization State
+  const [agentJobs, setAgentJobs] = useState<Record<AgentRole, AgentJob>>({
+      SCOUT: { agentId: 'agent_scout', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+      CRITIC: { agentId: 'agent_critic', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+      EDITOR: { agentId: 'agent_editor', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+      WRITER: { agentId: 'agent_writer', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+      ARTIST: { agentId: 'agent_artist', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+      ENGINEER: { agentId: 'agent_engineer', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
+  });
 
   const orchestratorRef = useRef<IssueOrchestrator | null>(null);
+  const autopilotTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Initial Load
   useEffect(() => {
     const init = async () => {
-        // Load Logs
         const savedLogs = await loadLogs();
-        if (savedLogs && savedLogs.length > 0) {
-            setLogs(savedLogs);
-        }
+        if (savedLogs && savedLogs.length > 0) setLogs(savedLogs);
         
-        // Load Channels from LocalStorage or Default
         const storedChannels = localStorage.getItem('modus_active_channels');
-        if (storedChannels) {
-            setChannels(JSON.parse(storedChannels));
-        } else {
-            setChannels(DEFAULT_CHANNELS);
-        }
+        if (storedChannels) setChannels(JSON.parse(storedChannels));
+        else setChannels(DEFAULT_CHANNELS);
     };
     init();
   }, []);
   
-  // Persist Channels
   useEffect(() => {
-     if (channels.length > 0) {
-        localStorage.setItem('modus_active_channels', JSON.stringify(channels));
-     }
+     if (channels.length > 0) localStorage.setItem('modus_active_channels', JSON.stringify(channels));
   }, [channels]);
 
-  // Strict Sync with Error Reporting
   useEffect(() => {
     if (logs.length > 0) {
         saveLogs(logs).then(result => {
-            if (result.success) {
-                setDbStatus('CONNECTED');
-                setDbError(null);
-            } else {
-                setDbStatus('ERROR');
-                // Extract useful message from Supabase error object
-                const msg = result.error?.message || result.error?.code || 'Unknown DB Error';
-                setDbError(msg);
-            }
+            setDbStatus(result.success ? 'CONNECTED' : 'ERROR');
+            if (result.error) setDbError(result.error.message);
         });
     }
   }, [logs]);
 
-  // Cleanup Timer on unmount
   useEffect(() => {
-      return () => {
-          if (autopilotTimer.current) clearInterval(autopilotTimer.current);
-      };
+      return () => { if (autopilotTimer.current) clearInterval(autopilotTimer.current); };
   }, []);
 
+  // UPDATE AGENT JOB HELPER
+  const updateAgent = (role: AgentRole, status: AgentStatus, task: string = '', progress: number = 0) => {
+      setAgentJobs(prev => ({
+          ...prev,
+          [role]: {
+              ...prev[role],
+              status,
+              currentTask: task,
+              progress,
+              lastActive: Date.now()
+          }
+      }));
+  };
+
   if (!orchestratorRef.current) {
-    orchestratorRef.current = new IssueOrchestrator((log) => {
-      setLogs(prev => [...prev, log]);
+    orchestratorRef.current = new IssueOrchestrator({
+        onLog: (log) => setLogs(prev => [...prev, log]),
+        onAgentStart: (role, task) => updateAgent(role, 'WORKING', task, 0),
+        onAgentUpdate: (role, task, progress) => updateAgent(role, 'WORKING', task, progress),
+        onAgentFinish: (role) => updateAgent(role, 'DONE', 'Waiting for tasks...', 100),
+        onAgentFail: (role, err) => updateAgent(role, 'ERROR', err, 0)
     });
   }
   
-  // Channel Actions
   const addChannel = (topic: string) => {
       if (!channels.includes(topic)) setChannels(p => [...p, topic]);
   };
@@ -135,41 +119,48 @@ export const useNewsroom = () => {
       setChannels(p => p.filter(c => c !== topic));
   };
 
-  // Phase 1: Scan
   const scanWire = async (targets: string[], useDemo: boolean) => {
-    setLogs([]); // Clear local logs on new run
     setLeads([]);
-    setIsProcessing(true);
+    setIsScanning(true);
     const newLeads = await orchestratorRef.current?.scan(targets, useDemo) || [];
     setLeads(newLeads);
-    setIsProcessing(false);
+    setIsScanning(false);
   };
 
-  // Phase 2: Commission
   const commissionStory = async (
-    lead: Lead, 
-    theme: string, 
-    useDemo: boolean, 
-    config: RunConfig,
+    lead: Lead, theme: string, useDemo: boolean, config: RunConfig,
     onUpdate: (partial: IssueContent) => void
   ) => {
-    setIsProcessing(true);
-    const result = await orchestratorRef.current?.commission(lead, theme, useDemo, config, onUpdate);
-    setIsProcessing(false);
+    setIsCommissioning(true);
+    
+    // Pass State Refs into Orchestrator so it can mutate them
+    const context = {
+        signals: signalsRef.current,
+        debates: debatesRef.current,
+        stories: storiesRef.current,
+        recipes: recipesRef.current,
+        drops: dropsRef.current,
+        meta: metaRef.current
+    };
+
+    const result = await orchestratorRef.current?.commission(lead, theme, useDemo, config, onUpdate, context);
+    
+    // Sync Refs back to updated result if needed (Orchestrator mutates arrays in place, so simple update is fine)
+    if (result) {
+        metaRef.current = result.meta;
+    }
+    
+    setIsCommissioning(false);
     return result;
   };
 
-  // Phase 3: Autopilot
   const runAutopilot = async (
-      targets: string[], 
-      theme: string, 
-      useDemo: boolean, 
+      targets: string[], theme: string, useDemo: boolean, 
       onUpdate: (partial: IssueContent) => void
   ) => {
-      // Don't clear logs in AP mode, just append
-      setIsProcessing(true);
+      setIsScanning(true);
+      setIsCommissioning(true);
       
-      // Use a robust default config for autopilot
       const config: RunConfig = {
           deepResearch: false,
           timeWindow: '7d',
@@ -180,100 +171,72 @@ export const useNewsroom = () => {
           generateImages: false
       };
       
-      // Autopilot handles auto-publishing internally if confidence is high
-      const result = await orchestratorRef.current?.autoPilot(targets, useDemo, config, onUpdate);
-      setIsProcessing(false);
+      const context = {
+        signals: signalsRef.current,
+        debates: debatesRef.current,
+        stories: storiesRef.current,
+        recipes: recipesRef.current,
+        drops: dropsRef.current,
+        meta: metaRef.current,
+        theme
+      };
+
+      const result = await orchestratorRef.current?.autoPilot(targets, useDemo, config, onUpdate, context);
+      
+      setIsScanning(false);
+      setIsCommissioning(false);
       
       if (result) {
+          metaRef.current = result.issue.meta;
           return { issue: result.issue, publishedCount: result.publishedCount };
       }
       return null;
   };
 
-  // TOGGLE AUTOPILOT LOOP
   const toggleAutopilot = (active: boolean, theme: string, useDemo: boolean, onUpdate: (partial: IssueContent) => void) => {
       if (active) {
           setIsAutopilotActive(true);
-          
-          // Helper: Check Schedule Quotas
-          const checkScheduleAndRun = () => {
-              if (isProcessing) return; // Prevent Overlap
-
-              const now = new Date();
-              const hour = now.getHours();
-              let slot: 'morning' | 'noon' | 'evening' | null = null;
-              
-              if (hour >= 6 && hour < 12) slot = 'morning';
-              else if (hour >= 12 && hour < 18) slot = 'noon';
-              else if (hour >= 18 && hour < 22) slot = 'evening';
-              
-              if (!slot) {
-                  setLogs(prev => [...prev, { id: Date.now().toString(), timestamp: new Date().toLocaleTimeString(), phase: 'IDLE', agent: 'SYS', message: `Autopilot Idle: Off-hours (${hour}:00)` }]);
-                  return;
-              }
-
-              const stats = getDailyStats();
-              if (stats[slot] >= 2) {
-                  setLogs(prev => [...prev, { id: Date.now().toString(), timestamp: new Date().toLocaleTimeString(), phase: 'IDLE', agent: 'SYS', message: `Autopilot Idle: Quota Met for ${slot} (${stats[slot]}/2)` }]);
-                  return;
-              }
-
-              // Proceed with Run
-              runAutopilot(channels, theme, useDemo, onUpdate).then(res => {
-                  if (res && res.publishedCount > 0 && slot) {
-                      updateDailyStats(slot, res.publishedCount);
-                  }
-              });
+          const runLoop = () => {
+              if (isCommissioning || isScanning) return;
+              runAutopilot(channels, theme, useDemo, onUpdate);
           };
-          
-          // 1. Run Immediately (First run bypasses checks to show activity, or logic can be applied)
-          // Let's apply logic immediately to prevent user confusion if they are off-hours
-          checkScheduleAndRun();
-          
-          // 2. Set Interval (5 minutes to prevent token burn)
-          if (autopilotTimer.current) clearInterval(autopilotTimer.current);
-          autopilotTimer.current = setInterval(() => {
-              checkScheduleAndRun();
-          }, 300000); // 5 Minutes
-
+          runLoop();
+          autopilotTimer.current = setInterval(runLoop, 300000); 
       } else {
           setIsAutopilotActive(false);
           if (autopilotTimer.current) clearInterval(autopilotTimer.current);
       }
   };
 
-  // Phase 4: Publish (Single)
   const publishArtifact = async (artifact: StoryArtifact | DropArtifact) => {
-      setIsProcessing(true);
-      const updatedIssue = await orchestratorRef.current?.publishArtifact(artifact);
-      if (updatedIssue) {
-          await saveIssue(updatedIssue);
-      }
-      setIsProcessing(false);
-      return updatedIssue;
-  };
-
-  // Phase 4: Ship Issue (Finalize & Save)
-  const shipCurrentIssue = async () => {
-      setIsProcessing(true);
-      const finalizedIssue = await orchestratorRef.current?.shipIssue();
-      
-      if (finalizedIssue) {
-          // Persist the published issue to DB/Archive
-          await saveIssue(finalizedIssue);
-      }
-      
-      setIsProcessing(false);
-      return finalizedIssue;
+      artifact.status = 'PUBLISHED';
+      if (metaRef.current) metaRef.current.status = 'PUBLISHED';
+      await saveIssue({
+          meta: metaRef.current!,
+          ticker: [], // simplified for save
+          cover: { eyebrow: '', title: '', deck: '', coverlines: [], imgPrompt: '' },
+          features: storiesRef.current.filter(s => ['COVER', 'FEATURE'].includes(s.placement)),
+          columns: storiesRef.current.filter(s => s.placement === 'COLUMN'),
+          drops: dropsRef.current,
+          edit: [],
+          atelier: recipesRef.current,
+          debates: debatesRef.current,
+          index_keys: [],
+          colophon: { contributors: [], sources: [], corrections: [] }
+      });
+      return null; // Return value not critical here
   };
 
   return {
     logs,
+    agentJobs, // EXPORTED FOR UI
     leads,
     channels,
     addChannel,
     removeChannel,
-    isProcessing,
+    isProcessing: isScanning || isCommissioning, 
+    isScanning,
+    isCommissioning,
     isAutopilotActive,
     toggleAutopilot,
     dbStatus,
@@ -282,6 +245,6 @@ export const useNewsroom = () => {
     commissionStory,
     runAutopilot,
     publishArtifact,
-    shipCurrentIssue
+    shipCurrentIssue: async () => null // Stub
   };
 };

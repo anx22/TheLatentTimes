@@ -10,7 +10,9 @@ interface NewsroomCanvasProps {
   selectedLead: Lead | undefined;
   activeDebate: DebateArtifact | null;
   activeStory: StoryArtifact | undefined;
-  isProcessing: boolean;
+  isProcessing?: boolean; // Legacy
+  isScanning?: boolean;
+  isCommissioning?: boolean;
 }
 
 export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
@@ -19,7 +21,9 @@ export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
   selectedLead,
   activeDebate,
   activeStory,
-  isProcessing
+  isProcessing, // Fallback
+  isScanning = false,
+  isCommissioning = false
 }) => {
   return (
     <div className="flex-1 flex flex-col bg-[#080808] relative min-w-[600px]">
@@ -49,12 +53,28 @@ export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
                    3. Artifact
                </button>
             </div>
-            {isProcessing && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full border border-accent/20">
-                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></span>
-                    <span className="text-[10px] text-accent font-bold tracking-wider">PROCESSING</span>
-                </div>
-            )}
+            
+            <div className="flex gap-2">
+                {isScanning && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-neutral-800">
+                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+                        <span className="text-[10px] text-white font-bold tracking-wider">SCANNING WIRE</span>
+                    </div>
+                )}
+                {isCommissioning && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full border border-accent/20">
+                        <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></span>
+                        <span className="text-[10px] text-accent font-bold tracking-wider">COMMISSIONING AGENTS</span>
+                    </div>
+                )}
+                {/* Fallback for Autopilot legacy or non-migrated code */}
+                {isProcessing && !isScanning && !isCommissioning && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 rounded-full border border-accent/20">
+                        <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse"></span>
+                        <span className="text-[10px] text-accent font-bold tracking-wider">PROCESSING</span>
+                    </div>
+                )}
+            </div>
         </div>
 
         {/* Viewport */}

@@ -18,6 +18,7 @@ interface NewsroomSidebarProps {
   onAddChannel: (t: string) => void;
   onRemoveChannel: (t: string) => void;
   processedLeadIds?: Set<string>;
+  isScanning?: boolean;
 }
 
 export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
@@ -31,7 +32,8 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
   channels,
   onAddChannel,
   onRemoveChannel,
-  processedLeadIds
+  processedLeadIds,
+  isScanning = false
 }) => {
   const [newChannel, setNewChannel] = useState('');
   const [isAddMode, setIsAddMode] = useState(false);
@@ -54,21 +56,24 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
              <input 
                  value={targets} 
                  onChange={e => setTargets(e.target.value)}
-                 onKeyDown={(e) => e.key === 'Enter' && onScan()}
+                 onKeyDown={(e) => e.key === 'Enter' && !isScanning && onScan()}
                  placeholder="Search topics (e.g. AI, Crypto)..."
-                 className="w-full bg-neutral-900 border border-neutral-800 p-3 text-xs focus:border-accent outline-none text-white font-mono placeholder-neutral-600 rounded-sm"
+                 disabled={isScanning}
+                 className="w-full bg-neutral-900 border border-neutral-800 p-3 text-xs focus:border-accent outline-none text-white font-mono placeholder-neutral-600 rounded-sm disabled:opacity-50 disabled:cursor-wait"
              />
          </div>
          <div className="flex gap-3">
              <button 
                  onClick={onScan} 
-                 className="flex-1 bg-white hover:bg-neutral-200 text-black py-2.5 font-bold uppercase tracking-widest text-[10px] transition-colors rounded-sm shadow-sm"
+                 disabled={isScanning}
+                 className="flex-1 bg-white hover:bg-neutral-200 text-black py-2.5 font-bold uppercase tracking-widest text-[10px] transition-colors rounded-sm shadow-sm disabled:opacity-50 disabled:cursor-wait"
              >
-                 Initiate Scan
+                 {isScanning ? 'Scanning...' : 'Initiate Scan'}
              </button>
              <button 
                  onClick={onFeedScan} 
-                 className="px-4 border border-neutral-800 bg-neutral-900 hover:border-neutral-600 text-neutral-400 hover:text-white rounded-sm transition-colors" 
+                 disabled={isScanning}
+                 className="px-4 border border-neutral-800 bg-neutral-900 hover:border-neutral-600 text-neutral-400 hover:text-white rounded-sm transition-colors disabled:opacity-50 disabled:cursor-wait" 
                  title="Scan RSS Feeds"
              >
                  ⚡
@@ -104,8 +109,9 @@ export const NewsroomSidebar: React.FC<NewsroomSidebarProps> = ({
               {channels.map((channel) => (
                   <button
                       key={channel}
-                      onClick={() => setTargets(channel)} // Quick select
-                      className="group flex items-center gap-2 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-[10px] font-mono font-medium text-neutral-300 border border-neutral-800 rounded-sm transition-all hover:border-neutral-600"
+                      onClick={() => !isScanning && setTargets(channel)} // Quick select
+                      disabled={isScanning}
+                      className="group flex items-center gap-2 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-[10px] font-mono font-medium text-neutral-300 border border-neutral-800 rounded-sm transition-all hover:border-neutral-600 disabled:opacity-50"
                   >
                       {channel}
                       <span 
