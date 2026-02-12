@@ -12,6 +12,10 @@ import { saveIssue, saveLogs, loadIssue } from "../services/storage";
 import { AgentRole, AgentLog, IssueContent } from "../types";
 import { RunConfig } from "../hooks/useNewsroom";
 
+// Fix for Node types when @types/node is not available
+declare const require: any;
+declare const module: any;
+
 // Polyfill for storage if needed
 if (!process.env.VITE_GEMINI_API_KEY && process.env.API_KEY) {
     // Map generic API_KEY to Vite expected format if running in pure node
@@ -98,7 +102,7 @@ async function runHeadlessLoop() {
 }
 
 // Check if running directly
-if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
     runHeadlessLoop();
 }
 

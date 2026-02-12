@@ -10,8 +10,13 @@ declare global {
     }
   }
 
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
   interface Window {
-    // aistudio is declared globally by the environment/SDK types with type 'AIStudio'.
-    // Removing local declaration to avoid "Subsequent property declarations must have the same type" error.
+    // Google AI Studio Key Selection Interface
+    aistudio?: AIStudio;
   }
 }
