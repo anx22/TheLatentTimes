@@ -1,13 +1,11 @@
 
 import React from 'react';
-import { Lead, StoryArtifact } from '../../types';
+import { StoryArtifact } from '../../types';
 import { AssetCard } from './AssetCard';
 
 interface NewsroomBoardProps {
-    inbox: Lead[];
     working: StoryArtifact[];
     basket: StoryArtifact[];
-    onSelectLead: (lead: Lead) => void;
     onSelectStory: (story: StoryArtifact) => void;
     onShipBatch: () => void;
     activeItemId?: string;
@@ -23,7 +21,7 @@ const ColumnHeader: React.FC<{ title: string; count: number; color?: string; act
     </div>
 );
 
-export const NewsroomBoard: React.FC<NewsroomBoardProps> = ({ inbox, working, basket, onSelectLead, onSelectStory, onShipBatch, activeItemId }) => {
+export const NewsroomBoard: React.FC<NewsroomBoardProps> = ({ working, basket, onSelectStory, onShipBatch, activeItemId }) => {
     return (
         <div className="w-full h-full bg-zinc-50/50 flex p-8 gap-6 overflow-x-auto">
             
