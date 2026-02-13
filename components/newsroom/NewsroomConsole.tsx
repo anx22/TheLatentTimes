@@ -53,7 +53,7 @@ interface NewsroomConsoleProps {
   // Controlled Config Props
   commissionConfig: CommissionConfigState;
   setCommissionConfig: (cfg: CommissionConfigState) => void;
-  onCommission: () => void; // No args, uses state from parent
+  onCommission: () => void; // Trigger action
 
   onAutopilot: () => void;
   onPublish: (issue: IssueContent) => void;
@@ -323,7 +323,6 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                             </div>
                         )}
                         
-                        {/* Note: The main action button is now in ContentMode, but we keep this one as a backup */}
                         <div className="pt-2 opacity-50 hover:opacity-100 transition-opacity">
                             <button 
                                 onClick={onCommission}

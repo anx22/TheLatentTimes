@@ -76,6 +76,13 @@ export const ContentMode: React.FC<ContentModeProps> = ({
         });
     };
 
+    // Safe handler to prevent 'never' type inference error during build
+    const handleStorySelect = (s: any) => {
+        if (s && typeof s.id === 'string') {
+            onSelectStory(s.id);
+        }
+    };
+
     const isWorkbenchMode = !!(activeLead || activeStory);
 
     return (
@@ -145,9 +152,19 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                                                 <button 
                                                     onClick={handleExecuteCommission}
                                                     disabled={isProcessing || isCommissioning}
-                                                    className="bg-black hover:bg-zinc-800 text-white px-6 py-3 rounded text-xs font-bold uppercase tracking-widest shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                                                    className="bg-black hover:bg-zinc-800 text-white px-6 py-3 rounded text-xs font-bold uppercase tracking-widest shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                                                 >
-                                                    {isCommissioning ? 'Commissioning...' : 'Initialize Commission →'}
+                                                    {isCommissioning ? (
+                                                        <>
+                                                            <span className="animate-spin">●</span>
+                                                            <span>Initializing...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>Initialize Commission</span>
+                                                            <span>→</span>
+                                                        </>
+                                                    )}
                                                 </button>
                                             </div>
                                         </div>
@@ -182,7 +199,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                             <NewsroomBoard 
                                 working={working}
                                 basket={basket}
-                                onSelectStory={(s: StoryArtifact) => onSelectStory(s.id)}
+                                onSelectStory={handleStorySelect}
                                 activeItemId={activeStory?.id || undefined}
                                 onShipBatch={onShipBatch}
                             />
