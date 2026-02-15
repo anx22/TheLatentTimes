@@ -84,48 +84,83 @@ export class IssueOrchestrator {
       this.callbacks.onAgentStart('SCOUT', `Retrieving grounding data for "${query}"...`);
       const t = new Timer();
       
+      // OPTIMIZATION: Removed JSON Schema enforcement for Search. 
+      // We rely on structured text output which is 10x faster and less prone to looping with Tools.
       const response = await safeGenerateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Search for: "${query}". Return JSON object with 'items' [{title, url, source_domain, snippet}].`,
+        contents: `Search for: "${query}". 
+        
+        List the top 6 most relevant results.
+        For each result, output it in this EXACT format:
+
+        [[ITEM]]
+        TITLE: <title>
+        URL: <url>
+        SOURCE: <domain>
+        SNIPPET: <summary of the content>
+        [[END]]
+
+        Do not add other text.
+        `,
         config: { 
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    items: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                title: { type: Type.STRING },
-                                url: { type: Type.STRING },
-                                source_domain: { type: Type.STRING },
-                                snippet: { type: Type.STRING }
-                            }
-                        }
-                    }
-                }
-            }
+            tools: [{ googleSearch: {} }]
         }
       });
       
-      const raw = cleanAndParseJSON(response.text);
-      const items: RetrievalItem[] = (raw.items || []).map((i: any) => ({
-          title: i.title || "Untitled", url: i.url || "", source_domain: i.source_domain || "unknown", snippet: i.snippet || "No details."
-      })).sort((a: any, b: any) => {
+      const text = response.text || "";
+      const items: RetrievalItem[] = [];
+      
+      // Robust Regex Parsing for the [[ITEM]] block format
+      const blocks = text.split('[[ITEM]]').slice(1);
+      
+      blocks.forEach(block => {
+          const titleMatch = block.match(/TITLE:\s*(.*)/i);
+          const urlMatch = block.match(/URL:\s*(.*)/i);
+          const sourceMatch = block.match(/SOURCE:\s*(.*)/i);
+          const snippetMatch = block.match(/SNIPPET:\s*([\s\S]*?)\[\[END\]\]/i);
+
+          if (titleMatch && urlMatch) {
+              const item: RetrievalItem = {
+                  title: titleMatch[1].trim(),
+                  url: urlMatch[1].trim(),
+                  source_domain: sourceMatch ? sourceMatch[1].trim() : "unknown",
+                  snippet: snippetMatch ? snippetMatch[1].trim() : "No details."
+              };
+              items.push(item);
+          }
+      });
+
+      // Sort by trust
+      items.sort((a, b) => {
           const aTrust = TRUSTED_DOMAINS.some(d => a.source_domain.includes(d)) ? 1 : 0;
           const bTrust = TRUSTED_DOMAINS.some(d => b.source_domain.includes(d)) ? 1 : 0;
           return bTrust - aTrust;
       });
 
+      // Fallback: If text parsing failed but we have grounding metadata, use that.
+      if (items.length === 0 && response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          const chunks = response.candidates[0].groundingMetadata.groundingChunks;
+          chunks.forEach((c: any) => {
+              if (c.web) {
+                  items.push({
+                      title: c.web.title || "Web Result",
+                      url: c.web.uri || "",
+                      source_domain: new URL(c.web.uri).hostname || "web",
+                      snippet: "Metadata extraction."
+                  });
+              }
+          });
+      }
+
       this.log('SCOUT', `Search complete (${t.stop()}ms). Found ${items.length} items.`);
       this.callbacks.onAgentFinish('SCOUT');
+      
       return { id: `snap_${Date.now()}`, query, timestamp: new Date().toISOString(), items: items.slice(0, 8) };
 
     } catch (e: any) {
       this.log('SYS', `Search Error`, {error: e.message});
       this.callbacks.onAgentFail('SCOUT', e.message);
+      // Return empty snapshot on error to allow pipeline to continue (graceful degradation)
       return { id: 'error', query, timestamp: new Date().toISOString(), items: [] };
     }
   }

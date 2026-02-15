@@ -36,6 +36,23 @@ export const agentQueryOrchestrator = async (topic: string, sourceMix?: SourceMi
 
 // 1.2 DOSSIER COMPILER (The new Scout)
 export const agentDossierCompiler = async (topic: string, snapshot: RetrievalSnapshot): Promise<SignalDossier> => {
+  // SAFETY: If snapshot is empty, return a stub dossier immediately.
+  if (!snapshot.items || snapshot.items.length === 0) {
+      console.warn("[SCOUT] Empty Snapshot. Returning stub dossier.");
+      return {
+          id: `sig_stub_${Date.now()}`,
+          topic,
+          retrieval_snapshot: snapshot,
+          title_candidate: `Signal Lost: ${topic}`,
+          what_happened: "No verifiable signals found on the wire.",
+          why_now: "Source disconnection or signal silence.",
+          one_liner: "Signal Lost.",
+          claims: [],
+          scores: { novelty: 0, cultural_voltage: 0, practical_craft: 0, proof_strength: 0, heat: 0, longevity: 0 },
+          timestamp: new Date().toISOString()
+      };
+  }
+
   // Convert Snapshot to Context with indices for referencing
   const contextString = snapshot.items.map((i, idx) => 
     `[SOURCE_ID:${idx}]
