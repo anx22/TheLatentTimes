@@ -13,13 +13,17 @@ export const RiskChip: React.FC<{ risk?: string }> = ({ risk }) => {
 };
 
 // --- NEW: JSON INSPECTOR ---
-export const JsonInspector: React.FC<{ data: any; label?: string }> = ({ data, label = "Raw Object Data" }) => {
-    const [isOpen, setIsOpen] = useState(false);
+export const JsonInspector: React.FC<{ data: any; label?: string; collapsed?: boolean }> = ({ data, label = "Raw Object Data", collapsed = true }) => {
+    const [isOpen, setIsOpen] = useState(!collapsed);
+    
+    // Safety: Don't render if data is empty or trivial
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) return null;
+
     return (
         <div className="border border-zinc-200 rounded-md bg-white overflow-hidden mt-2">
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex justify-between items-center px-3 py-2 bg-zinc-50 hover:bg-zinc-100 transition-colors text-[10px] font-bold uppercase tracking-widest text-zinc-500"
+                className="w-full flex justify-between items-center px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 transition-colors text-[9px] font-bold uppercase tracking-widest text-zinc-500"
             >
                 <span>{label}</span>
                 <span className="font-mono">{isOpen ? '[-]' : '[+]'}</span>
@@ -112,17 +116,19 @@ export const TeamStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({
                 
                 if (isSystem) {
                     return (
-                        <div key={i} className="flex justify-center my-2">
+                        <div key={i} className="flex flex-col items-center my-2">
                             <span className="text-[9px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
                                 {l.message}
                             </span>
+                            {/* System logs can also have data */}
+                            {l.data && <div className="w-full max-w-[200px]"><JsonInspector data={l.data} label="SYS DATA" collapsed={true} /></div>}
                         </div>
                     );
                 }
 
                 return (
-                    <div key={i} className="flex gap-3 animate-fade-in group">
-                        <AgentAvatar role={l.agent} />
+                    <div key={i} className="flex gap-3 animate-fade-in group items-start">
+                        <div className="mt-1"><AgentAvatar role={l.agent} /></div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-baseline gap-2 mb-0.5">
                                 <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-wide">
@@ -134,6 +140,11 @@ export const TeamStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({
                             </div>
                             <div className="text-[11px] text-zinc-600 leading-snug bg-white p-2 rounded-tr-lg rounded-br-lg rounded-bl-lg border border-zinc-100 shadow-sm inline-block max-w-full break-words">
                                 {l.message}
+                                {l.data && (
+                                    <div className="mt-2 min-w-[200px]">
+                                        <JsonInspector data={l.data} label="ARTIFACT" collapsed={true} />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

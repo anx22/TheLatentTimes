@@ -55,15 +55,14 @@ const ClaimItem: React.FC<{
 
 export const TheDossier: React.FC<DossierProps> = ({ dossier }) => {
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
-  
   const selectedClaim = dossier.claims?.find(c => c.id === selectedClaimId);
 
   return (
     <div className="flex h-full bg-[#080808] text-white font-sans overflow-hidden">
       
-      {/* PANE 1: SOURCE SNAPSHOTS (Fixed Width) */}
-      <div className="w-80 flex flex-col border-r border-neutral-800 shrink-0 bg-[#0A0A0A]">
-        <div className="p-4 border-b border-neutral-800 bg-neutral-900/50 flex justify-between items-center">
+      {/* PANE 1: SOURCES (Flexible Width) */}
+      <div className="w-1/4 min-w-[250px] max-w-[320px] flex flex-col border-r border-neutral-800 shrink-0 bg-[#0A0A0A]">
+        <div className="p-4 border-b border-neutral-800 bg-neutral-900/50 flex justify-between items-center shrink-0">
           <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 flex items-center gap-2">
             <span className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
             Sources
@@ -79,7 +78,7 @@ export const TheDossier: React.FC<DossierProps> = ({ dossier }) => {
 
       {/* PANE 2: CLAIM MAP (Flexible) */}
       <div className="flex-1 flex flex-col border-r border-neutral-800 min-w-[300px]">
-        <div className="p-4 border-b border-neutral-800 bg-neutral-900/30 flex justify-between items-center">
+        <div className="p-4 border-b border-neutral-800 bg-neutral-900/30 flex justify-between items-center shrink-0">
           <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
              Extracted Claims
           </span>
@@ -97,9 +96,9 @@ export const TheDossier: React.FC<DossierProps> = ({ dossier }) => {
         </div>
       </div>
 
-      {/* PANE 3: INSPECTOR (Fixed Width) */}
-      <div className="w-96 flex flex-col bg-[#050505] shrink-0">
-        <div className="p-4 border-b border-neutral-800 bg-black/20">
+      {/* PANE 3: INSPECTOR (Flexible Width) */}
+      <div className="w-1/3 min-w-[300px] max-w-[420px] flex flex-col bg-[#050505] shrink-0">
+        <div className="p-4 border-b border-neutral-800 bg-black/20 shrink-0">
           <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
              Evidence Verification
           </span>
