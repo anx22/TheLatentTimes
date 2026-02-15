@@ -4,11 +4,12 @@ import { SignalDossier, Verdict, StoryOutline, StoryArtifact, ToneProfile } from
 import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { RunConfig } from "../../../hooks/useNewsroom";
 import { getBannedList, STYLE_INSTRUCTION, formatToneInstruction } from "./constants";
+import { getConstraintsFor } from "../../design-system";
 
 // 4.2 Outline Builder
 export const agentOutline = async (dossier: SignalDossier, verdict: Verdict): Promise<StoryOutline> => {
   const response = await safeGenerateContent({
-    model: "gemini-3-pro-preview", // RESTORED TO PRO
+    model: "gemini-3-pro-preview", 
     contents: `Create a story outline for "${dossier.topic}".
     Format: ${verdict.placement}.
     Structure:
@@ -34,13 +35,33 @@ export const agentOutline = async (dossier: SignalDossier, verdict: Verdict): Pr
 };
 
 // 4.3 Draft Writer
-export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headline: string, outline: StoryOutline, config?: RunConfig): Promise<StoryArtifact> => {
+export const agentDraft = async (
+    dossier: SignalDossier, 
+    verdict: Verdict, 
+    headline: string, 
+    outline: StoryOutline, 
+    config?: RunConfig
+): Promise<StoryArtifact> => {
   const overrides = config?.overrides;
   const bannedList = getBannedList(overrides?.bannedWords);
   const audience = overrides?.audienceLevel || "Expert";
   const temperature = overrides?.modelTemperature || 0.7;
   
-  // Use Custom Tone Profile from config OR Fallback Default
+  // DETERMINE TARGET BLOCK & CONSTRAINTS
+  // We infer the likely block type based on placement to give the writer spatial awareness
+  let likelyBlockType = 'FeatureCard';
+  if (verdict.placement === 'COVER') likelyBlockType = 'HeroTypePlate';
+  if (verdict.placement === 'COLUMN') likelyBlockType = 'CategoryColumn'; // Or QuotePlate
+  
+  const constraints = getConstraintsFor(likelyBlockType);
+  const spatialConstraint = `
+    SPATIAL CONSTRAINTS (Layout: ${likelyBlockType}):
+    - HEADLINE: Must be under ${constraints.max_headline_chars} characters.
+    - DECK: Must be under ${constraints.max_deck_chars > 0 ? constraints.max_deck_chars : 150} characters.
+    - TONE FIT: ${constraints.recommended_tone}.
+  `;
+
+  // Tone Setup
   const toneProfile: ToneProfile = config?.toneProfile || {
       drama: 3,
       precision: 3,
@@ -51,14 +72,16 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
   const toneLogic = formatToneInstruction(toneProfile);
 
   const response = await safeGenerateContent({
-    model: "gemini-3-pro-preview", // RESTORED TO PRO
+    model: "gemini-3-pro-preview",
     contents: `Write the story based on this outline: ${JSON.stringify(outline)}.
     Headline: ${headline}.
     Signal: ${dossier.topic}.
     
+    ${spatialConstraint}
+    
     TONE DIRECTIVE: ${verdict.tone_directives}.
     ${toneLogic}
-    AUDIENCE: ${audience} (Adjust complexity accordingly).
+    AUDIENCE: ${audience}.
     
     ${STYLE_INSTRUCTION}
     ADDITIONAL BANNED WORDS: ${bannedList}
@@ -74,12 +97,13 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
     config: {
       temperature: temperature,
       systemInstruction: `You are the Lead Writer. You are elite, detached, and highly intelligent. 
-      You do not 'explore' topics; you dissect them. 
-      You are writing for an ${audience} audience.`,
+      You are spatially aware of the layout block you are writing for.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          headline: { type: Type.STRING, description: "Optimized for the spatial constraint." },
+          deck: { type: Type.STRING, description: "Optimized for the spatial constraint." },
           body: { type: Type.ARRAY, items: { type: Type.STRING } },
           footnotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: {type:Type.STRING}, ref:{type:Type.STRING}, text:{type:Type.STRING}, type:{type:Type.STRING} } } },
           pull_quote: { type: Type.STRING },
@@ -116,8 +140,8 @@ export const agentDraft = async (dossier: SignalDossier, verdict: Verdict, headl
     signal_id: dossier.id, 
     placement: verdict.placement,
     status: 'REVIEW',
-    headline: headline,
-    deck: outline.lead, // Use lead as deck for now
+    headline: raw.headline || headline, // Use the spatially optimized headline
+    deck: raw.deck || outline.lead,
     topic: verdict.assigned_topic || 'CULTURE',
     format: verdict.assigned_format || 'ESSAY',
     media_type: verdict.primary_media || 'TEXT',

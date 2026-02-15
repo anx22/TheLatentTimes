@@ -23,7 +23,7 @@ export const T1_CoverRail: PageTemplate = {
       id: 'sec_hero_split',
       order: 1,
       layout_mode: 'grid_12',
-      className: 'pt-12 md:pt-24 min-h-[80vh]',
+      className: '', // REMOVED PADDING AND MIN-HEIGHT
       blocks: [
         { id: 'b_hero', block_type: 'HeroTypePlate', col_span: 8, variant: 'L', data_binding: { source: 'pinned' } },
         { id: 'b_rail', block_type: 'TeaserIndexRail', col_span: 4, variant: 'M', data_binding: { source: 'query', query_limit: 5, query_tags: ['Culture', 'Engineering'] } }
@@ -88,7 +88,7 @@ export const T2_IndexAsHero: PageTemplate = {
             id: 'sec_index_hero',
             order: 1,
             layout_mode: 'grid_12',
-            className: 'pt-12 min-h-[60vh]',
+            className: '', // REMOVED PADDING
             blocks: [
                 { id: 'b_hero_txt', block_type: 'QuotePlate', col_span: 8, variant: 'L', data_binding: { source: 'pinned' } }, // Using QuotePlate as text hero
                 { id: 'b_rail_wide', block_type: 'TeaserIndexRail', col_span: 4, variant: 'L', data_binding: { source: 'query', query_limit: 8 } }
@@ -136,7 +136,7 @@ export const T3_ManifestoHeavy: PageTemplate = {
             id: 'sec_intro',
             order: 0,
             layout_mode: 'grid_12',
-            className: 'pt-0 pb-12 bg-black text-white min-h-[50vh]', // Dark start
+            className: 'pt-0 pb-0 bg-black text-white', // REMOVED MIN-HEIGHT
             blocks: [
                 { id: 'b_masthead_inv', block_type: 'MastheadLane', col_span: 12, variant: 'M', data_binding: { source: 'static' } },
                 { id: 'b_manifesto_xl', block_type: 'BlackManifestoPanel', col_span: 8, variant: 'XL', data_binding: { source: 'static', static_content: { label: "URGENT", text: "The signal is the only thing that matters." } } },
@@ -147,7 +147,7 @@ export const T3_ManifestoHeavy: PageTemplate = {
             id: 'sec_hero_img',
             order: 1,
             layout_mode: 'grid_12',
-            className: 'py-24',
+            className: '', // REMOVED PADDING
             blocks: [
                 { id: 'b_hero_img', block_type: 'HeroTypePlate', col_span: 12, variant: 'L', data_binding: { source: 'pinned' } }
             ]

@@ -78,6 +78,7 @@ export interface BlockInstance {
     row_span?: number;
     variant: BlockVariant;
     chaos_type?: ChaosType; // NEW: Controls grid breaking
+    locked?: boolean; // NEW: Protects slot from Metamorphosis/Rotation
     
     // Data Binding
     data_binding: {
@@ -92,7 +93,7 @@ export interface BlockInstance {
 export interface Section {
     id: string;
     order: number;
-    layout_mode: 'grid_12' | 'flex_row' | 'fixed_height';
+    layout_mode: 'grid_12' | 'grid_12_dense' | 'flex_row' | 'fixed_height';
     blocks: BlockInstance[];
     className?: string; // For chaos moves or specific spacing
 }
@@ -489,10 +490,11 @@ export interface IssueContent {
     img_base64?: string;
   };
   
-  // v3.0 Content
+  // v3.0 Layout Data
+  sections?: Section[]; // NEW: Layout Persistence
+  
+  // Content Pools
   items?: MagazineItem[];
-
-  // Legacy Artifacts (Kept for compat)
   drops: DropArtifact[];
   edit: Array<{ category: string; title: string; desc: string }>;
   debates: DebateArtifact[];

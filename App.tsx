@@ -6,7 +6,7 @@ import { getSession } from './services/storage';
 import { TheNewsroom } from './components/TheNewsroom';
 import { useNewsroom } from './hooks/useNewsroom';
 import { TEMPLATE_REGISTRY } from './services/templates';
-import { Header } from './components/Header'; // Restored Import
+import { Header } from './components/Header'; 
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -131,7 +131,9 @@ const App: React.FC = () => {
   const handleSwitchTemplate = (key: string) => {
       setIssue(prev => ({
           ...prev,
-          meta: { ...prev.meta, template_key: key }
+          meta: { ...prev.meta, template_key: key },
+          // Note: Logic to reset sections is handled in LayoutMode or explicitly here if needed.
+          // For now, we update key so other components know.
       }));
   };
 
@@ -145,7 +147,8 @@ const App: React.FC = () => {
 
   // Resolve Template
   const activeTemplateKey = issue.meta.template_key || 'T1_CoverRail';
-  const activeTemplate = TEMPLATE_REGISTRY[activeTemplateKey] || TEMPLATE_REGISTRY['T1_CoverRail'];
+  // Use persistent sections from Issue if available (customized), otherwise fall back to registry default
+  const activeSections = issue.sections || TEMPLATE_REGISTRY[activeTemplateKey]?.sections || TEMPLATE_REGISTRY['T1_CoverRail'].sections;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-32">
@@ -175,12 +178,13 @@ const App: React.FC = () => {
                onCancel={() => setShowNewsroom(false)}
                currentTemplate={activeTemplateKey}
                onSwitchTemplate={handleSwitchTemplate}
+               initialIssue={issue} // PASS THE DATA!
            />
        )}
 
        {/* 3. CONTENT LAYER (Layout Engine) */}
        <LayoutEngine 
-          sections={activeTemplate.sections} 
+          sections={activeSections} 
           data={issue} 
        />
        

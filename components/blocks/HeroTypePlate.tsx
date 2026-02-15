@@ -1,42 +1,52 @@
 
 import React from 'react';
-import { BlockInstance, IssueContent } from '../../types';
+import { BlockInstance, IssueContent, MagazineItem } from '../../types';
 
-export const HeroTypePlate: React.FC<{ config: BlockInstance, content: IssueContent }> = ({ config, content }) => {
-  const { cover } = content;
-  const variant = config.variant || 'L';
-
-  // "L" Variant = Massive Cover Style
-  if (variant === 'L') {
-    return (
-      <div className="flex flex-col justify-end min-h-[60vh] md:min-h-[80vh] border-b border-black pb-8">
-        <div className="flex justify-between items-end mb-4">
-            <span className="bg-accent text-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em]">
-                {cover.eyebrow}
-            </span>
-            <span className="text-[10px] font-mono text-neutral-400 uppercase">
-                Fig. 01 — {content.meta.date}
-            </span>
+export const HeroTypePlate: React.FC<{ config: BlockInstance, content: IssueContent, data?: MagazineItem }> = ({ config, content, data }) => {
+  const title = data?.title || content.cover.title;
+  const subtitle = data?.dek || content.cover.deck;
+  
+  // VARIANT S: Section Header (Minimal)
+  if (config.variant === 'S') {
+      return (
+        <div className="flex flex-col justify-end p-6 border-b border-black h-full min-h-[200px]">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Section</span>
+            <h2 className="font-display font-medium text-4xl leading-none uppercase tracking-tight text-black">
+                {title}
+            </h2>
         </div>
-        
-        <h1 className="font-condensed font-bold text-[18vw] leading-[0.8] tracking-tighter uppercase text-foreground mix-blend-difference break-words">
-          {cover.title}
-        </h1>
-        
-        <div className="grid grid-cols-12 mt-8 md:mt-12 border-t border-black pt-6">
-            <div className="col-span-12 md:col-span-4">
-                 <p className="font-display italic text-2xl md:text-3xl leading-tight">
-                    {cover.deck}
-                 </p>
-            </div>
-            <div className="col-span-6 md:col-span-2 md:col-start-11 text-right">
-                <span className="block text-[9px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Editor</span>
-                <span className="font-sans text-xs font-bold">{content.meta.editor}</span>
-            </div>
-        </div>
-      </div>
-    );
+      );
   }
 
-  return null;
+  // VARIANT M: Left Aligned, Editorial
+  if (config.variant === 'M') {
+      return (
+        <div className="flex flex-col justify-center h-full min-h-[400px] p-8 md:p-12 bg-white">
+            <h1 className="font-display font-medium text-6xl md:text-7xl leading-[0.9] tracking-tighter uppercase text-black mb-6 max-w-4xl">
+              {title}
+            </h1>
+            {subtitle && (
+                <p className="font-sans text-lg md:text-xl font-medium leading-relaxed max-w-xl text-neutral-600 border-l-2 border-accent pl-4">
+                    {subtitle}
+                </p>
+            )}
+        </div>
+      );
+  }
+
+  // VARIANT L: Massive Centered (Default/Cover)
+  return (
+    <div className="flex flex-col justify-center items-center h-full min-h-[500px] md:min-h-[700px] bg-white p-8 md:p-12 text-center">
+        <h1 className="font-display font-medium text-[5rem] md:text-[10rem] leading-[0.8] tracking-tighter uppercase text-black max-w-7xl mx-auto break-words text-balance">
+          {title}
+        </h1>
+        {subtitle && (
+            <div className="mt-8 max-w-lg mx-auto">
+                <p className="font-sans text-sm md:text-base font-bold uppercase tracking-widest text-neutral-400">
+                    {subtitle}
+                </p>
+            </div>
+        )}
+    </div>
+  );
 };

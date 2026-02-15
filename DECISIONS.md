@@ -1,6 +1,15 @@
 
 # DECISIONS.md
 
+## 008 - Tactile Layout Binding
+**Problem**: Assigning content to layout slots via dropdowns or ID pasting is tedious and breaks flow.
+**Decision**: Implement native HTML5 Drag-and-Drop.
+- **Source**: Asset Pool cards (`draggable=true`).
+- **Payload**: `itemId` string.
+- **Target**: Block wrapper in `LayoutEngine`.
+- **Feedback**: Visual highlight (Emerald Ring) on valid drop targets.
+**Why**: Aligns with the "Editor's Desk" metaphor. Makes the layout process feel like physical collage.
+
 ## 007 - Separation of Church and State (Content vs Layout)
 **Problem**: Trying to "write" the news and "design" the page in the same view created cognitive overload and UI clutter.
 **Decision**: Split the Newsroom into two distinct modes:

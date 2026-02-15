@@ -1,11 +1,13 @@
 
 import React from 'react';
-import { BlockInstance, IssueContent, MagazineItem } from '../../types';
+import { BlockInstance, MagazineItem } from '../../types';
 import { SmartImage } from '../ui/SmartImage';
 
 export const FeatureTriptych: React.FC<{ config: BlockInstance, items?: MagazineItem[] }> = ({ config, items }) => {
   // We need exactly 3 items. Fill with placeholders if missing.
   const slots = [0, 1, 2].map(i => items?.[i]);
+  const isSquare = config.variant === 'M';
+  const aspectClass = isSquare ? 'aspect-square' : 'aspect-[3/4]';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full border-t border-black pt-8">
@@ -18,7 +20,7 @@ export const FeatureTriptych: React.FC<{ config: BlockInstance, items?: Magazine
                 
                 {item ? (
                     <>
-                        <div className="aspect-[3/4] w-full bg-neutral-100 mb-6 overflow-hidden relative">
+                        <div className={`${aspectClass} w-full bg-neutral-100 mb-6 overflow-hidden relative`}>
                              {item.hero_image_url && (
                                 <SmartImage 
                                     src={item.hero_image_url} 
@@ -30,7 +32,7 @@ export const FeatureTriptych: React.FC<{ config: BlockInstance, items?: Magazine
                                  {item.tags[0] || 'Note'}
                              </span>
                         </div>
-                        <h4 className="font-display text-2xl leading-[1.1] mb-2 uppercase tracking-tight group-hover:text-accent transition-colors">
+                        <h4 className={`font-display leading-[1.1] mb-2 uppercase tracking-tight group-hover:text-accent transition-colors ${isSquare ? 'text-xl' : 'text-2xl'}`}>
                             {item.title}
                         </h4>
                         <p className="font-sans text-xs text-neutral-500 leading-relaxed line-clamp-4">
@@ -38,7 +40,7 @@ export const FeatureTriptych: React.FC<{ config: BlockInstance, items?: Magazine
                         </p>
                     </>
                 ) : (
-                    <div className="h-full flex items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 aspect-[3/4]">
+                    <div className={`h-full flex items-center justify-center border border-dashed border-neutral-200 bg-neutral-50 ${aspectClass}`}>
                         <span className="text-[9px] font-mono text-neutral-300">OPEN SLOT</span>
                     </div>
                 )}

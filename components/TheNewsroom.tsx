@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IssueContent, AgentLog, Lead, StoryArtifact, Proposal, DebateArtifact } from '../types';
 import { RunConfig, DbStatus } from '../hooks/useNewsroom'; 
 import { ContentMode } from './newsroom/ContentMode';
@@ -31,12 +31,13 @@ interface NewsroomProps {
   agentJobs: any;
   currentTemplate: string;
   onSwitchTemplate: (key: string) => void;
+  initialIssue: IssueContent; // NEW PROP
 }
 
 export const TheNewsroom: React.FC<NewsroomProps> = ({ 
     logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, scanWire, commissionStory, runAutopilot, runProposal, approveStory, shipBatch, leads, onPublish, onCancel,
     channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot, agentJobs,
-    currentTemplate, onSwitchTemplate
+    currentTemplate, onSwitchTemplate, initialIssue
 }) => {
   // MODE SWITCHER STATE
   const [activeMode, setActiveMode] = useState<'CONTENT' | 'LAYOUT'>('CONTENT');
@@ -45,11 +46,17 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
   const [targets, setTargets] = useState(""); 
   const [useDemo] = useState(false);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [latestIssue, setLatestIssue] = useState<IssueContent | null>(null);
+  
+  // Initialize with the real issue data passed from App
+  const [latestIssue, setLatestIssue] = useState<IssueContent | null>(initialIssue);
+
+  // Sync if initialIssue updates externally
+  useEffect(() => {
+      if (initialIssue) setLatestIssue(initialIssue);
+  }, [initialIssue]);
 
   const inbox: Lead[] = leads; 
   
-  // Explicitly type these arrays to ensure downstream components receive correct types
   const working: StoryArtifact[] = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status !== 'PUBLISHED' && s.status !== 'APPROVED') : [];
   const basket: StoryArtifact[] = latestIssue ? [...latestIssue.features, ...latestIssue.columns].filter(s => s.status === 'APPROVED') : [];
 
@@ -195,11 +202,7 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
           />
       ) : (
           <LayoutMode 
-              issue={latestIssue || {
-                  meta: { run_id: 'init', issue_id: '', vol: '', theme: '', date: '', editor: '', status: 'COLLECTING' },
-                  ticker: [], cover: { eyebrow: '', title: '', deck: '', coverlines: [], imgPrompt: '' },
-                  features: [], columns: [], drops: [], edit: [], atelier: [], debates: [], index_keys: [], colophon: { contributors: [], sources: [], corrections: [] }
-              }}
+              issue={latestIssue || initialIssue}
               onUpdateIssue={(updated) => setLatestIssue(updated)}
               currentTemplate={currentTemplate}
               onSwitchTemplate={onSwitchTemplate}
