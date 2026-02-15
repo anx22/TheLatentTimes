@@ -13,7 +13,88 @@ interface LayoutModeProps {
     onSwitchTemplate: (key: string) => void;
 }
 
-// --- DEFINITIONS & DEFAULTS ---
+// --- MODULE DEFINITIONS & CONFIG ---
+// Defines what variants are available for each block type and what they mean to the user.
+const BLOCK_CONFIGS: Record<BlockType, { variants: { value: string, label: string }[] }> = {
+    'HeroTypePlate': { 
+        variants: [
+            { value: 'S', label: 'Section Header' }, 
+            { value: 'M', label: 'Editorial Left' }, 
+            { value: 'L', label: 'Massive Center' }
+        ] 
+    },
+    'MastheadLane': { 
+        variants: [
+            { value: 'S', label: 'Minimal (Bar)' }, 
+            { value: 'M', label: 'Standard (Full)' }
+        ] 
+    },
+    'TopicTicker': { 
+        variants: [
+            { value: 'S', label: 'Light Mode' }, 
+            { value: 'M', label: 'Dark Mode' }
+        ] 
+    },
+    'FeatureCard': { 
+        variants: [
+            { value: 'S', label: 'Compact' }, 
+            { value: 'M', label: 'Standard' }, 
+            { value: 'L', label: 'Split/Landscape' }
+        ] 
+    },
+    'FeatureTriptych': { 
+        variants: [
+            { value: 'L', label: 'Portrait (3:4)' }, 
+            { value: 'M', label: 'Square (1:1)' }
+        ] 
+    },
+    'StatsStrip': { 
+        variants: [
+            { value: 'S', label: 'Light Mode' }, 
+            { value: 'M', label: 'Dark Mode' }
+        ] 
+    },
+    'BlackManifestoPanel': { 
+        variants: [
+            { value: 'M', label: 'Standard' }, 
+            { value: 'L', label: 'Split' }, 
+            { value: 'XL', label: 'Full Hero' }
+        ] 
+    },
+    'QuotePlate': { 
+        variants: [
+            { value: 'M', label: 'Standard' }, 
+            { value: 'L', label: 'Large' }
+        ] 
+    },
+    'CategoryColumn': { 
+        variants: [
+            { value: 'S', label: 'Simple List' }, 
+            { value: 'M', label: 'Numbered' }, 
+            { value: 'L', label: 'Detailed' }
+        ] 
+    },
+    'TeaserIndexRail': { 
+        variants: [
+            { value: 'M', label: 'Standard' }, 
+            { value: 'L', label: 'Rich' }
+        ] 
+    },
+    'KitFeatureCTA': { 
+        variants: [
+            { value: 'S', label: 'Bar' }, 
+            { value: 'M', label: 'Card' }, 
+            { value: 'L', label: 'Expanded' }
+        ] 
+    },
+    'MicroIndex': { 
+        variants: [
+            { value: 'S', label: 'Grid' }, 
+            { value: 'M', label: 'Detailed List' }
+        ] 
+    },
+};
+
 const AVAILABLE_BLOCKS: Array<{ type: BlockType; label: string; icon: string }> = [
     { type: 'HeroTypePlate', label: 'Typography Hero', icon: 'AH' },
     { type: 'TopicTicker', label: 'News Ticker', icon: '•••' },
@@ -246,6 +327,9 @@ const SlotInspector: React.FC<{
     );
 
     const bindingType = block.data_binding.source;
+    
+    // Determine available variants for this block type
+    const variants = BLOCK_CONFIGS[block.block_type]?.variants || [{ value: 'M', label: 'Standard' }];
 
     const toggleTag = (tag: string) => {
         const currentTags = block.data_binding.query_tags || [];
@@ -282,15 +366,21 @@ const SlotInspector: React.FC<{
                     <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 block mb-3">Styling</span>
                     
                     <div className="mb-4">
-                        <label className="block text-[10px] font-semibold text-zinc-500 mb-1">Variant</label>
-                        <div className="grid grid-cols-4 gap-1">
-                            {['S', 'M', 'L', 'XL'].map(v => (
+                        <label className="block text-[10px] font-semibold text-zinc-500 mb-2">Variant Mode</label>
+                        <div className="flex flex-col gap-1.5">
+                            {variants.map(v => (
                                 <button 
-                                    key={v}
-                                    onClick={() => onUpdateBlock({ ...block, variant: v as any })}
-                                    className={`py-1.5 text-[10px] font-bold border rounded-sm transition-all ${block.variant === v ? 'bg-black text-white border-black' : 'bg-white text-zinc-400 border-zinc-200'}`}
+                                    key={v.value}
+                                    onClick={() => onUpdateBlock({ ...block, variant: v.value as any })}
+                                    className={`
+                                        flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase border rounded-sm transition-all
+                                        ${block.variant === v.value 
+                                            ? 'bg-zinc-900 text-white border-black shadow-sm' 
+                                            : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-zinc-900'}
+                                    `}
                                 >
-                                    {v}
+                                    <span>{v.label}</span>
+                                    {block.variant === v.value && <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>}
                                 </button>
                             ))}
                         </div>
