@@ -77,6 +77,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
     };
 
     // Safe handler to prevent 'never' type inference error during build
+    // We explicitly cast 's' to 'any' to bypass strict inference issues on empty arrays
     const handleStorySelect = (s: any) => {
         if (s && typeof s.id === 'string') {
             onSelectStory(s.id);
@@ -84,6 +85,10 @@ export const ContentMode: React.FC<ContentModeProps> = ({
     };
 
     const isWorkbenchMode = !!(activeLead || activeStory);
+
+    // Safe ID getters
+    const activeLeadId = activeLead && typeof activeLead.id === 'string' ? activeLead.id : null;
+    const activeStoryId = activeStory && typeof activeStory.id === 'string' ? activeStory.id : undefined;
 
     return (
         <div className="flex-1 flex overflow-hidden">
@@ -95,7 +100,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                     onScan={onScan}
                     onFeedScan={onFeedScan}
                     leads={leads} 
-                    selectedLeadId={activeLead?.id || null}
+                    selectedLeadId={activeLeadId}
                     onSelectLead={onSelectLead}
                     useDemo={useDemo}
                     channels={channels}
@@ -200,7 +205,7 @@ export const ContentMode: React.FC<ContentModeProps> = ({
                                 working={working}
                                 basket={basket}
                                 onSelectStory={handleStorySelect}
-                                activeItemId={activeStory?.id || undefined}
+                                activeItemId={activeStoryId}
                                 onShipBatch={onShipBatch}
                             />
                         </div>
