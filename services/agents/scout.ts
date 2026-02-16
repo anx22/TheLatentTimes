@@ -62,8 +62,8 @@ export const agentDossierCompiler = async (topic: string, snapshot: RetrievalSna
   ).join("\n\n");
 
   const response = await safeGenerateContent({
-    // OPTIMIZATION: Switched to Flash for speed. The schema is strict enough to constrain it.
-    model: "gemini-3-flash-preview", 
+    // UPGRADE: Switched to Pro for better source attribution and reasoning on complex inputs.
+    model: "gemini-3-pro-preview", 
     contents: `Act as THE SCOUT (Forensic Analyst). Compile a Signal Dossier for "${topic}" based on these verified signals.
     
     INPUT SIGNALS:

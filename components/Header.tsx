@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { login, signUp, signOut } from '../services/storage';
+import { login, signUp, signOut, IS_CONFIGURED } from '../services/storage';
 import { IssueMeta } from '../types';
 
 interface HeaderProps {
@@ -14,7 +13,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onShare, session, meta }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -37,6 +35,10 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
              <span>{meta?.date || "2026"}</span>
              <span className="text-gray-400">•</span>
              <span>{meta?.theme || "SYNTHETIC ERA"}</span>
+             <span className="text-gray-400">•</span>
+             <span className={IS_CONFIGURED ? "text-emerald-600" : "text-amber-600"}>
+                 STORAGE: {IS_CONFIGURED ? "CLOUD" : "DEMO (LOCAL)"}
+             </span>
           </div>
 
           {/* RIGHT: ACTIONS */}

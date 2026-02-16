@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { IssueContent, AgentLog, StoryArtifact, RecipeArtifact, DropArtifact } from '../types';
 
@@ -21,8 +20,19 @@ export const supabase = createClient(
 // CONSTANTS
 const KEY_CURRENT_ISSUE = 'current_issue';
 const KEY_LOGS = 'current_logs';
-const MOCK_KEY = 'modus_mock_session';
 const LOCAL_ISSUE_KEY = 'modus_local_issue';
+
+// --- UTILS ---
+const safeParse = (data: string | null): any | null => {
+    if (!data) return null;
+    try {
+        return JSON.parse(data);
+    } catch (e) {
+        console.error("[Storage] Corrupt Local Data detected. Clearing.", e);
+        if (typeof window !== 'undefined') localStorage.removeItem(LOCAL_ISSUE_KEY);
+        return null;
+    }
+};
 
 // --- OPS CONTROL CENTER (Remote Autopilot) ---
 
@@ -87,9 +97,6 @@ const notifyMockAuth = () => {
 // AUTHENTICATION
 export const getSession = async () => {
     if (!IS_CONFIGURED) {
-        // --- BYPASS MODE: AUTO-LOGIN ---
-        // In the AI Studio / Preview environment, we bypass the login screen entirely.
-        // This ensures direct access to the Redaktion tools.
         return {
             user: { email: 'editor@modus.news', id: 'dev-bypass-id' },
             access_token: 'mock-access-token',
@@ -103,7 +110,6 @@ export const getSession = async () => {
 // Official Login Pattern (Logic Only)
 export const login = async (email: string, password: string) => {
     if (!IS_CONFIGURED) {
-        // MOCK LOGIN SUCCESS
         notifyMockAuth();
         return { 
             data: { 
@@ -117,10 +123,8 @@ export const login = async (email: string, password: string) => {
 
 export const signUp = async (email: string, password: string) => {
     if (!IS_CONFIGURED) {
-        // MOCK SIGNUP SUCCESS
         return { data: { user: { email, id: 'mock-user-id' } }, error: null };
     }
-    // Dynamic redirect ensures it works on localhost:5173 or deployed domains
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
     
     return await supabase.auth.signUp({ 
@@ -134,7 +138,6 @@ export const signUp = async (email: string, password: string) => {
 
 export const signOut = async () => {
     if (!IS_CONFIGURED) {
-        // In bypass mode, sign out is a no-op or just reloads to reset state if needed
         console.log("Sign Out ignored in Direct Access Mode");
         return { error: null };
     }
@@ -251,7 +254,6 @@ const loadRelationalIssue = async (issueId: string): Promise<IssueContent | null
     if (!IS_CONFIGURED) return null; // Silent fail
 
     // 1. FETCH ISSUE
-    // CHANGED: .single() -> .maybeSingle() to avoid 406 Error on empty DB
     const { data: issue, error: issueError } = await supabase
         .from('modus_issues')
         .select('*')
@@ -305,7 +307,7 @@ const loadRelationalIssue = async (issueId: string): Promise<IssueContent | null
             date: issue.issue_date,
             editor: issue.editor,
             status: issue.status as any,
-            template_key: 'CUSTOM' // If loaded from DB with sections, it's a custom state
+            template_key: issue.sections ? 'CUSTOM' : 'T1_CoverRail' // Detect if we have a custom grid
         },
         // NEW: Load Sections
         sections: issue.sections,
@@ -389,60 +391,63 @@ export const getArchiveIndex = async (): Promise<Array<{ id: string; vol: string
 };
 
 export const saveIssue = async (issue: IssueContent) => {
-    // If no DB configured, use local storage fallback
-    if (!IS_CONFIGURED) {
-        if (typeof window !== 'undefined') localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
+    // 1. CLOUD MODE (PRODUCTION)
+    if (IS_CONFIGURED) {
+        try {
+            const issueId = issue.meta.issue_id || KEY_CURRENT_ISSUE;
+            await saveRelationalIssue(issueId, issue);
+            console.log(`[Storage] Cloud Save Success: ${issueId}`);
+        } catch (e) {
+            console.error("[Storage] CRITICAL: DB SAVE FAILED.", e);
+            // DO NOT FALLBACK TO LOCAL STORAGE. 
+            // Failing loud is better than split-brain state.
+            throw e; 
+        }
         return;
     }
 
-    try {
-        // Use the meta.issue_id as the primary key to enable history
-        // Fallback to KEY_CURRENT_ISSUE only if undefined
-        const issueId = issue.meta.issue_id || KEY_CURRENT_ISSUE;
-        await saveRelationalIssue(issueId, issue);
-    } catch (e) {
-        console.warn("DB Save failed, falling back to local storage:", e);
-        // Fallback to local storage on error
-        if (typeof window !== 'undefined') localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
+    // 2. DEMO MODE (LOCAL DEV ONLY)
+    // Only used when no Supabase keys are present in env.
+    if (typeof window !== 'undefined') {
+        console.warn("[Storage] Saving to Local Storage (Demo Mode)");
+        localStorage.setItem(LOCAL_ISSUE_KEY, JSON.stringify(issue));
     }
 };
 
 export const loadIssue = async (specificId?: string): Promise<IssueContent | null> => {
-    if (!IS_CONFIGURED) {
-        if (typeof window !== 'undefined') {
-            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-            return local ? JSON.parse(local) : null;
+    // 1. CLOUD MODE (PRODUCTION)
+    if (IS_CONFIGURED) {
+        try {
+            let issueId = specificId;
+            if (!issueId) {
+                 // Get latest
+                 const { data } = await supabase.from('modus_issues').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+                 issueId = data?.id;
+            }
+
+            if (issueId) {
+                 const dbIssue = await loadRelationalIssue(issueId);
+                 if (dbIssue) return dbIssue;
+            }
+            // IF DB IS EMPTY, RETURN NULL. DO NOT FALLBACK TO LOCAL STORAGE.
+            return null; 
+        } catch (e) {
+            console.error("[Storage] DB Load failed:", e);
+            return null; // Return null (error state) rather than stale local data
         }
-        return null;
     }
 
-    try {
-        // Load specific ID if requested, otherwise get most recent
-        let issueId = specificId;
-        if (!issueId) {
-             const { data } = await supabase.from('modus_issues').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-             issueId = data?.id;
+    // 2. DEMO MODE (LOCAL DEV ONLY)
+    if (typeof window !== 'undefined') {
+        const local = localStorage.getItem(LOCAL_ISSUE_KEY);
+        const data = safeParse(local);
+        if (data) {
+            console.log("[Storage] Loaded from Local Demo Backup");
+            return data;
         }
-
-        if (issueId) {
-             const dbIssue = await loadRelationalIssue(issueId);
-             if (dbIssue) return dbIssue;
-        }
-
-        // Fallback
-        if (typeof window !== 'undefined') {
-            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-            return local ? JSON.parse(local) : null;
-        }
-        return null;
-    } catch (e) {
-        console.warn("Could not load issue from DB, checking local:", e);
-        if (typeof window !== 'undefined') {
-            const local = localStorage.getItem(LOCAL_ISSUE_KEY);
-            return local ? JSON.parse(local) : null;
-        }
-        return null;
     }
+    
+    return null;
 };
 
 // --- STRICT DB LOGGING (No Fallbacks needed for logs, they are optional) ---
@@ -465,13 +470,7 @@ export const saveLogs = async (logs: AgentLog[]): Promise<StorageResult> => {
         });
     
     if (error) {
-        // Expanded logging for RLS debugging
-        console.error("SUPABASE LOG SYNC ERROR:", {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint
-        });
+        console.warn("SUPABASE LOG SYNC ERROR (Ignored):", error.message);
         return { success: false, error };
     }
 
@@ -482,7 +481,7 @@ export const loadLogs = async (): Promise<AgentLog[]> => {
     if (!IS_CONFIGURED) {
         if (typeof window !== 'undefined') {
             const local = localStorage.getItem(KEY_LOGS);
-            return local ? JSON.parse(local).entries : [];
+            return safeParse(local)?.entries || [];
         }
         return [];
     }

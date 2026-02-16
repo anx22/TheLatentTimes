@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { IssueOrchestrator } from '../services/engine-orchestrator';
 import { IssueContent, AgentLog, Lead, StoryArtifact, DropArtifact, AgentJob, AgentRole, AgentStatus, SignalDossier, DebateArtifact, RecipeArtifact, IssueMeta, Proposal, SourceMix, ToneProfile } from '../types';
@@ -15,8 +14,8 @@ export interface RunConfig {
   includeAtelier: boolean;
   generateImages: boolean; 
   sourceMix?: SourceMix; 
-  toneProfile?: ToneProfile; // NEW: Custom Tone Physics
-  agentModifiers?: Record<string, string>; // NEW: Per-Agent instructions
+  toneProfile?: ToneProfile; 
+  agentModifiers?: Record<string, string>; 
   overrides?: {
       focusQuery?: string;
       bannedWords?: string;
@@ -46,7 +45,10 @@ export const useNewsroom = () => {
 
   const [dbStatus, setDbStatus] = useState<DbStatus>('CONNECTING');
   const [dbError, setDbError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<string[]>([]);
+  
+  // In a production app, this should load from 'modus_ops' table via DB
+  // For now, we initialize with default channels in memory to avoid local storage usage
+  const [channels, setChannels] = useState<string[]>(DEFAULT_CHANNELS);
   
   // REMOTE AUTOPILOT STATE
   const [remoteOpsState, setRemoteOpsState] = useState<OpsState | null>(null);
@@ -75,10 +77,6 @@ export const useNewsroom = () => {
         const savedLogs = await loadLogs();
         if (savedLogs && savedLogs.length > 0) setLogs(savedLogs);
         
-        const storedChannels = localStorage.getItem('modus_active_channels');
-        if (storedChannels) setChannels(JSON.parse(storedChannels));
-        else setChannels(DEFAULT_CHANNELS);
-
         // Fetch initial remote state
         const ops = await getOpsState();
         if (ops) setRemoteOpsState(ops);
@@ -88,7 +86,6 @@ export const useNewsroom = () => {
     // SUBSCRIBE TO REMOTE OPS (Cloud Agent)
     const sub = subscribeToOps((newState) => {
         setRemoteOpsState(newState);
-        // If remote task updates, we can update a generic 'Cloud Agent' job visualizer here if we wanted
         if (newState.current_task) {
             updateAgent('EDITOR', 'WORKING', newState.current_task, 50);
         }
@@ -100,10 +97,6 @@ export const useNewsroom = () => {
     return () => { sub.unsubscribe(); };
   }, []);
   
-  useEffect(() => {
-     if (channels.length > 0) localStorage.setItem('modus_active_channels', JSON.stringify(channels));
-  }, [channels]);
-
   useEffect(() => {
     if (logs.length > 0) {
         saveLogs(logs).then(result => {

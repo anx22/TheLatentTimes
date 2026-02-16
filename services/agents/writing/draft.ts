@@ -105,7 +105,6 @@ export const agentDraft = async (
           headline: { type: Type.STRING, description: "Optimized for the spatial constraint." },
           deck: { type: Type.STRING, description: "Optimized for the spatial constraint." },
           body: { type: Type.ARRAY, items: { type: Type.STRING } },
-          footnotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: {type:Type.STRING}, ref:{type:Type.STRING}, text:{type:Type.STRING}, type:{type:Type.STRING} } } },
           pull_quote: { type: Type.STRING },
           citations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { source: {type:Type.STRING}, confidence: {type:Type.NUMBER} } } },
           img_prompt: { type: Type.STRING },
@@ -147,6 +146,7 @@ export const agentDraft = async (
     media_type: verdict.primary_media || 'TEXT',
     tone_profile: toneProfile,
     signature_blocks: blocks,
+    footnotes: [], // Initialize empty to avoid undefined errors
     ...raw 
   };
 };

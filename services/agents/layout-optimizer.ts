@@ -28,7 +28,8 @@ export const agentLayoutOptimizer = async (
     }));
 
     const response = await safeGenerateContent({
-        model: "gemini-3-flash-preview",
+        // UPGRADE: Use Pro for better spatial reasoning (ensuring col_span sums to 12)
+        model: "gemini-3-pro-preview",
         contents: `Act as a SWISS GRID SYSTEM DESIGNER. 
         
         TASK: Remix the following page sections to create 2 distinct layout variations based on this intent: "${intent}".

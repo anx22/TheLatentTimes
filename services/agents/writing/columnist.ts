@@ -24,8 +24,8 @@ export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, h
     }
 
     const response = await safeGenerateContent({
-        model: "gemini-3-pro-preview", // RESTORED TO PRO
-        contents: `Write a Column based on this outline: ${JSON.stringify(outline)}.
+        model: "gemini-3-pro-preview", 
+        contents: `Write the body of a Column based on this outline: ${JSON.stringify(outline)}.
         Headline: ${headline}.
         Topic: ${dossier.topic}.
         
@@ -39,7 +39,6 @@ export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, h
                 type: Type.OBJECT,
                 properties: {
                     body: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    footnotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: {type:Type.STRING}, ref:{type:Type.STRING}, text:{type:Type.STRING}, type:{type:Type.STRING} } } },
                     pull_quote: { type: Type.STRING },
                     citations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { source: {type:Type.STRING}, confidence: {type:Type.NUMBER} } } },
                     img_prompt: { type: Type.STRING },
@@ -62,6 +61,7 @@ export const agentColumnist = async (dossier: SignalDossier, verdict: Verdict, h
         topic: verdict.assigned_topic || 'CULTURE',
         format: verdict.assigned_format || 'ESSAY',
         media_type: verdict.primary_media || 'TEXT',
+        footnotes: [],
         ...raw
     };
 };
