@@ -89,20 +89,19 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
       await commissionStory(activeLead, theme, useDemo, config, (partial) => {
           setLatestIssue(partial);
           
-          // AUTO-SWITCH LOGIC:
-          // Check if a story exists for the current lead. If so, switch to it immediately.
-          // This handles the "Ghost Story" creation event.
+          // AUTO-SWITCH LOGIC (Improved):
+          // Always focus on the story being built for this lead.
+          // We check if the last added story corresponds to a NEW draft.
           const allStories = [...partial.features, ...partial.columns];
-          // We assume the signal_id in the story matches the lead-derived ID or we check the timestamp/order
-          // For robustness, we check if the LAST story added corresponds to our current flow
           if (allStories.length > 0) {
               const newestStory = allStories[allStories.length - 1];
-              // Simple heuristic: If we just commissioned, the newest story is likely ours.
-              // A safer check: Does this story belong to a signal derived from this lead?
-              // Ideally, lead.id and signal.id are linked. 
-              // For now, we trust the newest story is the one we just made.
-              if (newestStory.status === 'DRAFT' || newestStory.status === 'REVIEW') {
-                  setActiveItemId(newestStory.id);
+              
+              // Only auto-switch if we are currently looking at the LEAD (pre-commission) 
+              // or already looking at this story (in-progress updates).
+              if (activeItemId === activeLead.id || activeItemId === newestStory.id) {
+                  if (newestStory.status === 'DRAFT' || newestStory.status === 'REVIEW') {
+                      setActiveItemId(newestStory.id);
+                  }
               }
           }
       });

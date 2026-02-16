@@ -363,8 +363,10 @@ export class IssueOrchestrator {
             
             this.log('WRITER', `Draft generated`, { length_paragraphs: storyData.body.length, preview: storyData.body[0].slice(0,50) });
 
-            // MERGE DRAFT DATA INTO GHOST ARTIFACT (Keep reference intact)
-            Object.assign(ghostStory, storyData);
+            // MERGE DRAFT DATA INTO GHOST ARTIFACT (Keep reference intact, PROTECT ID)
+            // CRITICAL FIX: Destructure to exclude 'id' from the update, ensuring ghostStory.id remains stable
+            const { id: _ignoreId, ...dataToMerge } = storyData;
+            Object.assign(ghostStory, dataToMerge);
             ghostStory.status = 'REVIEW'; 
             
             onUpdate(await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta));
@@ -439,8 +441,13 @@ export class IssueOrchestrator {
             this.callbacks.onAgentFinish('WRITER');
         }
 
-        // FIXED: Safe access to scores with fallback
-        if (config.includeAtelier && (dossier.scores?.practical_craft || 0) > 3) {
+        // FIXED: Safe access to scores with explicit null checking
+        // Extracts 'practical_craft' safely even if dossier.scores is undefined or null upstream
+        const practicalCraft = (dossier.scores && typeof dossier.scores.practical_craft === 'number') 
+            ? dossier.scores.practical_craft 
+            : 0;
+
+        if (config.includeAtelier && practicalCraft > 3) {
             this.callbacks.onAgentStart('ENGINEER', 'Reverse-engineering recipe...');
             const recipe = await agentEngineer(dossier);
             context.recipes.push(recipe);
@@ -534,7 +541,7 @@ export class IssueOrchestrator {
                   const report = await agentFactCheck(updatedArtifact, { 
                       id: 'audit', 
                       claims: updatedArtifact.citations.map((c,i) => ({ id: `c${i}`, text: c.source, status: 'VERIFIED', confidence: c.confidence, supporting_sources: [] })),
-                      scores: {} as any,
+                      scores: { novelty: 5, cultural_voltage: 5, practical_craft: 0, proof_strength: 5, heat: 5, longevity: 5 },
                       topic: artifact.category,
                       retrieval_snapshot: { id: 'audit', query: '', timestamp: '', items: [] }
                   } as SignalDossier);

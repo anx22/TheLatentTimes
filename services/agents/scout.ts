@@ -125,15 +125,17 @@ export const agentDossierCompiler = async (topic: string, snapshot: RetrievalSna
       ...c
   }));
 
-  // Ensure scores exist with fallback default
-  const scores = raw.scores || { novelty: 5, cultural_voltage: 5, practical_craft: 0, proof_strength: 5, heat: 5, longevity: 5 };
+  // Ensure scores exist with fallback default (Hardened)
+  const safeScores = raw.scores || { 
+      novelty: 5, cultural_voltage: 5, practical_craft: 0, proof_strength: 5, heat: 5, longevity: 5 
+  };
 
   return {
     id: `sig_${Math.random().toString(36).substr(2,9)}`,
     topic,
     retrieval_snapshot: snapshot, // AUDIT TRAIL
     ...raw,
-    scores,
+    scores: safeScores,
     claims,
     source_urls: [...(raw.primary_sources?.map((s:any) => s.url) || []), ...(raw.secondary_sources?.map((s:any) => s.url) || [])],
     one_liner: raw.what_happened,

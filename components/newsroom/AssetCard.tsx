@@ -85,7 +85,8 @@ export const AssetCard: React.FC<AssetCardProps> = ({ type, data, onClick, isSel
 
     // --- PIPELINE STAGES (The "Process") ---
     const stages = [
-        { id: 'RES', label: 'RES', active: true }, 
+        { id: 'SIG', label: 'SIG', active: true },
+        { id: 'RES', label: 'RES', active: !isLead }, 
         { id: 'DOS', label: 'DOS', active: !isLead }, 
         { id: 'DEB', label: 'DEB', active: !isLead }, 
         { id: 'CPY', label: 'CPY', active: !isLead && (story.body?.length || 0) > 0 }, 
