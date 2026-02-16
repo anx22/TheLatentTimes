@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { Lead, DebateArtifact, StoryArtifact, AgentLog } from '../../types';
 import { TheDossier } from '../TheDossier';
-import { TheCraft } from '../TheCraft';
+import { AssetWorkbench } from './AssetWorkbench';
 import { AssetCard } from './AssetCard';
 
 interface NewsroomCanvasProps {
@@ -209,14 +209,16 @@ export const NewsroomCanvas: React.FC<NewsroomCanvasProps> = ({
                 </div>
             )}
 
-            {/* STATE 3: ARTIFACT */}
+            {/* STATE 3: ARTIFACT (Unified Workbench) */}
             {hasActiveWork && currentView === 'ARTIFACT' && activeStory && (
-                <div className="h-full w-full bg-[#F9F8F4] overflow-hidden">
-                    <div className="h-full overflow-y-auto custom-scrollbar p-8">
-                        <div className="max-w-4xl mx-auto shadow-sm min-h-[900px] bg-white p-12 border border-[#E5E5E5]">
-                            <TheCraft story={activeStory} />
-                        </div>
-                    </div>
+                <div className="h-full w-full overflow-hidden">
+                    <AssetWorkbench 
+                        story={activeStory}
+                        debate={activeDebate || undefined}
+                        onApplyProposal={() => {}} // Wired in Console usually, but we can wire here if needed
+                        onApproveStory={() => {}}
+                        onClose={() => { onSelectLead(null); onSelectStory(null); }}
+                    />
                 </div>
             )}
         </div>

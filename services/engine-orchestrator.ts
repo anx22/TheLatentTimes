@@ -11,7 +11,10 @@ import {
   agentFeedReader,
   agentDriftWatcher,
   agentHeadlineForge,
-  agentFactCheck
+  agentFactCheck,
+  // REACTIVATED AGENTS
+  agentPitching,
+  agentVerdict
 } from "./engine-agents";
 import type { RunConfig } from "../hooks/useNewsroom";
 import { generateImage, safeGenerateContent } from "./gemini";
@@ -47,7 +50,7 @@ export class IssueOrchestrator {
   private log(agent: string, message: string, data?: any) {
     this.callbacks.onLog({
       id: Math.random().toString(36),
-      timestamp: new Date().toISOString(), // Use ISO for ms precision
+      timestamp: new Date().toISOString(),
       phase: 'EXEC',
       agent,
       message,
@@ -209,7 +212,7 @@ export class IssueOrchestrator {
       }
   }
 
-  // --- REFACTORED: FAST TRACK COMMISSION ---
+  // --- REFACTORED: FULL PIPELINE COMMISSION ---
   public async commission(
     lead: Lead, 
     theme: string, 
@@ -240,33 +243,30 @@ export class IssueOrchestrator {
         this.log('SCOUT', `Dossier Compiled. ID: ${dossier.id}`);
         this.callbacks.onAgentFinish('SCOUT');
 
-        // 2. SYNTHETIC VERDICT (BYPASS DEBATE for Speed, but Create Artifact for UI)
-        this.log('EDITOR', 'Fast Track Active: Synthesizing Verdict internally.');
-        const verdict: Verdict = {
-            signal_id: dossier.id,
-            placement: 'FEATURE',
-            confidence_gate: 'PUBLISH_READY',
-            tone_directives: `Voice: ${config.voicePreset || 'Modus'}.`,
-            reason: "Fast track commission.",
-            required_assets: [],
-            assigned_topic: dossier.tags?.topic_cluster as any || 'CULTURE',
-            assigned_format: 'ESSAY',
-            primary_media: 'TEXT'
-        };
+        // 2. PITCHING (CRITIC & RUNWAY) - PIPELINE RESTORED
+        this.callbacks.onAgentStart('CRITIC', 'Generating strategic angles...');
+        const pitches = await agentPitching(dossier, theme);
+        this.log('CRITIC', `Generated ${pitches.length} strategic angles.`);
+        this.callbacks.onAgentFinish('CRITIC');
+
+        // 3. DEBATE & VERDICT (EDITOR) - PIPELINE RESTORED
+        this.callbacks.onAgentStart('EDITOR', 'Convening Editorial Board...');
+        this.log('EDITOR', 'Debating placement and tone...');
+        const verdict = await agentVerdict(dossier, pitches, config);
         
-        // CRITICAL FIX: Create a synthetic Debate Artifact so the "Forensics" tab has data
-        const syntheticDebate: DebateArtifact = {
-            id: dossier.id, // Match dossier ID for lookup
+        const debate: DebateArtifact = {
+            id: dossier.id,
             topic: dossier.topic,
             dossier: dossier,
             scores: dossier.scores,
-            pitches: [], // Fast track skips pitch generation
+            pitches: pitches,
             verdict: verdict
         };
-        context.debates.push(syntheticDebate);
+        context.debates.push(debate);
         this.log('EDITOR', `Verdict: ${verdict.placement} // ${verdict.assigned_topic}`);
+        this.callbacks.onAgentFinish('EDITOR');
 
-        // 3. DRAFT (WRITER)
+        // 4. DRAFT (WRITER)
         this.callbacks.onAgentStart('WRITER', 'Drafting Story...');
         this.log('WRITER', 'Generating Narrative Outline...');
         
@@ -281,7 +281,7 @@ export class IssueOrchestrator {
         this.log('WRITER', 'Generating Full Draft (Gemini 3 Pro)...');
         const draft = await agentDraft(dossier, verdict, lead.headline, outline, config);
         
-        // SAFETY CHECK: Ensure body is an array to prevent crashes
+        // SAFETY CHECK
         if (!draft.body || !Array.isArray(draft.body)) {
              draft.body = [];
              this.log('WRITER', 'WARN: Draft body was empty or malformed. Proceeding with empty body.');
@@ -289,7 +289,7 @@ export class IssueOrchestrator {
 
         this.log('WRITER', `Draft generated. Length: ${draft.body.join(' ').length} chars.`);
         
-        // 4. REWRITE (WRITER) - TONE PASS
+        // 5. REWRITE (WRITER) - TONE PASS
         this.callbacks.onAgentUpdate('WRITER', 'Rewriting for Tone...', 50);
         this.log('WRITER', `Applying Tone Pass: "${verdict.tone_directives}"`);
         const rewrite = await agentRewrite(draft.body, verdict.tone_directives, config);
@@ -304,7 +304,7 @@ export class IssueOrchestrator {
         this.log('WRITER', `Rewrite Complete. Diff: ${rewrite.diff_summary}`);
         this.callbacks.onAgentFinish('WRITER');
 
-        // 5. VISUALS (ARTIST) - OPTIONAL
+        // 6. VISUALS (ARTIST) - OPTIONAL
         if (config.generateImages) {
              this.callbacks.onAgentStart('ARTIST', 'Rendering Visuals...');
              try {
@@ -324,7 +324,7 @@ export class IssueOrchestrator {
             this.log('ARTIST', 'Image Generation Skipped (Config Off).');
         }
 
-        // 6. FINALIZE & UPDATE
+        // 7. FINALIZE & UPDATE
         draft.status = 'REVIEW';
         context.stories.push(draft);
 

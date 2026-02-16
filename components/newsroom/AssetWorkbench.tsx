@@ -126,11 +126,11 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
     if (!story) return null;
 
     return (
-        <div className="flex w-full h-full bg-[#050505] text-white">
+        <div className="flex w-full h-full bg-[#050505] text-white overflow-hidden">
             
             {/* COLUMN 1: EVIDENCE RAIL & SIGNATURE BLOCKS */}
             <div className="w-[300px] border-r border-zinc-800 bg-[#0A0A0A] flex flex-col shrink-0">
-                <div className="h-12 border-b border-zinc-800 flex items-center px-4 bg-zinc-900/50">
+                <div className="h-12 border-b border-zinc-800 flex items-center px-4 bg-zinc-900/50 shrink-0">
                     <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Modules</span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
@@ -166,7 +166,7 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
             </div>
 
             {/* COLUMN 2: EDITOR CANVAS (Full Height, No Paper) */}
-            <div className="flex-1 flex flex-col bg-[#050505] relative z-10">
+            <div className="flex-1 flex flex-col bg-[#050505] relative z-10 min-w-0">
                 {/* Canvas Toolbar */}
                 <div className="h-12 border-b border-zinc-800 flex justify-between items-center px-6 bg-[#050505] shrink-0 sticky top-0 z-20">
                     <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
                 </div>
 
                 {/* The Editor Surface */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505]">
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505] w-full">
                     {/* TheCraft component now sits directly in the dark container, taking full width/height */}
                     <div className="min-h-full">
                         <TheCraft story={story} />
@@ -206,7 +206,7 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
             {/* COLUMN 3: CONTROL RAIL (Dark Mode) */}
             <div className="w-[340px] border-l border-zinc-800 bg-[#0A0A0A] flex flex-col shrink-0">
                 {/* Module 1: Tone Physics */}
-                <div className="p-6 border-b border-zinc-800">
+                <div className="p-6 border-b border-zinc-800 shrink-0">
                     <DriftMonitor 
                         metric={story.drift_metric} 
                         onRun={() => runDriftCheck(story.id, () => {})} 
@@ -214,8 +214,6 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
                     
                     <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 mb-4">Tone Physics</h3>
                     <div className="bg-zinc-900 p-4 rounded-sm border border-zinc-800">
-                        {/* We reuse the slider but it might need dark mode styling adjustments in ui-primitives if not generic enough. 
-                            Assuming standard styling handles transparency well. */}
                         <ToneEQSlider label="Drama" value={tone.drama} max={5} />
                         <ToneEQSlider label="Precision" value={tone.precision} max={5} />
                         <ToneEQSlider label="Metaphor" value={tone.metaphor_density} max={5} />
@@ -238,12 +236,12 @@ export const AssetWorkbench: React.FC<AssetWorkbenchProps> = ({ story, debate, o
                 </div>
 
                 {/* Module 3: Raw Data */}
-                <div className="p-4 border-t border-zinc-800 bg-[#0A0A0A]">
+                <div className="p-4 border-t border-zinc-800 bg-[#0A0A0A] shrink-0">
                     <JsonInspector data={story} label="Artifact JSON" />
                 </div>
 
                 {/* Module 4: Variants */}
-                <div className="p-4 border-t border-zinc-800 bg-[#0A0A0A]">
+                <div className="p-4 border-t border-zinc-800 bg-[#0A0A0A] shrink-0">
                     <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 mb-3">Versions</h3>
                     <div className="space-y-1">
                         <div className="flex justify-between items-center p-2.5 bg-blue-900/20 border border-blue-900/50 rounded-sm">
