@@ -6,7 +6,6 @@ import { AspectRatio, SearchResult } from "../types";
 export { Type };
 
 // --- CIRCUIT BREAKER STATE ---
-// If we hit a rate limit on Pro, we downgrade to Flash for this duration.
 let proCooldownUntil = 0;
 const PRO_COOLDOWN_MS = 60000; // 1 Minute
 
@@ -14,25 +13,20 @@ const PRO_COOLDOWN_MS = 60000; // 1 Minute
 export const cleanAndParseJSON = (text: string | undefined): any => {
     if (!text) return {};
     try {
-        // 1. Try direct parse
         return JSON.parse(text);
     } catch (e) {
-        // 2. Try stripping markdown code blocks
         try {
             const clean = text.replace(/```json\n?|```/g, '').trim();
             return JSON.parse(clean);
         } catch (e2) {
-            // 3. Robust substring finder (Find first { or [ and last } or ])
             try {
                 const firstOpen = text.search(/[{[]/);
                 const lastClose = text.search(/[}\]](?!.*[}\]])/);
-                
                 if (firstOpen !== -1 && lastClose !== -1) {
-                    const potentialJson = text.substring(firstOpen, lastClose + 1);
-                    return JSON.parse(potentialJson);
+                    return JSON.parse(text.substring(firstOpen, lastClose + 1));
                 }
             } catch (e3) {
-                console.warn("[Parser] JSON Parse Failed. Raw text preview:", text.slice(0, 100));
+                console.warn("[Parser] JSON Parse Failed", text?.slice(0, 100));
             }
             return {};
         }
@@ -43,72 +37,59 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
-    // 1. DETERMINE MODEL STRATEGY
-    let currentModel = params.model;
-    const isPro = currentModel.includes('pro') && !currentModel.includes('image'); // Don't downgrade image models
     
-    // Check Circuit Breaker
-    if (isPro && Date.now() < proCooldownUntil) {
-        const fallbackModel = currentModel.replace('pro', 'flash');
-        console.debug(`[NET] Circuit Open (Quota): Downgrading ${currentModel} -> ${fallbackModel}`);
-        currentModel = fallbackModel;
-    }
+    // MODEL FALLBACK LADDER
+    const modelLadder = [
+        params.model, // Try requested model first
+        'gemini-2.0-flash-exp', // Fallback 1: Fast experimental
+        'gemini-1.5-flash'      // Fallback 2: Old reliable
+    ];
 
-    // Re-init client to ensure freshness
+    // Remove duplicates and filter
+    const uniqueModels = [...new Set(modelLadder)];
+
     const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let delay = 1000;
-    const maxRetries = 3; 
-    
-    const start = performance.now();
+    let lastError = null;
 
-    for (let i = 0; i < maxRetries; i++) {
+    for (const model of uniqueModels) {
+        // Skip Pro if cooldown is active
+        if (model.includes('pro') && Date.now() < proCooldownUntil) {
+            console.debug(`[NET] Skipping ${model} due to cooldown.`);
+            continue;
+        }
+
         try {
+            const start = performance.now();
+            console.debug(`[NET] Attempting ${model}...`);
+            
             const result = await client.models.generateContent({
                 ...params,
-                model: currentModel
+                model: model
             });
+            
             const duration = Math.round(performance.now() - start);
-            
-            // Critical Performance Log
-            console.debug(`[NET] ${currentModel} OK in ${duration}ms`);
-            
+            console.debug(`[NET] ${model} OK in ${duration}ms`);
             return result;
+
         } catch (e: any) {
-            const duration = Math.round(performance.now() - start);
-            const isRateLimit = e.status === 429 || e.code === 429 || e.message?.includes('429');
-            const isTransient = e.status === 503 || e.status === 500 || e.message?.includes('fetch failed');
-
-            // 2. SMART FALLBACK: If Pro fails with Quota, switch to Flash immediately
-            if (isRateLimit && currentModel.includes('pro') && !currentModel.includes('image')) {
-                console.warn(`[NET] Rate Limit on ${currentModel}. Activating Circuit Breaker.`);
-                
-                // Trip the breaker for future requests
-                proCooldownUntil = Date.now() + PRO_COOLDOWN_MS;
-                
-                // Downgrade THIS request immediately
-                currentModel = currentModel.replace('pro', 'flash');
-                console.warn(`[NET] Retrying immediately with ${currentModel}`);
-                
-                // Reset loop counter to give Flash a fair chance (optional, but safer to just continue)
-                // We just continue to the next iteration which uses the new `currentModel`
-                continue; 
+            lastError = e;
+            const isRateLimit = e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('RESOURCE_EXHAUSTED');
+            
+            if (isRateLimit) {
+                console.warn(`[NET] Quota Exceeded on ${model}. Switching to backup.`);
+                if (model.includes('pro')) {
+                    proCooldownUntil = Date.now() + PRO_COOLDOWN_MS;
+                }
+                // Continue to next model in ladder
+            } else {
+                console.warn(`[NET] Error on ${model}:`, e.message);
+                // For non-rate-limit errors, we might still want to try the next model just in case it's a specific model outage
             }
-
-            // 3. STANDARD RETRY: For Flash limits or server errors
-            if (isRateLimit || isTransient) {
-                 if (i === maxRetries - 1) {
-                     console.error(`[NET] ${currentModel} FAILED after ${duration}ms.`, e);
-                     throw e; 
-                 }
-                 console.warn(`[NET] ${currentModel} Retry ${i+1}/${maxRetries} (${isRateLimit ? 'RateLimit' : 'Error'}) in ${delay}ms`);
-                 await new Promise(r => setTimeout(r, delay));
-                 delay *= 2; 
-                 continue;
-            }
-            throw e; 
         }
     }
-    throw new Error("Gemini API Unreachable");
+
+    console.error("[NET] All models failed.", lastError);
+    throw lastError || new Error("All Gemini models unreachable.");
 };
 
 // Image Generation using Gemini 2.5 Flash Image (Nanobana)

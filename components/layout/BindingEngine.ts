@@ -25,7 +25,21 @@ export const resolveBinding = (block: BlockInstance, context: IssueContent): Res
 
     // CONSOLIDATE CONTENT POOLS
     // In a real app this would be a unified index, but we map artifacts to generic items here
+    
+    const coverItem: MagazineItem | null = context.cover.title ? {
+        id: 'cover_story', // Synthetic ID for the active cover
+        title: context.cover.title,
+        dek: context.cover.deck,
+        published_at: new Date().toISOString(),
+        tags: ['Cover', 'Feature'],
+        media_type: 'image',
+        hero_image_url: context.cover.img_base64,
+        status: 'published',
+        featured_level: 'hero'
+    } : null;
+
     const pool: MagazineItem[] = [
+        ...(coverItem ? [coverItem] : []),
         ...(context.items || []),
         ...context.features.map(f => ({ ...f, tags: [f.category, f.topic], media_type: f.media_type || 'text' } as any)),
         ...context.columns.map(c => ({ ...c, tags: [c.category, 'Opinion'], media_type: 'text' } as any)),

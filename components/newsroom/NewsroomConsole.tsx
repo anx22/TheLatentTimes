@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { ToggleGroup, TeamStream, ToneEQSlider, JsonInspector } from './ui-primitives';
+import { ToggleGroup, ToneEQSlider } from './ui-primitives';
 import { AgentLog, Lead, StoryArtifact, IssueContent, AgentJob, AgentRole, SourceMix, ToneProfile, Proposal } from '../../types';
 import { AgentGrid } from './AgentGrid';
 import { AGENT_ROSTER } from '../../services/agent-registry';
-import { TEMPLATE_REGISTRY } from '../../services/templates';
 
 export interface CommissionConfigState {
     depth: 'Standard' | 'Deep';
@@ -78,11 +77,9 @@ interface NewsroomConsoleProps {
 }
 
 export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
-  logs, isProcessing, isCommissioning = false, selectedLead, activeStory, latestIssue, 
+  isProcessing, isCommissioning = false, selectedLead, activeStory, 
   commissionConfig, setCommissionConfig, onCommission, 
-  onAutopilot, onPublish, onPublishArtifact, 
-  isAutopilotActive, onToggleAutopilot, agentJobs, currentTemplate, onSwitchTemplate,
-  onApplyProposal, onApproveStory
+  isAutopilotActive, agentJobs, onApplyProposal, onApproveStory
 }) => {
   const [selectedAgent, setSelectedAgent] = useState<AgentRole | null>(null);
 
@@ -110,10 +107,10 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
       ] : []);
 
   return (
-    <div className="bg-white flex flex-col h-full border-l border-zinc-200 shadow-sm relative z-20">
+    <div className="bg-white flex flex-col h-full relative z-20">
         
         {/* HEADER */}
-        <div className="p-4 border-b border-zinc-200 bg-white flex justify-between items-center shrink-0">
+        <div className="p-5 border-b border-zinc-200 bg-white flex justify-between items-center shrink-0">
             <h3 className="text-xs font-bold uppercase tracking-wide text-zinc-900 flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                 Mission Control
@@ -122,12 +119,12 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
         </div>
 
         {/* TOP: AGENT GRID */}
-        <div className="p-4 border-b border-zinc-100 bg-white shrink-0">
+        <div className="p-5 border-b border-zinc-100 bg-white shrink-0">
             <AgentGrid jobs={agentJobs} onAgentClick={(role) => setSelectedAgent(role)} />
         </div>
 
-        {/* MIDDLE: SCROLLABLE CONTEXT (Config or Story Tools) */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-zinc-50/50">
+        {/* SCROLLABLE CONTEXT (Config or Story Tools) */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-zinc-50/50">
             
             {/* MODE 1: STORY EDITOR (Active Artifact) */}
             {activeStory && (
@@ -239,24 +236,15 @@ export const NewsroomConsole: React.FC<NewsroomConsoleProps> = ({
                  </div>
             )}
 
-            {/* MODE 3: EMPTY STATE */}
+            {/* MODE 3: EMPTY STATE (Wire Instructions) */}
             {!selectedLead && !activeStory && (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-400">
-                    <div className="w-12 h-12 border-2 border-dashed border-zinc-200 rounded-full flex items-center justify-center mb-3">
-                        <span className="text-xl">⚡</span>
+                <div className="h-full flex flex-col items-center justify-center text-zinc-400 opacity-60">
+                    <div className="text-center">
+                        <span className="block text-[10px] font-bold uppercase tracking-widest mb-1">Status: Idle</span>
+                        <span className="text-[9px] font-mono">Select a signal from the Wire to begin.</span>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Select an item to begin</span>
                 </div>
             )}
-        </div>
-
-        {/* BOTTOM: TEAM STREAM (Flexible Height) */}
-        <div className="flex-1 min-h-[250px] border-t border-zinc-200 bg-zinc-50 flex flex-col">
-            <div className="px-4 py-2 border-b border-zinc-100 bg-white flex justify-between items-center shrink-0">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Team Comms</span>
-                <span className="text-[9px] font-mono text-zinc-300">LIVE</span>
-            </div>
-            <TeamStream logs={logs.slice(-50)} className="flex-1" />
         </div>
     </div>
   );

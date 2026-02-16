@@ -1,10 +1,10 @@
 
 import { IssueContent, SignalDossier, StoryArtifact, RecipeArtifact, DropArtifact, DebateArtifact, Lead, RetrievalSnapshot, RetrievalItem, AgentLog, IssueMeta, AgentRole, Proposal, StoryVariant, Verdict, ColumnistPersona } from "../types";
 import { 
-  agentQueryOrchestrator, agentDossierCompiler, agentArchivist, 
+  agentQueryOrchestrator, agentDossierCompiler, 
   agentPitching, agentVerdict, 
   agentHeadlineForge, agentHeadlineSelector, agentOutline, agentDraft, agentRewrite, agentFactCheck,
-  agentEngineer, agentRecipeValidator, agentVariationsGenerator,
+  agentEngineer,
   agentLayout,
   agentDropWriter,
   agentColumnist,
@@ -15,7 +15,7 @@ import {
   agentDriftWatcher
 } from "./engine-agents";
 import type { RunConfig } from "../hooks/useNewsroom";
-import { generateImage, safeGenerateContent, Type, cleanAndParseJSON } from "./gemini";
+import { generateImage, safeGenerateContent } from "./gemini";
 
 const TRUSTED_DOMAINS = [
     'arxiv.org', 'github.com', 'huggingface.co', 'civitai.com',
@@ -229,6 +229,9 @@ export class IssueOrchestrator {
         meta?: IssueMeta
     }
   ): Promise<IssueContent | null> {
+      // GHOST ID: Defined early for potential cleanup
+      let ghostId: string | null = null;
+
       try {
         const commissionTimer = new Timer();
 
@@ -270,7 +273,7 @@ export class IssueOrchestrator {
         this.callbacks.onAgentFinish('SCOUT');
 
         // --- UPDATE 1: CREATE GHOST ARTIFACT ---
-        const ghostId = `story_${dossier.id}`;
+        ghostId = `story_${dossier.id}`;
         const ghostStory: StoryArtifact = {
             id: ghostId,
             signal_id: dossier.id,
@@ -291,6 +294,7 @@ export class IssueOrchestrator {
         };
         context.stories.push(ghostStory);
         
+        // SYNC UPDATE
         let currentIssue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
         onUpdate(currentIssue);
 
@@ -312,7 +316,7 @@ export class IssueOrchestrator {
           id: dossier.id,
           topic: dossier.topic,
           dossier: dossier,
-          scores: dossier.scores,
+          scores: dossier.scores || { novelty: 5, cultural_voltage: 5, practical_craft: 0, proof_strength: 5, heat: 5, longevity: 5 }, // Safety fallback
           pitches: pitches,
           verdict: verdict
         });
@@ -343,6 +347,7 @@ export class IssueOrchestrator {
             ghostStory.headline = selected;
             ghostStory.headline_candidates = headlines;
             ghostStory.headline_log = headlineLog;
+            
             onUpdate(await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta));
 
             this.callbacks.onAgentUpdate('WRITER', 'Drafting manuscript...', 30);
@@ -362,7 +367,6 @@ export class IssueOrchestrator {
             Object.assign(ghostStory, storyData);
             ghostStory.status = 'REVIEW'; 
             
-            // Update immediately after draft
             onUpdate(await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta));
 
             // --- OPTIMIZATION: PARALLEL TRACKS (TEXT vs VISUAL) ---
@@ -423,7 +427,10 @@ export class IssueOrchestrator {
             this.log('SYS', `Production Phase complete in ${productionTimer.stop()}ms`);
 
         } else if (verdict.placement === 'DROP' || verdict.placement === 'NOTE') {
-            context.stories = context.stories.filter(s => s.id !== ghostId);
+            // Remove Ghost story, as drops are stored in a separate collection
+            // Use splice to mutate the array in place, ensuring references (like in useNewsroom) update correctly.
+            const idx = context.stories.findIndex(s => s.id === ghostId);
+            if (idx !== -1) context.stories.splice(idx, 1);
             
             this.callbacks.onAgentStart('WRITER', 'Writing Drop...');
             const drop = await agentDropWriter(dossier, verdict);
@@ -432,7 +439,8 @@ export class IssueOrchestrator {
             this.callbacks.onAgentFinish('WRITER');
         }
 
-        if (config.includeAtelier && dossier.scores.practical_craft > 3) {
+        // FIXED: Safe access to scores with fallback
+        if (config.includeAtelier && (dossier.scores?.practical_craft || 0) > 3) {
             this.callbacks.onAgentStart('ENGINEER', 'Reverse-engineering recipe...');
             const recipe = await agentEngineer(dossier);
             context.recipes.push(recipe);
@@ -450,6 +458,19 @@ export class IssueOrchestrator {
       } catch (e: any) {
         this.log('SYS', 'CRITICAL ERROR IN COMMISSION', { message: e.message });
         console.error(e);
+        
+        // CLEANUP: Remove ghost artifact if it exists to prevent "zombie" states in UI
+        if (ghostId) {
+            const idx = context.stories.findIndex(s => s.id === ghostId);
+            if (idx !== -1) {
+                console.log(`[SYS] Cleaning up ghost artifact: ${ghostId}`);
+                context.stories.splice(idx, 1);
+                // Trigger a layout update to reflect the removal
+                const issue = await agentLayout(theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
+                onUpdate(issue);
+            }
+        }
+
         ['SCOUT', 'CRITIC', 'WRITER', 'EDITOR', 'ARTIST', 'ENGINEER'].forEach(r => this.callbacks.onAgentFail(r as AgentRole, "Process Aborted"));
         return null;
       }
@@ -593,6 +614,7 @@ export class IssueOrchestrator {
       
       if (candidates.length === 0) {
           this.log('SYS', 'AUTOPILOT: No candidates passed Policy Gate A (Score/Risk/Trust/Unique).');
+          // SKIP AUDIT: Fast fail
           return { issue: await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta), publishedCount: 0 };
       }
       
@@ -635,6 +657,7 @@ export class IssueOrchestrator {
           await new Promise(r => setTimeout(r, 2000));
       }
 
+      // FINAL: RUN AUDIT
       const finalIssue = await agentLayout(context.theme, context.signals, context.stories, context.recipes, [], context.drops, context.debates, context.meta);
       return { issue: finalIssue, publishedCount };
   }

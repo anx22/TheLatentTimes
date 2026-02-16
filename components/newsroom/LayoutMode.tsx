@@ -465,6 +465,10 @@ export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, cu
     const [showGrid, setShowGrid] = useState(true); 
     const [poolTab, setPoolTab] = useState<'ASSETS' | 'BLOCKS'>('ASSETS');
     const [assetFilter, setAssetFilter] = useState<'ALL' | 'STORIES' | 'VISUALS'>('ALL');
+    
+    // METAMORPHOSIS STATE
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [variants, setVariants] = useState<any[]>([]);
 
     const activeTemplateKey = issue.meta.template_key || currentTemplate;
     const activeSections = issue.sections && issue.sections.length > 0 
@@ -630,6 +634,19 @@ export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, cu
         onUpdateIssue({ ...issue, sections: newSections });
     };
 
+    const handleRemix = async () => {
+        setIsOptimizing(true);
+        setVariants([]);
+        try {
+            const results = await agentLayoutOptimizer(activeSections);
+            setVariants(results);
+        } catch (e) {
+            console.error("Optimization failed", e);
+        } finally {
+            setIsOptimizing(false);
+        }
+    };
+
     // Helper to normalize items
     const storyToItem = (s: any): MagazineItem => ({
         id: s.id,
@@ -723,6 +740,39 @@ export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, cu
                             <div className={`w-3 h-3 border rounded-sm transition-colors ${showGrid ? 'bg-indigo-500 border-indigo-600' : 'bg-white border-zinc-300'}`}></div>
                             <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 select-none">X-Ray</span>
                         </div>
+                    </div>
+
+                    <div className="flex gap-2 relative">
+                        <button 
+                            onClick={handleRemix}
+                            disabled={isOptimizing}
+                            className="bg-black text-white px-4 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {isOptimizing ? 'Generating Variants...' : '✨ Remix Layout'}
+                        </button>
+                        
+                        {variants.length > 0 && !isOptimizing && (
+                            <div className="absolute top-10 right-0 w-[300px] bg-white border border-zinc-200 shadow-2xl rounded-md p-4 animate-fade-in z-50">
+                                <h4 className="text-[10px] font-bold uppercase text-zinc-400 mb-3">AI Proposals</h4>
+                                <div className="space-y-3">
+                                    {variants.map((v, i) => (
+                                        <div key={i} className="border border-zinc-200 p-3 rounded hover:border-black cursor-pointer bg-zinc-50 hover:bg-white transition-all group"
+                                             onClick={() => {
+                                                 onUpdateIssue({ ...issue, sections: v.sections });
+                                                 setVariants([]);
+                                             }}
+                                        >
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-bold text-xs uppercase">{v.name}</span>
+                                                <span className="text-[9px] text-zinc-400 font-mono opacity-0 group-hover:opacity-100">APPLY →</span>
+                                            </div>
+                                            <p className="text-[10px] text-zinc-500 leading-tight">{v.rationale}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={() => setVariants([])} className="w-full mt-3 text-[9px] text-zinc-400 hover:text-red-500 font-bold uppercase">Discard</button>
+                            </div>
+                        )}
                     </div>
                 </div>
 

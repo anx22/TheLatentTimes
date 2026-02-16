@@ -6,7 +6,7 @@ import { STYLE_INSTRUCTION } from "./constants";
 
 export const agentDropWriter = async (dossier: SignalDossier, verdict: Verdict): Promise<DropArtifact> => {
     const response = await safeGenerateContent({
-        model: "gemini-3-pro-preview", // RESTORED TO PRO
+        model: "gemini-3-flash-preview", 
         contents: `Act as the DROP WRITER. Write a short, magazine-grade DROP artifact.
         Topic: "${dossier.topic}".
         Tone: "${verdict.tone_directives}".

@@ -54,6 +54,9 @@ export const useNewsroom = () => {
   // Derived state: Is the Cloud Agent running?
   const isAutopilotActive = remoteOpsState?.status === 'RUNNING';
 
+  // RACE CONDITION CONTROL
+  const activeScanId = useRef<string | null>(null);
+
   // NEW: Agent Visualization State
   const [agentJobs, setAgentJobs] = useState<Record<AgentRole, AgentJob>>({
       SCOUT: { agentId: 'agent_scout', status: 'IDLE', currentTask: '', progress: 0, lastActive: 0 },
@@ -143,6 +146,9 @@ export const useNewsroom = () => {
   };
 
   const scanWire = async (targets: string[], useDemo: boolean) => {
+    const requestId = Math.random().toString(36);
+    activeScanId.current = requestId;
+    
     setLeads([]);
     setIsScanning(true);
 
@@ -156,8 +162,12 @@ export const useNewsroom = () => {
     };
 
     const newLeads = await orchestratorRef.current?.scan(targets, useDemo, history) || [];
-    setLeads(newLeads);
-    setIsScanning(false);
+    
+    // RACE CHECK: Only update if this request is still the active one
+    if (activeScanId.current === requestId) {
+        setLeads(newLeads);
+        setIsScanning(false);
+    }
   };
 
   const commissionStory = async (

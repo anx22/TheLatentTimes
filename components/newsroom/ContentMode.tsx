@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { NewsroomSidebar } from './NewsroomSidebar';
-import { NewsroomBoard } from './NewsroomBoard';
 import { NewsroomConsole, CommissionConfigState, DEFAULT_COMMISSION_CONFIG } from './NewsroomConsole';
 import { NewsroomCanvas } from './NewsroomCanvas';
 import { Lead, StoryArtifact, DebateArtifact, AgentLog, IssueContent, Proposal } from '../../types';
@@ -72,63 +71,50 @@ export const ContentMode: React.FC<ContentModeProps> = ({
         });
     };
 
-    const handleStorySelect = (s: any) => {
-        if (s && typeof s.id === 'string') {
-            onSelectStory(s.id);
-        }
-    };
-
     const isWorkbenchMode = !!(activeLead || activeStory);
     const activeLeadId = activeLead && typeof activeLead.id === 'string' ? activeLead.id : null;
-    const activeStoryId = activeStory && typeof activeStory.id === 'string' ? activeStory.id : undefined;
 
     return (
-        <div className="flex-1 flex overflow-hidden w-full h-full bg-zinc-50">
-            {/* COL 1: SIDEBAR (Navigation) */}
-            <div className="w-[260px] border-r border-zinc-200 bg-white flex flex-col shrink-0 z-10">
+        <div className="flex-1 flex overflow-hidden w-full h-full bg-white">
+            {/* COL 1: SIDEBAR (Navigation & Comms) */}
+            <div className="w-[300px] border-r border-zinc-200 bg-zinc-50/50 flex flex-col shrink-0 z-20">
                 <NewsroomSidebar 
                     targets={targets}
                     setTargets={setTargets}
                     onScan={onScan}
                     onFeedScan={onFeedScan}
-                    leads={leads} 
-                    selectedLeadId={activeLeadId}
-                    onSelectLead={onSelectLead}
-                    useDemo={useDemo}
                     channels={channels}
                     onAddChannel={onAddChannel}
                     onRemoveChannel={onRemoveChannel}
                     isScanning={isScanning}
+                    logs={logs} // Pass logs to Sidebar
                 />
             </div>
 
-            {/* COL 2: MAIN CANVAS (The Work) */}
-            <div className="flex-1 flex flex-col overflow-hidden relative bg-zinc-100 shadow-inner">
-                {isWorkbenchMode ? (
-                    <NewsroomCanvas 
-                        currentView={canvasView}
-                        setViewMode={setCanvasView}
-                        selectedLead={activeLead}
-                        activeDebate={activeDebate || null}
-                        activeStory={activeStory}
-                        isScanning={isScanning}
-                        isCommissioning={isCommissioning}
-                        logs={logs}
-                    />
-                ) : (
-                    // Board View
-                    <NewsroomBoard 
-                        working={working}
-                        basket={basket}
-                        onSelectStory={handleStorySelect}
-                        activeItemId={activeStoryId}
-                        onShipBatch={onShipBatch}
-                    />
-                )}
+            {/* COL 2: MAIN CANVAS (The Wire & The Work) */}
+            <div className="flex-1 flex flex-col overflow-hidden relative bg-white shadow-xl z-10">
+                <NewsroomCanvas 
+                    currentView={canvasView}
+                    setViewMode={setCanvasView}
+                    selectedLead={activeLead}
+                    activeDebate={activeDebate || null}
+                    activeStory={activeStory}
+                    
+                    // Wire Data
+                    leads={leads}
+                    working={working}
+                    basket={basket}
+                    onSelectLead={onSelectLead}
+                    onSelectStory={onSelectStory} // Pass story selection
+                    
+                    isScanning={isScanning}
+                    isCommissioning={isCommissioning}
+                    logs={logs}
+                />
             </div>
 
-            {/* COL 3: CONSOLE (Controls & Chat) - EXPANDED WIDTH */}
-            <div className="w-[420px] bg-white flex flex-col border-l border-zinc-200 shadow-[0_0_20px_rgba(0,0,0,0.02)] z-10 shrink-0">
+            {/* COL 3: CONSOLE (Controls) */}
+            <div className="w-[380px] bg-white flex flex-col border-l border-zinc-200 shrink-0 z-20">
                 <NewsroomConsole 
                     logs={logs}
                     isProcessing={isProcessing}

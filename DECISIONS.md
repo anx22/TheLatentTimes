@@ -1,6 +1,13 @@
 
 # DECISIONS.md
 
+## 009 - Hybrid Signal Ingestion (The Live Wire)
+**Problem**: Pure LLM-based search is expensive, slow, and can miss "breaking" updates from specific high-trust niches (e.g., specific Substack feeds or TechCrunch).
+**Decision**: Implement a **Hybrid Ingestion Model**.
+1.  **Deterministic Layer (RSS)**: A hardcoded `FEED_REGISTRY` of high-signal sources (Wired, 404 Media, Arxiv) polled via a CORS proxy. This provides the "Baseline Hum" of the newsroom.
+2.  **Agentic Layer (Search)**: Gemini-driven query expansion for specific topics ("Agentic Patterns") to find signals *outside* the registry.
+**Why**: Reduces hallucination risk, ensures coverage of trusted domains, and lowers the "Time to Signal" for breaking news.
+
 ## 008 - Tactile Layout Binding
 **Problem**: Assigning content to layout slots via dropdowns or ID pasting is tedious and breaks flow.
 **Decision**: Implement native HTML5 Drag-and-Drop.

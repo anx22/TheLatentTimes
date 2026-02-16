@@ -1,5 +1,5 @@
 
-# PLAN.md v4.0 — THE DUAL-MODE NEWSROOM
+# PLAN.md v4.1 — THE DUAL-MODE NEWSROOM (COMPLETE)
 
 ## 0) MISSION
 To build an autonomous, luxury high-gloss editorial newsroom powered by tiered AI agents. The system separates concerns into two distinct modes: **Content Mode** (Ingest, Verification, Writing) and **Layout Mode** (Assembly, Binding, Metamorphosis).
@@ -86,7 +86,7 @@ Layout changes are transaction-based, not random.
 
 ---
 
-## 5) ROADMAP
+## 5) STATUS
 
 ### Phase 1: The Shell (Complete)
 - [x] React/Vite/Tailwind Setup.
@@ -98,9 +98,10 @@ Layout changes are transaction-based, not random.
 - [x] Template Switching.
 - [x] Block Library.
 
-### Phase 3: The Editor's Desk (Current)
-- [ ] **Dual Mode Switcher** (Content vs Layout Tabs).
-- [ ] **Layout Mode UI**: Asset Pool (Left) & Inspector (Right).
-- [ ] **Drag-and-Drop Binding Logic**.
-- [ ] **Slot Query Builder**.
-- [ ] **Metamorphosis UI** (Variant Proposals).
+### Phase 3: The Editor's Desk (Complete)
+- [x] **Dual Mode Switcher** (Content vs Layout Tabs).
+- [x] **Layout Mode UI**: Asset Pool (Left) & Inspector (Right).
+- [x] **Drag-and-Drop Binding Logic**.
+- [x] **Slot Query Builder**.
+- [x] **Metamorphosis UI** (Variant Proposals).
+- [x] **Persistence Layer** (Layout JSONB serialization).

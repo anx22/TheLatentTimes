@@ -167,6 +167,9 @@ const saveRelationalIssue = async (issueId: string, issue: IssueContent) => {
         colophon: issue.colophon,
         debates: issue.debates,
         
+        // NEW: Persist Layout Sections
+        sections: issue.sections,
+        
         updated_at: new Date().toISOString()
     };
 
@@ -301,8 +304,12 @@ const loadRelationalIssue = async (issueId: string): Promise<IssueContent | null
             theme: issue.theme,
             date: issue.issue_date,
             editor: issue.editor,
-            status: issue.status as any
+            status: issue.status as any,
+            template_key: 'CUSTOM' // If loaded from DB with sections, it's a custom state
         },
+        // NEW: Load Sections
+        sections: issue.sections,
+        
         ticker: issue.ticker,
         cover: {
             eyebrow: issue.cover_eyebrow,

@@ -39,7 +39,7 @@ export const agentLayoutOptimizer = async (
         CONSTRAINTS:
         1. RESPECT THE GRID: Total col_span per row must be 12.
         2. PRESERVE BINDINGS: Keep the 'data_binding' logic (source/query) intact, but you can change the 'block_type' and 'variant' to fit the new layout.
-        3. BLOCK PALETTE: Use these block types: 'HeroTypePlate', 'FeatureCard', 'FeatureTriptych', 'TeaserIndexRail', 'QuotePlate', 'BlackManifestoPanel'.
+      
         
         VARIATION 1: "Editorial" (Large images, white space, big typography).
         VARIATION 2: "Dense" (Information heavy, rails, lists).
