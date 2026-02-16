@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IssueContent, AgentLog, Lead, StoryArtifact, Proposal, DebateArtifact } from '../types';
 import { RunConfig, DbStatus } from '../hooks/useNewsroom'; 
 import { ContentMode } from './newsroom/ContentMode';
@@ -18,6 +18,7 @@ interface NewsroomProps {
   runProposal: (storyId: string, proposal: Proposal, modifiers: { strict: boolean; toneLock: boolean }, onUpdate: (partial: IssueContent) => void) => Promise<any>;
   approveStory: (storyId: string, onUpdate: (partial: IssueContent) => void) => void;
   shipBatch: (onUpdate: (partial: IssueContent) => void) => Promise<void>;
+  saveDraft: (issue: IssueContent) => Promise<void>; // NEW PROP
   
   leads: Lead[];
   onPublish: (issue: IssueContent) => void;
@@ -35,7 +36,7 @@ interface NewsroomProps {
 }
 
 export const TheNewsroom: React.FC<NewsroomProps> = ({ 
-    logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, scanWire, commissionStory, runAutopilot, runProposal, approveStory, shipBatch, leads, onPublish, onCancel,
+    logs, isProcessing, isScanning = false, isCommissioning = false, dbStatus, scanWire, commissionStory, runAutopilot, runProposal, approveStory, shipBatch, saveDraft, leads, onPublish, onCancel,
     channels, onAddChannel, onRemoveChannel, onPublishArtifact, isAutopilotActive, onToggleAutopilot, agentJobs,
     currentTemplate, onSwitchTemplate, initialIssue
 }) => {
@@ -49,6 +50,10 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
   
   // Initialize with the real issue data passed from App
   const [latestIssue, setLatestIssue] = useState<IssueContent | null>(initialIssue);
+  
+  // LAYOUT SAVING STATE
+  const [saveStatus, setSaveStatus] = useState<'SAVED' | 'SAVING' | 'ERROR'>('SAVED');
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync if initialIssue updates externally
   useEffect(() => {
@@ -63,10 +68,29 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
   // SMART RESOLVER: Determine what is active based on ID
   const activeLead = inbox.find(l => l.id === activeItemId);
   const activeStory = latestIssue ? [...latestIssue.features, ...latestIssue.columns].find(s => s.id === activeItemId) : undefined;
-  
-  // If we have a story, find its debate/dossier. If we have a lead, we might have a story for it.
   const activeDebate = latestIssue?.debates.find((d: DebateArtifact) => d.id === activeStory?.signal_id);
   
+  // --- LAYOUT UPDATE HANDLER (AUTO-SAVE) ---
+  const handleLayoutUpdate = (updated: IssueContent) => {
+      setLatestIssue(updated);
+      setSaveStatus('SAVING');
+
+      // Debounce the save to prevent flooding DB
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      
+      saveTimeoutRef.current = setTimeout(async () => {
+          try {
+              await saveDraft(updated);
+              setSaveStatus('SAVED');
+              // Optionally sync back to parent if needed, but App.tsx likely handles its own state
+              onPublish(updated); // Keep App.tsx in sync visually
+          } catch (e) {
+              console.error("Auto-save failed", e);
+              setSaveStatus('ERROR');
+          }
+      }, 1500); // 1.5s delay
+  };
+
   const handleCommission = async (configData: any) => {
       if (!activeLead) return;
       
@@ -88,16 +112,10 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
 
       await commissionStory(activeLead, theme, useDemo, config, (partial) => {
           setLatestIssue(partial);
-          
-          // AUTO-SWITCH LOGIC (Improved):
-          // Always focus on the story being built for this lead.
-          // We check if the last added story corresponds to a NEW draft.
+          // Auto-switch logic
           const allStories = [...partial.features, ...partial.columns];
           if (allStories.length > 0) {
               const newestStory = allStories[allStories.length - 1];
-              
-              // Only auto-switch if we are currently looking at the LEAD (pre-commission) 
-              // or already looking at this story (in-progress updates).
               if (activeItemId === activeLead.id || activeItemId === newestStory.id) {
                   if (newestStory.status === 'DRAFT' || newestStory.status === 'REVIEW') {
                       setActiveItemId(newestStory.id);
@@ -221,9 +239,10 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
       ) : (
           <LayoutMode 
               issue={latestIssue || initialIssue}
-              onUpdateIssue={(updated) => setLatestIssue(updated)}
+              onUpdateIssue={handleLayoutUpdate} // USE WRAPPER
               currentTemplate={currentTemplate}
               onSwitchTemplate={onSwitchTemplate}
+              saveStatus={saveStatus} // Pass visual status
           />
       )}
 

@@ -11,6 +11,7 @@ interface LayoutModeProps {
     onUpdateIssue: (updated: IssueContent) => void;
     currentTemplate: string;
     onSwitchTemplate: (key: string) => void;
+    saveStatus?: 'SAVED' | 'SAVING' | 'ERROR'; // New Prop
 }
 
 // --- MODULE DEFINITIONS & CONFIG ---
@@ -459,7 +460,7 @@ const SlotInspector: React.FC<{
     );
 };
 
-export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, currentTemplate, onSwitchTemplate }) => {
+export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, currentTemplate, onSwitchTemplate, saveStatus = 'SAVED' }) => {
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
     const [previewSections, setPreviewSections] = useState<Section[] | null>(null);
     const [showGrid, setShowGrid] = useState(true); 
@@ -739,6 +740,14 @@ export const LayoutMode: React.FC<LayoutModeProps> = ({ issue, onUpdateIssue, cu
                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowGrid(!showGrid)}>
                             <div className={`w-3 h-3 border rounded-sm transition-colors ${showGrid ? 'bg-indigo-500 border-indigo-600' : 'bg-white border-zinc-300'}`}></div>
                             <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 select-none">X-Ray</span>
+                        </div>
+                        
+                        {/* AUTO-SAVE INDICATOR */}
+                        <div className="flex items-center gap-2 border-l border-zinc-200 pl-4">
+                            <div className={`w-1.5 h-1.5 rounded-full transition-colors ${saveStatus === 'SAVING' ? 'bg-amber-500 animate-pulse' : saveStatus === 'ERROR' ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">
+                                {saveStatus === 'SAVING' ? 'Syncing...' : saveStatus === 'ERROR' ? 'Sync Fail' : 'Cloud Safe'}
+                            </span>
                         </div>
                     </div>
 

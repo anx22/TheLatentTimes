@@ -276,6 +276,17 @@ export const useNewsroom = () => {
       }
   };
 
+  // NEW: Save Draft (Layout Mode Persistence)
+  const saveDraft = async (issue: IssueContent) => {
+      // 1. Sync internal references so orchestrator stays up to date
+      if (issue.meta) metaRef.current = issue.meta;
+      // Note: We trust that 'issue' passed here is the latest layout state
+      
+      // 2. Persist to DB (using the existing ID)
+      await saveIssue(issue);
+      console.log(`[SYS] Layout Draft Saved: ${issue.meta.issue_id}`);
+  };
+
   const shipBatch = async (onUpdate: (partial: IssueContent) => void) => {
       setIsCommissioning(true);
       
@@ -385,9 +396,10 @@ export const useNewsroom = () => {
     scanWire,
     commissionStory,
     runProposal,
-    runDriftCheck, // Exported
+    runDriftCheck, 
     approveStory, 
     shipBatch,
+    saveDraft, // NEW EXPORT
     runAutopilot,
     publishArtifact,
     shipCurrentIssue: async () => null,

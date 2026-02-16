@@ -1,4 +1,3 @@
-
 import { Type } from "@google/genai";
 import { safeGenerateContent, cleanAndParseJSON } from "../../gemini";
 import { RunConfig } from "../../../hooks/useNewsroom";
@@ -27,7 +26,6 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
         Return JSON with:
         - rewritten_body (array of paragraphs)
         - critique (General assessment of the draft)
-        - specific_changes (Array of objects with 'point' and 'paragraph_indices' indicating which paragraphs in the REWRITTEN version were significantly altered/improved)
         - diff_summary (Short, punchy changelog items. E.g., "Removed passive voice.", "Tightened lede.")
         `,
         config: {
@@ -39,16 +37,6 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
                 properties: {
                     rewritten_body: { type: Type.ARRAY, items: { type: Type.STRING } },
                     critique: { type: Type.STRING },
-                    specific_changes: { 
-                        type: Type.ARRAY, 
-                        items: { 
-                            type: Type.OBJECT, 
-                            properties: {
-                                point: { type: Type.STRING },
-                                paragraph_indices: { type: Type.ARRAY, items: { type: Type.NUMBER } }
-                            }
-                        } 
-                    },
                     diff_summary: { type: Type.STRING }
                 }
             }
@@ -59,7 +47,7 @@ export const agentRewrite = async (draftBody: string[], toneDirective: string, c
     return {
         body: raw.rewritten_body || draftBody,
         critique: raw.critique || "No structural changes required.",
-        structured_critique: raw.specific_changes || [],
+        structured_critique: [], // Optimized out for speed to prevent index-matching latency
         diff_summary: raw.diff_summary || "Minor polish.",
         tone_profile: targetProfile || { drama: 3, precision: 3, metaphor_density: 3, adjective_budget: 50, sentence_mode: 'MIXED' }
     };

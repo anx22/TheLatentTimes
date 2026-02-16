@@ -171,9 +171,10 @@ const App: React.FC = () => {
                onRemoveChannel={newsroom.removeChannel}
                onPublishArtifact={newsroom.publishArtifact}
                onToggleAutopilot={newsroom.toggleAutopilot}
+               saveDraft={newsroom.saveDraft} // NEW PROP
                onPublish={(newIssue) => {
                    setIssue(newIssue);
-                   setShowNewsroom(false);
+                   // We don't close newsroom automatically on publish anymore, unless requested
                }}
                onCancel={() => setShowNewsroom(false)}
                currentTemplate={activeTemplateKey}
