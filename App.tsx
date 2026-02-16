@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
 import { IssueContent, PageTemplate, MagazineItem } from './types';
-import { getSession } from './services/storage';
+import { getSession, loadIssue } from './services/storage';
 import { TheNewsroom } from './components/TheNewsroom';
 import { useNewsroom } from './hooks/useNewsroom';
 import { TEMPLATE_REGISTRY } from './services/templates';
@@ -115,10 +114,23 @@ const App: React.FC = () => {
   const newsroom = useNewsroom();
 
   useEffect(() => {
-    getSession().then((s) => {
+    const init = async () => {
+        const s = await getSession();
         setSession(s);
+        
+        try {
+            const savedData = await loadIssue();
+            if (savedData) {
+                console.log("[App] Restored session data");
+                setIssue(savedData);
+            }
+        } catch (e) {
+            console.error("[App] Failed to load save:", e);
+        }
+        
         setHydrated(true);
-    });
+    };
+    init();
     
     // Listen for auth events (mock or real)
     const handleAuth = () => {
