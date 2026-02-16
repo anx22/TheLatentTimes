@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
 import { IssueContent, PageTemplate, MagazineItem } from './types';
@@ -85,11 +86,11 @@ const SHELL_DATA: IssueContent = {
         metrics: { signals_ingested: 124, avg_confidence: 94, error_rate: 0 }
     },
     items: MOCK_ITEMS, 
-    ticker: ["MODUS ENGINE V3.0", "SWISS GRID ACTIVE", "LAYOUT: SELF-ASSEMBLING", "WAITING FOR SIGNAL"],
+    ticker: ["MODUS V3.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"],
     cover: {
-        eyebrow: "SYSTEM UPDATE",
-        title: "TABULA RASA", 
-        deck: "The page is blank. The grid is rigid. The agents are waiting.",
+        eyebrow: "ISSUE 01",
+        title: "ZERO DAY", 
+        deck: "Blank slate. Rigid grid. Pure signal.",
         coverlines: [],
         imgPrompt: "Void",
         img_base64: ""

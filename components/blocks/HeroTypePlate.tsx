@@ -3,14 +3,17 @@ import React from 'react';
 import { BlockInstance, IssueContent, MagazineItem } from '../../types';
 
 export const HeroTypePlate: React.FC<{ config: BlockInstance, content: IssueContent, data?: MagazineItem }> = ({ config, content, data }) => {
-  const title = data?.title || content.cover.title;
-  const subtitle = data?.dek || content.cover.deck;
+  const staticData = config.data_binding.static_content || {};
+  
+  const title = staticData.text || data?.title || content.cover.title;
+  const subtitle = staticData.deck || data?.dek || content.cover.deck;
+  const label = staticData.label || "Section";
   
   // VARIANT S: Section Header (Minimal)
   if (config.variant === 'S') {
       return (
-        <div className="flex flex-col justify-end p-6 border-b border-black h-full min-h-[200px]">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">Section</span>
+        <div className="flex flex-col justify-end p-6 border-b border-black h-full min-h-[200px] bg-white">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-2">{label}</span>
             <h2 className="font-display font-medium text-4xl leading-none uppercase tracking-tight text-black">
                 {title}
             </h2>

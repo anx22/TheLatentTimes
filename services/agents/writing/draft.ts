@@ -134,6 +134,10 @@ export const agentDraft = async (
       ...b
   }));
 
+  // Robust array handling
+  const safeBody = Array.isArray(raw.body) ? raw.body : [];
+  const safeCitations = Array.isArray(raw.citations) ? raw.citations : [];
+
   return { 
     id: dossier.id, 
     signal_id: dossier.id, 
@@ -146,7 +150,10 @@ export const agentDraft = async (
     media_type: verdict.primary_media || 'TEXT',
     tone_profile: toneProfile,
     signature_blocks: blocks,
-    footnotes: [], // Initialize empty to avoid undefined errors
-    ...raw 
+    ...raw,
+    // Explicitly set these last to ensure defaults if missing in raw
+    body: safeBody,
+    citations: safeCitations,
+    footnotes: [] 
   };
 };

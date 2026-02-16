@@ -92,33 +92,42 @@ export const AgentAvatar: React.FC<{ role: string; size?: 'sm' | 'md' }> = ({ ro
 export const TeamStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({ logs, className }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
 
+    // Strict auto-scroll on every new log
     useEffect(() => {
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [logs.length]);
 
-    // Filter out purely technical logs if needed, or format them
-    const displayLogs = logs.filter(l => l.agent !== 'NET'); 
+    const formatTime = (ts: string) => {
+        try {
+            const d = new Date(ts);
+            // Manual formatting to ensure HH:MM:SS.mmm format without TS issues on 'fractionDigits' option
+            return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' }) + '.' + d.getMilliseconds().toString().padStart(3, '0');
+        } catch {
+            return ts.split(' ')[0];
+        }
+    };
 
     return (
         <div className={`overflow-y-auto custom-scrollbar p-4 space-y-4 bg-zinc-50/50 ${className}`}>
-            {displayLogs.length === 0 && (
+            {logs.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-zinc-300 space-y-2">
                     <span className="text-xl grayscale opacity-20">👋</span>
                     <span className="text-[10px] font-bold uppercase tracking-widest">Team Offline</span>
                 </div>
             )}
             
-            {displayLogs.map((l, i) => {
+            {logs.map((l, i) => {
                 const isSystem = l.agent === 'SYS' || l.agent === 'OPS';
                 const agentName = AGENT_ROSTER[l.agent]?.name || l.agent;
+                const timeStr = formatTime(l.timestamp);
                 
                 if (isSystem) {
                     return (
-                        <div key={i} className="flex flex-col items-center my-2">
-                            <span className="text-[9px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                {l.message}
+                        <div key={i} className="flex flex-col items-center my-3 animate-fade-in">
+                            <span className="text-[9px] font-mono text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-wider mb-1">
+                                {timeStr} • {l.message}
                             </span>
                             {/* System logs can also have data */}
                             {l.data && <div className="w-full max-w-[200px]"><JsonInspector data={l.data} label="SYS DATA" collapsed={true} /></div>}
@@ -135,7 +144,7 @@ export const TeamStream: React.FC<{ logs: AgentLog[]; className?: string }> = ({
                                     {agentName}
                                 </span>
                                 <span className="text-[9px] text-zinc-300 font-mono">
-                                    {l.timestamp.split(' ')[0]}
+                                    {timeStr}
                                 </span>
                             </div>
                             <div className="text-[11px] text-zinc-600 leading-snug bg-white p-2 rounded-tr-lg rounded-br-lg rounded-bl-lg border border-zinc-100 shadow-sm inline-block max-w-full break-words">

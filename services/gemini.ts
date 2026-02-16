@@ -38,11 +38,11 @@ export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }
 ): Promise<GenerateContentResponse> => {
     
-    // MODEL FALLBACK LADDER
+    // MODEL FALLBACK LADDER (Strict adherence to v3/v2.5)
     const modelLadder = [
         params.model, // Try requested model first
-        'gemini-2.0-flash-exp', // Fallback 1: Fast experimental
-        'gemini-1.5-flash'      // Fallback 2: Old reliable
+        'gemini-3-flash-preview', // Fallback 1: Fast & Reliable
+        'gemini-flash-lite-latest' // Fallback 2: Ultra fast
     ];
 
     // Remove duplicates and filter

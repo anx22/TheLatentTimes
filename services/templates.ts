@@ -23,7 +23,7 @@ export const T1_CoverRail: PageTemplate = {
       id: 'sec_hero_split',
       order: 1,
       layout_mode: 'grid_12',
-      className: '', // REMOVED PADDING AND MIN-HEIGHT
+      className: '', 
       blocks: [
         { id: 'b_hero', block_type: 'HeroTypePlate', col_span: 8, variant: 'L', data_binding: { source: 'pinned' } },
         { id: 'b_rail', block_type: 'TeaserIndexRail', col_span: 4, variant: 'M', data_binding: { source: 'query', query_limit: 5, query_tags: ['Culture', 'Engineering'] } }
@@ -43,14 +43,22 @@ export const T1_CoverRail: PageTemplate = {
       order: 3,
       layout_mode: 'grid_12',
       blocks: [
-        { id: 'b_manifesto', block_type: 'BlackManifestoPanel', col_span: 4, variant: 'M', data_binding: { source: 'static', static_content: { label: "MISSION", text: "We build the machine that builds the magazine." } } },
+        { id: 'b_manifesto', block_type: 'BlackManifestoPanel', col_span: 4, variant: 'M', data_binding: { source: 'static', static_content: { label: "MANDATE", text: "AUTOMATE OR DIE." } } },
         { id: 'b_feature_1', block_type: 'FeatureCard', col_span: 4, variant: 'M', chaos_type: 'tilt_hover', data_binding: { source: 'query', query_tags: ['Theory', 'Engineering'], query_limit: 1 } },
         { id: 'b_feature_2', block_type: 'FeatureCard', col_span: 4, variant: 'M', chaos_type: 'overlap_badge', data_binding: { source: 'query', query_tags: ['Culture', 'Art'], query_limit: 1 } },
       ]
     },
     {
-      id: 'sec_triptych',
+      id: 'sec_interlude',
       order: 4,
+      layout_mode: 'grid_12',
+      blocks: [
+          { id: 'b_break', block_type: 'HeroTypePlate', col_span: 12, variant: 'S', data_binding: { source: 'static', static_content: { label: "02 // DEEP DIVE", text: "THE FEATURE SET" } } }
+      ]
+    },
+    {
+      id: 'sec_triptych',
+      order: 5,
       layout_mode: 'grid_12',
       blocks: [
         { id: 'b_triptych', block_type: 'FeatureTriptych', col_span: 12, variant: 'L', data_binding: { source: 'query', query_tags: ['Engineering', 'Future', 'Science'], query_limit: 3 } }
@@ -58,7 +66,7 @@ export const T1_CoverRail: PageTemplate = {
     },
     {
         id: 'sec_footer',
-        order: 5,
+        order: 6,
         layout_mode: 'grid_12',
         blocks: [
             { id: 'b_micro', block_type: 'MicroIndex', col_span: 12, variant: 'S', data_binding: { source: 'query', query_limit: 8 } }
@@ -67,7 +75,7 @@ export const T1_CoverRail: PageTemplate = {
   ]
 };
 
-// TEMPLATE T2: INDEX AS HERO
+// TEMPLATE T2: Index Hero
 // - Information Dense
 // - No large hero image, just massive typography and lists
 export const T2_IndexAsHero: PageTemplate = {
@@ -88,15 +96,23 @@ export const T2_IndexAsHero: PageTemplate = {
             id: 'sec_index_hero',
             order: 1,
             layout_mode: 'grid_12',
-            className: '', // REMOVED PADDING
+            className: '', 
             blocks: [
-                { id: 'b_hero_txt', block_type: 'QuotePlate', col_span: 8, variant: 'L', data_binding: { source: 'pinned' } }, // Using QuotePlate as text hero
+                { id: 'b_hero_txt', block_type: 'QuotePlate', col_span: 8, variant: 'L', data_binding: { source: 'pinned' } }, 
                 { id: 'b_rail_wide', block_type: 'TeaserIndexRail', col_span: 4, variant: 'L', data_binding: { source: 'query', query_limit: 8 } }
             ]
         },
         {
-            id: 'sec_cols',
+            id: 'sec_header_cols',
             order: 2,
+            layout_mode: 'grid_12',
+            blocks: [
+                { id: 'b_header_c', block_type: 'HeroTypePlate', col_span: 12, variant: 'S', data_binding: { source: 'static', static_content: { label: "DATA", text: "RAW SIGNALS" } } }
+            ]
+        },
+        {
+            id: 'sec_cols',
+            order: 3,
             layout_mode: 'grid_12',
             blocks: [
                 { id: 'b_col_1', block_type: 'CategoryColumn', col_span: 4, variant: 'M', data_binding: { source: 'query', query_tags: ['Engineering'], query_limit: 5 } },
@@ -106,16 +122,16 @@ export const T2_IndexAsHero: PageTemplate = {
         },
         {
             id: 'sec_bottom',
-            order: 3,
+            order: 4,
             layout_mode: 'grid_12',
             blocks: [
-                { id: 'b_manifesto', block_type: 'BlackManifestoPanel', col_span: 8, variant: 'M', data_binding: { source: 'static', static_content: { label: "INDEX", text: "Full Archive Retrieval." } } },
+                { id: 'b_manifesto', block_type: 'BlackManifestoPanel', col_span: 8, variant: 'M', data_binding: { source: 'static', static_content: { label: "ARCHIVE", text: "TOTAL RECALL." } } },
                 { id: 'b_cta', block_type: 'KitFeatureCTA', col_span: 4, variant: 'S', data_binding: { source: 'static' } }
             ]
         },
         {
             id: 'sec_footer',
-            order: 4,
+            order: 5,
             layout_mode: 'grid_12',
             blocks: [
                 { id: 'b_stats', block_type: 'StatsStrip', col_span: 12, variant: 'S', data_binding: { source: 'static' } }
@@ -136,10 +152,10 @@ export const T3_ManifestoHeavy: PageTemplate = {
             id: 'sec_intro',
             order: 0,
             layout_mode: 'grid_12',
-            className: 'pt-0 pb-0 bg-black text-white', // REMOVED MIN-HEIGHT
+            className: 'pt-0 pb-0 bg-black text-white', 
             blocks: [
                 { id: 'b_masthead_inv', block_type: 'MastheadLane', col_span: 12, variant: 'M', data_binding: { source: 'static' } },
-                { id: 'b_manifesto_xl', block_type: 'BlackManifestoPanel', col_span: 8, variant: 'XL', data_binding: { source: 'static', static_content: { label: "URGENT", text: "The signal is the only thing that matters." } } },
+                { id: 'b_manifesto_xl', block_type: 'BlackManifestoPanel', col_span: 8, variant: 'XL', data_binding: { source: 'static', static_content: { label: "WARNING", text: "SIGNAL ONLY." } } },
                 { id: 'b_rail_inv', block_type: 'TeaserIndexRail', col_span: 4, variant: 'M', chaos_type: 'breakout_right', data_binding: { source: 'query', query_limit: 4 } }
             ]
         },
@@ -147,7 +163,7 @@ export const T3_ManifestoHeavy: PageTemplate = {
             id: 'sec_hero_img',
             order: 1,
             layout_mode: 'grid_12',
-            className: '', // REMOVED PADDING
+            className: '', 
             blocks: [
                 { id: 'b_hero_img', block_type: 'HeroTypePlate', col_span: 12, variant: 'L', data_binding: { source: 'pinned' } }
             ]

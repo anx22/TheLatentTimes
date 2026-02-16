@@ -112,14 +112,17 @@ export const TheNewsroom: React.FC<NewsroomProps> = ({
 
       await commissionStory(activeLead, theme, useDemo, config, (partial) => {
           setLatestIssue(partial);
-          // Auto-switch logic
+          
+          // FIX: Aggressive auto-switch to newest story
           const allStories = [...partial.features, ...partial.columns];
           if (allStories.length > 0) {
+              // We assume the newest story is appended at the end
               const newestStory = allStories[allStories.length - 1];
-              if (activeItemId === activeLead.id || activeItemId === newestStory.id) {
-                  if (newestStory.status === 'DRAFT' || newestStory.status === 'REVIEW') {
-                      setActiveItemId(newestStory.id);
-                  }
+              // Only switch if we are currently looking at the lead (or nothing)
+              // This prevents jumping around if the user is already looking at something else,
+              // BUT for the "2x click" bug, we want to force it if it matches the lead context.
+              if (activeItemId === activeLead.id || !activeItemId) {
+                  setActiveItemId(newestStory.id);
               }
           }
       });

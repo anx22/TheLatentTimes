@@ -24,7 +24,8 @@ export const resolveBinding = (block: BlockInstance, context: IssueContent): Res
     }
 
     // CONSOLIDATE CONTENT POOLS
-    // In a real app this would be a unified index, but we map artifacts to generic items here
+    // We strictly map all source types (Stories, Drops) to the standardized MagazineItem interface
+    // to ensure Block components (which expect .title and .dek) receive the correct properties.
     
     const coverItem: MagazineItem | null = context.cover.title ? {
         id: 'cover_story', // Synthetic ID for the active cover
@@ -41,9 +42,27 @@ export const resolveBinding = (block: BlockInstance, context: IssueContent): Res
     const pool: MagazineItem[] = [
         ...(coverItem ? [coverItem] : []),
         ...(context.items || []),
-        ...context.features.map(f => ({ ...f, tags: [f.category, f.topic], media_type: f.media_type || 'text' } as any)),
-        ...context.columns.map(c => ({ ...c, tags: [c.category, 'Opinion'], media_type: 'text' } as any)),
-        ...context.drops.map(d => ({ ...d, tags: [d.category, 'Short'], title: d.headline, dek: d.body, media_type: 'text' } as any))
+        ...context.features.map(f => ({ 
+            ...f, 
+            title: f.headline, 
+            dek: f.deck,
+            tags: [f.category, f.topic], 
+            media_type: f.media_type || 'text' 
+        } as any)),
+        ...context.columns.map(c => ({ 
+            ...c, 
+            title: c.headline, 
+            dek: c.deck,
+            tags: [c.category, 'Opinion'], 
+            media_type: 'text' 
+        } as any)),
+        ...context.drops.map(d => ({ 
+            ...d, 
+            tags: [d.category, 'Short'], 
+            title: d.headline, 
+            dek: d.body, 
+            media_type: 'text' 
+        } as any))
     ];
 
     // 2. Pinned Item
