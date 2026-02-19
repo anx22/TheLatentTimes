@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
-import { IssueContent, PageTemplate, MagazineItem } from './types';
+import { IssueContent, MagazineItem } from './types';
 import { getSession, loadIssue } from './services/storage';
-import { TheNewsroom } from './components/TheNewsroom';
-import { useNewsroom } from './hooks/useNewsroom';
+import { SimpleNewsroom } from './components/newsroom-v2/SimpleNewsroom';
 import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 
@@ -111,9 +110,6 @@ const App: React.FC = () => {
   const [showNewsroom, setShowNewsroom] = useState(false);
   const [session, setSession] = useState<any>(null); // Track session for Header
   
-  // Use Newsroom Hook for logic
-  const newsroom = useNewsroom();
-
   useEffect(() => {
     const init = async () => {
         const s = await getSession();
@@ -141,19 +137,17 @@ const App: React.FC = () => {
     return () => window.removeEventListener('modus-mock-auth', handleAuth);
   }, []);
 
-  const handleSwitchTemplate = (key: string) => {
-      setIssue(prev => ({
-          ...prev,
-          meta: { ...prev.meta, template_key: key },
-          // Note: Logic to reset sections is handled in LayoutMode or explicitly here if needed.
-          // For now, we update key so other components know.
-      }));
-  };
-
   const handleShare = () => {
       const url = window.location.href;
       navigator.clipboard.writeText(url);
       alert("Issue Link Copied to Clipboard");
+  };
+
+  const handlePublishItem = (newItem: MagazineItem) => {
+      setIssue(prev => ({
+          ...prev,
+          items: [newItem, ...(prev.items || [])]
+      }));
   };
 
   if (!hydrated) return null;
@@ -178,21 +172,9 @@ const App: React.FC = () => {
 
        {/* 2. OPS LAYER (Newsroom Overlay) */}
        {showNewsroom && (
-           <TheNewsroom 
-               {...newsroom}
-               onAddChannel={newsroom.addChannel}
-               onRemoveChannel={newsroom.removeChannel}
-               onPublishArtifact={newsroom.publishArtifact}
-               onToggleAutopilot={newsroom.toggleAutopilot}
-               saveDraft={newsroom.saveDraft} // NEW PROP
-               onPublish={(newIssue) => {
-                   setIssue(newIssue);
-                   // We don't close newsroom automatically on publish anymore, unless requested
-               }}
-               onCancel={() => setShowNewsroom(false)}
-               currentTemplate={activeTemplateKey}
-               onSwitchTemplate={handleSwitchTemplate}
-               initialIssue={issue} // PASS THE DATA!
+           <SimpleNewsroom 
+               onPublish={handlePublishItem}
+               onClose={() => setShowNewsroom(false)}
            />
        )}
 

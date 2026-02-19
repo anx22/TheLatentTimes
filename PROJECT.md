@@ -1,35 +1,40 @@
+# MODUS: The AI-Native Fashion Magazine
 
-# MODUS: Project Architecture v3.0
+## Vision
+MODUS is not just a magazine; it is a living, breathing organism powered by a symphony of AI agents. It explores the intersection of high fashion, synthetic biology, and latent space theory. It is "Vogue meets Wired meets The Matrix."
 
-**Mission:** An autonomous, self-assembling luxury editorial engine. It ingests live signals from the open web and renders them into a strict "Swiss Grid" layout.
+## The Newsroom (Ops Layer)
+The heart of MODUS is **The Newsroom**, a collaborative workspace where human editors direct a fleet of AI agents to produce high-culture artifacts.
 
-## 1. Core Axioms (v3.0)
-- **The Grid is Absolute**: Every pixel aligns to a 12-column rigid grid. No floating elements unless specific "Chaos Moves".
-- **Content is Data**: Stories, Tickers, and Manifestos are abstract data objects (`MagazineItem`) injected into `Blocks`.
-- **Typography is Voice**: 
-  - **Hero**: *Archivo Narrow* (Condensed, Uppercase, Tight).
-  - **Body**: *Inter* (Clean, Swiss).
-  - **Accent**: *Playfair Display* (Italic only).
-- **The Wire is Live**: We do not fake data. We ingest real-time RSS feeds and Semantic Search results to construct the issue.
+### The Agents
+The newsroom is staffed by specialized agents, each with a distinct persona, voice, and function:
 
-## 2. Tech Stack
-- **Frontend**: React 19, Vite, Tailwind CSS.
-- **Layout Engine**: Custom 12-col grid mapper (`LayoutEngine.tsx`).
-- **Ingestion**: 
-  - **RSS**: `rss2json` proxy for deterministic signal monitoring (`services/rss.ts`).
-  - **Search**: Google Search Grounding (Gemini 3 Flash) for query expansion.
-- **State**: `useNewsroom` (Agent Orchestration) + Supabase (Persistence).
-- **Intelligence**: Gemini 1.5 Pro (Reasoning) + Flash (Speed/Scanning).
+1.  **The Scout (Ingestion)**: Scans the digital horizon (RSS, APIs, Trends) for "Signals"—weak indicators of future trends.
+2.  **The Editorial Board (Ideation)**:
+    *   **The Critic**: Skeptical, academic, obsessed with history and theory. Looks for the "ghost in the machine."
+    *   **The Runway**: Pure aesthete. Obsessed with visuals, texture, and surface.
+    *   **The Atelier**: The engineer. Obsessed with code, structure, and how things work.
+3.  **The Editor-in-Chief (Decision)**: Reviews pitches from the Board, selects the best angle, and issues a "Commission."
+4.  **The Columnist (Writing)**: Writes the actual prose based on the Commission. Can adopt different voices (Gonzo, Academic, Minimalist).
+5.  **The Art Director (Visuals)**: Conceptualizes the visual identity of the story and generates prompts.
+6.  **The Photographer (Generation)**: Uses the prompts to generate high-fidelity assets (Images, Video).
+7.  **The Production Manager (Layout)**: Assembles the text and visuals into a layout (Cover, Feature, Column).
 
-## 3. Data Model (The Assembler)
-1.  **Issue**: The container. Holds `Meta` and `Sections`.
-2.  **Section**: A horizontal slice of the page. Contains `Blocks`.
-3.  **Block**: The atomic UI unit (e.g., `HeroTypePlate`, `Ticker`).
-4.  **Binding**: Blocks request data (e.g., "Get top 3 features") or bind to specific `MagazineItems`.
+### The Workflow (The Pipeline)
+1.  **Signal Detection**: The Scout identifies a topic (e.g., "Digital Decay").
+2.  **The Pitch**: The Editorial Board generates 3 distinct angles.
+3.  **The Commission**: The User (acting as EIC) selects an angle.
+4.  **Drafting**: The Columnist writes the copy.
+5.  **Visualizing**: The Art Director & Photographer create the imagery.
+6.  **Publishing**: The artifact is pushed to the live magazine.
 
-## 4. Directory Structure
-- `/components/layout`: The Grid Engine (`LayoutEngine`, `SectionGrid`).
-- `/components/blocks`: Atomic UI components (`Hero`, `Ticker`, `Manifesto`).
-- `/components/newsroom`: The Operator Console (Split into `ContentMode` and `LayoutMode`).
-- `/services/agents`: AI logic (Scout, Critic, Writer, Designer).
-- `/services/rss.ts`: The Live Wire feed registry.
+## Architecture
+-   **Frontend**: React + Tailwind (The Interface).
+-   **Brain**: Google Gemini (The Intelligence).
+-   **State**: LocalStorage (MVP) -> Supabase (Production).
+-   **Orchestration**: Client-side agent chaining (MVP) -> Server-side queues (Production).
+
+## Design Philosophy
+-   **Aesthetic**: Brutalist, High-Contrast, Swiss Style, Terminal-Chic.
+-   **Interaction**: Fast, Keyboard-centric, "God Mode."
+-   **Tone**: Intellectual, Accelerationist, Haughty but Insightful.
