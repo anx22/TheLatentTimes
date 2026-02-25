@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
 import { IssueContent, MagazineItem } from './types';
 import { getSession, loadIssue } from './services/storage';
-import { SimpleNewsroom } from './components/newsroom-v2/SimpleNewsroom';
+import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 
@@ -172,7 +172,7 @@ const App: React.FC = () => {
 
        {/* 2. OPS LAYER (Newsroom Overlay) */}
        {showNewsroom && (
-           <SimpleNewsroom 
+           <NewsroomFloor 
                onPublish={handlePublishItem}
                onClose={() => setShowNewsroom(false)}
            />

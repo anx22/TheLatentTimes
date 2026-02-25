@@ -48,7 +48,7 @@ export const safeGenerateContent = async (
     // Remove duplicates and filter
     const uniqueModels = [...new Set(modelLadder)];
 
-    const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     let lastError = null;
 
     for (const model of uniqueModels) {
@@ -97,7 +97,7 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
   if (typeof window !== 'undefined' && window.aistudio && await window.aistudio.hasSelectedApiKey()) {
      // Key is injected
   }
-  const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const currentAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const start = performance.now();
 
   try {
@@ -121,7 +121,7 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
 
 // Image Editing using Gemini 2.5 Flash Image
 export const editImage = async (base64Image: string, prompt: string): Promise<string> => {
-  const currentAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const currentAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
 
   const response = await currentAi.models.generateContent({

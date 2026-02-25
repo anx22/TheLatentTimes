@@ -1,31 +1,24 @@
 
 # MODUS Status Log
 
-**Current Cycle:** v0.0.7-beta // The Assembler
-**Focus:** Testing & Polish
+**Current Cycle:** v1.2.0-newsroom-floor // The Wire (Logic & Integration)
+**Focus:** Connecting the UI shell of The Wire to real data sources and refining the Scout agent.
 
 ## Goals (Complete)
-- [x] **Newsroom Architecture**: Implement Tabbed View (Content Mode / Layout Mode).
-- [x] **Layout Mode Shell**:
-    - [x] Top Bar: Issue/Template/Chaos controls.
-    - [x] Left Panel: **Asset Pool** (Approved Items + Statements).
-    - [x] Right Panel: **Slot Inspector**.
-    - [x] Center: Interactive Preview (Click-to-select Block).
-- [x] **Binding Engine**:
-    - [x] Drag-and-Drop from Asset Pool to Block.
-    - [x] Manual "Pinning" of items.
-    - [x] "Query" Builder UI (Tag Cloud / Filters).
-- [x] **Ingestion Pipeline**:
-    - [x] **RSS Proxy Service**: Connect to real-world feeds (Wired, Verge, etc.).
-    - [x] **Source Monitor**: Visual UI in Sidebar to see active feeds.
-    - [x] **Scanner Agent**: Upgrade to parse real RSS snippets into Leads.
-- [x] **Persistance**:
-    - [x] Serialize `sections` layout state to Supabase.
-    - [x] Save "Pinned" relationships permanently.
-- [x] **Metamorphosis**:
-    - [x] AI Layout Remix button using `agentLayoutOptimizer`.
+- [x] **Newsroom MVP**: Implemented `SimpleNewsroom.tsx` for a streamlined end-to-end pipeline.
+- [x] **Agent Integration**: Connected `agentColumnist` (Text) and `agentPhotographer` (Image) directly to the UI.
+- [x] **The Newsroom Floor UI**: Refactored the UI into a persistent tabbed "Editorial Chain" (The Wire, The Bullpen, The Darkroom, The Press).
+- [x] **Agent Liveliness**: Added Agent Cards that visually indicate when an agent is working and what they are thinking.
+- [x] **System Log**: Implemented a collapsible debug console for transparency.
+- [x] **Parameter Control UI**: Added a context-sensitive sidebar for adjusting department settings.
+- [x] **Documentation**: Updated `PROJECT.md` and `PLAN.md` to reflect the new "Newspaper" terminology.
+
+## Next Steps (The Wire - Logic Phase)
+- [ ] **The Ticker (Real Data)**: Replace `MOCK_TICKER` with real zero-token API fetching (e.g., GitHub trending, RSS feeds).
+- [ ] **Parameter Binding**: Connect the "Active Sources" and "Noise Filter" UI controls to the actual fetching logic.
+- [ ] **Scout Prompt Refinement**: Update `agentScout` in `newsroom-agents.ts` to be strictly "Tech-First" (focusing on AI, models, code) before applying cultural lenses.
+- [ ] **Targeted Search Logic**: Implement a deep-dive research step for specific queries before sending them to The Bullpen.
 
 ## Known Issues
-1.  **Mobile Stacking**: The 12-col grid currently stacks vertically on mobile. Need specific mobile-only block variants.
-2.  **Image Proxy**: Images from RSS feeds might be blocked by CORS when rendered in `SmartImage`.
-3.  **Real-Time Layout Sync**: Layout changes are saved on interaction but might not broadcast via WebSocket to other clients instantly (requires Supabase Realtime channel setup for the `sections` column).
+1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds; UI needs to maintain engagement during this wait.
+2.  **Layout Binding**: Currently, published items are prepended to the `items` array. We need to re-enable explicit slot binding for the new MVP artifacts.

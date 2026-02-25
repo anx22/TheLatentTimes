@@ -1,6 +1,39 @@
 
 # DECISIONS.md
 
+## 015 - Newspaper Terminology & Tabbed Editorial Chain
+**Problem**: The "Cockpit" metaphor and 4-column layout felt too generic and cluttered, lacking the specific "soul" of a futuristic newspaper.
+**Decision**: 
+1.  **Terminology**: Renamed all modules to reflect a physical newspaper (The Newsroom Floor, The Wire, The Bullpen, The Darkroom, The Press) and agents to specific roles (The Scout, The Columnist, The Editor, The Photographer).
+2.  **Layout**: Replaced the 4-column grid with a persistent, tabbed "Editorial Chain". Only one department is fully visible at a time, but the chain always shows the status and item count of all departments.
+3.  **Liveliness**: Added "Agent Cards" that visually pulse and display current actions when an agent is working.
+**Why**: Deepens the immersion and thematic consistency ("Vogue meets Wired meets The Matrix"). The tabbed layout provides more horizontal space for complex tasks (like writing and image review) while maintaining global situational awareness.
+
+## 014 - Multi-Modal Scout & Zero-Token Ticker
+**Problem**: Running AI on every incoming signal from the web is too expensive and token-intensive.
+**Decision**: The Scout now has three modes. Mode A (The Ticker) is a zero-token aggregator of real-world sources (GitHub, RSS) filtered purely by user settings. Mode B (Research) and Mode C (Specific) are active, token-consuming AI searches triggered manually by the user from the Ticker.
+**Why**: Saves costs, reduces noise, and gives the user control over when to deploy expensive AI resources.
+
+## 013 - Tech-First Foundation & Lenses
+**Problem**: The magazine's focus was too broad, treating fashion, culture, and tech equally, leading to generic outputs.
+**Decision**: AI Technology (models, workflows, code) is now the absolute foundation. Fashion, culture, and social issues are treated as "add-ons" or "lenses" applied to the tech foundation.
+**Why**: Creates a sharper, more unique editorial voice ("Vogue meets Wired") and grounds the content in hard, verifiable facts before abstracting it.
+
+## 012 - The Cockpit Architecture
+**Problem**: The linear wizard UI of the MVP hid the complexity and operational power of the newsroom.
+**Decision**: Transition the Newsroom to a "Cockpit" model where all modules (Ingestion, Board, Desk, Art) are simultaneously visible and interactive.
+**Why**: Treats the Newsroom as a professional workspace. Allows the user to intervene at any point in the pipeline, adjust settings, and see the entire operational chain at a glance.
+
+## 011 - Environment Variable Standardization
+**Problem**: The application crashed in the browser with "An API Key must be set" because different environments (local, platform, headless) inject the Gemini API key under different names (`GEMINI_API_KEY`, `API_KEY`, `VITE_GEMINI_API_KEY`).
+**Decision**: Implemented a robust fallback chain in `vite.config.ts` `define` block: `process.env.GEMINI_API_KEY || process.env.API_KEY || env.GEMINI_API_KEY || env.API_KEY || env.VITE_GEMINI_API_KEY`.
+**Why**: Ensures the API key is always available to the client-side `@google/genai` SDK regardless of how the container or platform provisions it.
+
+## 010 - The Simple Newsroom MVP
+**Problem**: The legacy `TheNewsroom` component became too complex with multi-agent pitching, debates, and layout binding all happening simultaneously, making it hard to debug the core generation pipeline.
+**Decision**: Bypassed the complex implementation in favor of `SimpleNewsroom.tsx`.
+**Why**: Establishes a reliable, linear end-to-end pipeline (Topic -> Columnist Draft -> Photographer Image -> Publish) first. We will layer complexity (Editorial Board, RSS scanning) back on top of this stable foundation in Phase 2.
+
 ## 009 - Hybrid Signal Ingestion (The Live Wire)
 **Problem**: Pure LLM-based search is expensive, slow, and can miss "breaking" updates from specific high-trust niches (e.g., specific Substack feeds or TechCrunch).
 **Decision**: Implement a **Hybrid Ingestion Model**.

@@ -1,32 +1,35 @@
 # MODUS: The AI-Native Fashion Magazine
 
 ## Vision
-MODUS is not just a magazine; it is a living, breathing organism powered by a symphony of AI agents. It explores the intersection of high fashion, synthetic biology, and latent space theory. It is "Vogue meets Wired meets The Matrix."
+MODUS is a living, breathing organism powered by a symphony of AI agents. **AI Technology is our absolute foundation.** We track the bleeding edge of models, workflows, and code. Side sectors like fashion, culture, and social issues are "add-ons" or "lenses" through which we view this technological core. It is "Vogue meets Wired meets The Matrix."
 
-## The Newsroom (Ops Layer)
-The heart of MODUS is **The Newsroom**, a collaborative workspace where human editors direct a fleet of AI agents to produce high-culture artifacts.
+## The Newsroom (The Newsroom Floor)
+The heart of MODUS is **The Newsroom Floor**, a comprehensive, simultaneously visible workspace where human editors direct a fleet of AI agents. It is a professional tool designed for dynamic interaction, debate, and critical editing, with the long-term goal of full autonomy. It uses a persistent "Editorial Chain" to track the flow of artifacts.
 
-### The Agents
-The newsroom is staffed by specialized agents, each with a distinct persona, voice, and function:
+### The Departments & Agents
+The newsroom is divided into operational departments, staffed by specialized agents:
 
-1.  **The Scout (Ingestion)**: Scans the digital horizon (RSS, APIs, Trends) for "Signals"—weak indicators of future trends.
-2.  **The Editorial Board (Ideation)**:
-    *   **The Critic**: Skeptical, academic, obsessed with history and theory. Looks for the "ghost in the machine."
-    *   **The Runway**: Pure aesthete. Obsessed with visuals, texture, and surface.
-    *   **The Atelier**: The engineer. Obsessed with code, structure, and how things work.
-3.  **The Editor-in-Chief (Decision)**: Reviews pitches from the Board, selects the best angle, and issues a "Commission."
-4.  **The Columnist (Writing)**: Writes the actual prose based on the Commission. Can adopt different voices (Gonzo, Academic, Minimalist).
-5.  **The Art Director (Visuals)**: Conceptualizes the visual identity of the story and generates prompts.
-6.  **The Photographer (Generation)**: Uses the prompts to generate high-fidelity assets (Images, Video).
-7.  **The Production Manager (Layout)**: Assembles the text and visuals into a layout (Cover, Feature, Column).
+1.  **THE WIRE (Ingestion & Scouting)**: 
+    *   **The Ticker (Passive)**: Zero-token aggregation of real-world sources (GitHub, RSS). Managed via a user-installable Source Management Panel.
+    *   **Auto-Scout (Active)**: AI-driven exploration of broad tech trends.
+    *   **Targeted Search (Specific)**: Deep-dive research into a user-provided query.
+    *   *Agent*: **The Scout** (Interfacing with global data streams).
+2.  **THE BULLPEN (Ideation, Debate & Drafting)**:
+    *   Agents with polarizing personas debate the signal, applying the "Cultural/Fashion Lens" to the "Tech Foundation".
+    *   *Agent*: **The Columnist** (Lead Writer - synthesizes vectors and data).
+    *   *Agent*: **The Editor** (Critical Review - forces rewrites and checks structural integrity).
+3.  **THE DARKROOM (Art & Production)**:
+    *   Generates high-fidelity visual assets based on the editorial context.
+    *   *Agent*: **The Photographer** (Visual Director - develops latent space artifacts).
+4.  **THE PRESS (Publishing)**:
+    *   Final review and assembly of the artifact into the dynamic grid.
 
-### The Workflow (The Pipeline)
-1.  **Signal Detection**: The Scout identifies a topic (e.g., "Digital Decay").
-2.  **The Pitch**: The Editorial Board generates 3 distinct angles.
-3.  **The Commission**: The User (acting as EIC) selects an angle.
-4.  **Drafting**: The Columnist writes the copy.
-5.  **Visualizing**: The Art Director & Photographer create the imagery.
-6.  **Publishing**: The artifact is pushed to the live magazine.
+### The Workflow (The Editorial Chain)
+1.  **The Wire**: The Scout identifies a hard tech signal (e.g., "New ComfyUI Workflow").
+2.  **The Bullpen (Debate)**: The Board generates distinct angles (Lenses).
+3.  **The Bullpen (Drafting)**: The Columnist writes the copy; The Editor reviews it.
+4.  **The Darkroom**: The Photographer creates the imagery.
+5.  **The Press**: The artifact is reviewed and pushed to the live magazine.
 
 ## Architecture
 -   **Frontend**: React + Tailwind (The Interface).

@@ -17,9 +17,11 @@ declare const require: any;
 declare const module: any;
 
 // Polyfill for storage if needed
-if (!process.env.VITE_GEMINI_API_KEY && process.env.API_KEY) {
-    // Map generic API_KEY to Vite expected format if running in pure node
-    (process.env as any).VITE_GEMINI_API_KEY = process.env.API_KEY;
+if (!process.env.VITE_GEMINI_API_KEY) {
+    const key = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    if (key) {
+        (process.env as any).VITE_GEMINI_API_KEY = key;
+    }
 }
 
 const HEADLESS_CONFIG: RunConfig = {

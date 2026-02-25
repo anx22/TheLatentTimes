@@ -16,7 +16,7 @@ console.log("Environment:", envMode);
 const checkEnv = (key: string, val: any) => 
   console.log(`${key}:`, val ? `%cCONNECTED (${val.toString().slice(0,5)}...)` : "%cMISSING", val ? "color:green" : "color:red");
 
-checkEnv("Gemini API", process.env.API_KEY);
+checkEnv("Gemini API", process.env.GEMINI_API_KEY || process.env.API_KEY);
 checkEnv("Supabase URL", process.env.VITE_SUPABASE_URL);
 checkEnv("Supabase Key", process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY);
 // --------------------------
