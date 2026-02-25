@@ -16,8 +16,32 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // BYPASS AUTH FOR DEMO
-  const handleAuthSubmit = async (e: React.FormEvent) => { e.preventDefault(); await login(email, password); setShowLoginModal(false); };
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => { 
+      e.preventDefault(); 
+      setAuthError(null);
+      const { error } = await login(email, password); 
+      if (error) {
+          setAuthError(error.message);
+      } else {
+          setShowLoginModal(false); 
+      }
+  };
+
+  const handleRegister = async () => {
+      setAuthError(null);
+      if (!email || !password) {
+          setAuthError("Email and password required for registration.");
+          return;
+      }
+      const { error } = await signUp(email, password);
+      if (error) {
+          setAuthError(error.message);
+      } else {
+          setAuthError("Registration successful. Please check your email or try logging in.");
+      }
+  };
 
   return (
     <>
@@ -71,9 +95,11 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
                       <input type="email" placeholder="AGENT ID" className="w-full border-b border-black py-2 outline-none text-sm font-mono" value={email} onChange={e => setEmail(e.target.value)} />
                       <input type="password" placeholder="KEY" className="w-full border-b border-black py-2 outline-none text-sm font-mono" value={password} onChange={e => setPassword(e.target.value)} />
+                      {authError && <div className="text-red-500 text-xs font-bold uppercase">{authError}</div>}
                       <div className="flex gap-4 pt-4">
                           <button type="submit" className="flex-1 bg-black text-white py-3 text-xs font-bold uppercase">Enter</button>
-                          <button type="button" onClick={() => setShowLoginModal(false)} className="flex-1 border border-black py-3 text-xs font-bold uppercase">Cancel</button>
+                          <button type="button" onClick={handleRegister} className="flex-1 border border-black py-3 text-xs font-bold uppercase hover:bg-zinc-100">Register</button>
+                          <button type="button" onClick={() => setShowLoginModal(false)} className="flex-1 border border-black py-3 text-xs font-bold uppercase hover:bg-zinc-100">Cancel</button>
                       </div>
                   </form>
               </div>
