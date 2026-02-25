@@ -31,7 +31,7 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
   const [visualStyle, setVisualStyle] = useState('Editorial Photography');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
 
-  const addLog = (agent: string, message: string, level: SystemLog['level'] = 'info') => {
+  const addLog = useCallback((agent: string, message: string, level: SystemLog['level'] = 'info') => {
     setLogs(prev => [...prev, {
       id: Math.random().toString(36).substring(7),
       timestamp: new Date(),
@@ -39,9 +39,10 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
       message,
       level
     }]);
-  };
+  }, []);
 
   const fetchTickerData = useCallback(async () => {
+    if (isFetchingTicker) return;
     setIsFetchingTicker(true);
     addLog('THE WIRE', 'Polling active sources for new signals...', 'info');
     
@@ -54,7 +55,7 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     } finally {
       setIsFetchingTicker(false);
     }
-  }, [sources, noiseFilter]);
+  }, [sources, noiseFilter, isFetchingTicker, addLog]);
 
   const scoutTopic = async () => {
     setError(null);

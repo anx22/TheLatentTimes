@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSimpleNewsroom } from '../../hooks/useSimpleNewsroom';
 import { MagazineItem } from '../../types';
-import { X, Sparkles, ArrowRight, Check, Loader2, Search, Activity, Settings, Database, PenTool, Image as ImageIcon, Terminal, ChevronUp, ChevronDown, SlidersHorizontal, Radio, Type, Camera, RefreshCw } from 'lucide-react';
+import { X, Sparkles, ArrowRight, Check, Loader2, Search, Activity, PenTool, Image as ImageIcon, Terminal, ChevronUp, ChevronDown, Radio, Type, Camera, RefreshCw } from 'lucide-react';
 
 interface NewsroomFloorProps {
   onPublish: (item: MagazineItem) => void;
@@ -73,15 +73,21 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onPublish, onClose
 
   // Auto-switch tabs based on pipeline step
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (step === 'WRITING') setActiveDept('THE BULLPEN');
-    if (step === 'VISUALIZING') setActiveDept('THE DARKROOM');
-    if (step === 'REVIEW') setActiveDept('THE PRESS');
-    if (step === 'IDLE' && draft) setActiveDept('THE PRESS'); // If finished but not published
-  }, [step]);
+    else if (step === 'VISUALIZING') setActiveDept('THE DARKROOM');
+    else if (step === 'REVIEW') setActiveDept('THE PRESS');
+    else if (step === 'IDLE' && draft) setActiveDept('THE PRESS'); 
+  }, [step, draft]);
+
+  const initialFetchDone = useRef(false);
 
   // Fetch ticker data initially
   useEffect(() => {
-    fetchTickerData();
+    if (!initialFetchDone.current) {
+      fetchTickerData();
+      initialFetchDone.current = true;
+    }
   }, [fetchTickerData]);
 
   // Derive department status

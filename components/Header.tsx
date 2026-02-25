@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { login, signUp, signOut, IS_CONFIGURED } from '../services/storage';
+import { login, signUp, resetPassword, IS_CONFIGURED } from '../services/storage';
 import { IssueMeta } from '../types';
 
 interface HeaderProps {
@@ -40,6 +40,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
           setAuthError(error.message);
       } else {
           setAuthError("Registration successful. Please check your email or try logging in.");
+      }
+  };
+
+  const handleForgotPassword = async () => {
+      if (!email) {
+          setAuthError("Please enter your email first.");
+          return;
+      }
+      setAuthError(null);
+      const { error } = await resetPassword(email);
+      if (error) {
+          setAuthError(error.message);
+      } else {
+          setAuthError("Password reset link sent to your email.");
       }
   };
 
@@ -95,6 +109,9 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
                       <input type="email" placeholder="AGENT ID" className="w-full border-b border-black py-2 outline-none text-sm font-mono" value={email} onChange={e => setEmail(e.target.value)} />
                       <input type="password" placeholder="KEY" className="w-full border-b border-black py-2 outline-none text-sm font-mono" value={password} onChange={e => setPassword(e.target.value)} />
+                      <div className="flex justify-end">
+                          <button type="button" onClick={handleForgotPassword} className="text-[10px] text-zinc-500 hover:text-black uppercase tracking-tighter">Forgot Password?</button>
+                      </div>
                       {authError && <div className="text-red-500 text-xs font-bold uppercase">{authError}</div>}
                       <div className="flex gap-4 pt-4">
                           <button type="submit" className="flex-1 bg-black text-white py-3 text-xs font-bold uppercase">Enter</button>

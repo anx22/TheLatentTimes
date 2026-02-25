@@ -136,6 +136,14 @@ export const signUp = async (email: string, password: string) => {
     });
 };
 
+export const resetPassword = async (email: string) => {
+    if (!IS_CONFIGURED) return { error: { message: "DB_NOT_CONFIGURED" } };
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    return await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo
+    });
+};
+
 export const signOut = async () => {
     if (!IS_CONFIGURED) {
         console.log("Sign Out ignored in Direct Access Mode");
