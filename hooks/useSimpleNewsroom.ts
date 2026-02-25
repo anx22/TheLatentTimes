@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, GeneratedArticle } from '../services/newsroom-agents';
-import { MagazineItem } from '../types';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, GeneratedArticle, TickerItem } from '../services/newsroom-agents';
+import { MagazineItem, AspectRatio } from '../types';
 
 export type NewsroomStep = 'IDLE' | 'SCOUTING' | 'WRITING' | 'VISUALIZING' | 'REVIEW' | 'PUBLISHED';
 
@@ -10,14 +10,6 @@ export interface SystemLog {
   agent: string;
   message: string;
   level: 'info' | 'action' | 'success' | 'error' | 'warning';
-}
-
-export interface TickerItem {
-  id: string;
-  source: string;
-  text: string;
-  time: string;
-  type: string;
 }
 
 export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
@@ -37,7 +29,7 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
   const [editorialLens, setEditorialLens] = useState('Tech-Optimist (Default)');
   const [wordCount, setWordCount] = useState('Standard (600 words)');
   const [visualStyle, setVisualStyle] = useState('Editorial Photography');
-  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
 
   const addLog = (agent: string, message: string, level: SystemLog['level'] = 'info') => {
     setLogs(prev => [...prev, {
@@ -54,66 +46,9 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     addLog('THE WIRE', 'Polling active sources for new signals...', 'info');
     
     try {
-      const items: TickerItem[] = [];
-      
-      // 1. GitHub Trending (Simulated via Search API to avoid auth issues, looking for recent AI repos)
-      if (sources.github) {
-        try {
-          const date = new Date();
-          date.setDate(date.getDate() - 7);
-          const dateString = date.toISOString().split('T')[0];
-          const res = await fetch(`https://api.github.com/search/repositories?q=topic:ai+created:>${dateString}&sort=stars&order=desc&per_page=3`);
-          if (res.ok) {
-            const data = await res.json();
-            data.items.forEach((repo: any) => {
-              items.push({
-                id: `gh-${repo.id}`,
-                source: 'GitHub',
-                text: `${repo.name}: ${repo.description?.substring(0, 60) || 'New AI Repository'}`,
-                time: 'Just now',
-                type: 'code'
-              });
-            });
-          }
-        } catch (e) {
-          console.warn("GitHub fetch failed", e);
-        }
-      }
-
-      // 2. Arxiv (Simulated fetch for CS.AI)
-      if (sources.arxiv) {
-        items.push({
-          id: `ar-${Date.now()}`,
-          source: 'Arxiv (CS.AI)',
-          text: 'Emergent Reasoning Capabilities in Small Language Models',
-          time: '1h ago',
-          type: 'paper'
-        });
-        items.push({
-          id: `ar-${Date.now()+1}`,
-          source: 'Arxiv (CS.AI)',
-          text: 'Optimizing Latent Space for High-Fidelity Image Generation',
-          time: '3h ago',
-          type: 'paper'
-        });
-      }
-
-      // 3. TechCrunch (Simulated)
-      if (sources.techcrunch) {
-        items.push({
-          id: `tc-${Date.now()}`,
-          source: 'TechCrunch',
-          text: 'OpenAI announces new reasoning model architecture',
-          time: '2h ago',
-          type: 'news'
-        });
-      }
-
-      // Apply Noise Filter (simulate filtering by dropping items if filter is strict)
-      const filteredItems = items.slice(0, Math.max(1, Math.floor(items.length * (100 - noiseFilter) / 100) + 1));
-
-      setTickerItems(filteredItems);
-      addLog('THE WIRE', `Intercepted ${filteredItems.length} signals from active sources.`, 'success');
+      const items = await agentTicker(sources, noiseFilter);
+      setTickerItems(items);
+      addLog('THE WIRE', `Intercepted ${items.length} signals from active sources.`, 'success');
     } catch (e: any) {
       addLog('THE WIRE', `Failed to poll sources: ${e.message}`, 'error');
     } finally {
@@ -126,7 +61,7 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     setStep('SCOUTING');
     addLog('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
     try {
-      const newTopic = await agentScout();
+      const newTopic = await agentScout(sources, noiseFilter);
       setTopic(newTopic);
       setContext('Auto-scouted global tech trend.');
       addLog('THE SCOUT', `Signal intercepted: "${newTopic}"`, 'success');

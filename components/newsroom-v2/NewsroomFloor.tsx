@@ -14,22 +14,27 @@ type Department = 'THE WIRE' | 'THE BULLPEN' | 'THE DARKROOM' | 'THE PRESS';
 const AgentCard = ({ name, role, status, action, icon: Icon }: { name: string, role: string, status: 'idle' | 'working' | 'done', action: string, icon: any }) => {
   const isWorking = status === 'working';
   return (
-    <div className={`p-4 rounded-lg border transition-all duration-500 ${isWorking ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.15)]' : 'border-zinc-800 bg-zinc-900/50 opacity-50'}`}>
-      <div className="flex items-start gap-4">
-        <div className={`p-3 rounded-full ${isWorking ? 'bg-emerald-500 text-black animate-pulse' : 'bg-zinc-800 text-zinc-500'}`}>
-          <Icon className="w-6 h-6" />
+    <div className={`p-4 rounded-lg border transition-all duration-500 relative overflow-hidden ${isWorking ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-zinc-800 bg-zinc-900/50 opacity-50'}`}>
+      {isWorking && (
+        <div className="absolute inset-0 bg-emerald-500/5 animate-pulse" />
+      )}
+      <div className="flex items-start gap-4 relative z-10">
+        <div className={`p-3 rounded-full transition-colors duration-300 ${isWorking ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.6)]' : 'bg-zinc-800 text-zinc-500'}`}>
+          <Icon className={`w-6 h-6 ${isWorking ? 'animate-pulse' : ''}`} />
         </div>
         <div className="flex-1">
           <div className="flex justify-between items-center mb-1">
             <h4 className={`font-bold tracking-widest uppercase ${isWorking ? 'text-emerald-400' : 'text-zinc-400'}`}>{name}</h4>
             <span className="text-[10px] text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">{role}</span>
           </div>
-          <div className="h-6 flex items-center">
+          <div className="min-h-[24px] flex items-center mt-2">
             {isWorking ? (
-              <p className="text-xs text-zinc-300 font-mono flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-                {action}
-              </p>
+              <div className="flex items-start gap-2 bg-black/40 p-2 rounded border border-emerald-500/30 w-full">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping mt-1.5 shrink-0" />
+                <p className="text-xs text-emerald-100 font-mono leading-relaxed">
+                  {action}
+                </p>
+              </div>
             ) : (
               <p className="text-xs text-zinc-600 font-mono italic">Awaiting assignment...</p>
             )}
@@ -91,6 +96,14 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onPublish, onClose
       case 'THE PRESS':
         return step === 'REVIEW' ? { label: 'NEEDS REVIEW', color: 'text-red-400', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
     }
+  };
+
+  const getLatestAgentLog = (agentName: string, defaultAction: string) => {
+    const agentLogs = logs.filter(l => l.agent === agentName.toUpperCase());
+    if (agentLogs.length > 0) {
+      return agentLogs[agentLogs.length - 1].message;
+    }
+    return defaultAction;
   };
 
   return (
@@ -381,7 +394,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onPublish, onClose
                     name="The Scout" 
                     role="Ingestion & Discovery" 
                     status={step === 'SCOUTING' ? 'working' : 'idle'} 
-                    action="Interfacing with global data streams..." 
+                    action={getLatestAgentLog('THE SCOUT', "Interfacing with global data streams...")} 
                     icon={Radio} 
                   />
                 )}
@@ -391,14 +404,14 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onPublish, onClose
                       name="The Columnist" 
                       role="Lead Writer" 
                       status={step === 'WRITING' ? 'working' : 'idle'} 
-                      action="Synthesizing cultural vectors and technical data..." 
+                      action={getLatestAgentLog('THE COLUMNIST', "Synthesizing cultural vectors and technical data...")} 
                       icon={Type} 
                     />
                     <AgentCard 
                       name="The Editor" 
                       role="Critical Review" 
                       status={step === 'WRITING' ? 'working' : 'idle'} 
-                      action="Reviewing structural integrity..." 
+                      action={getLatestAgentLog('THE EDITOR', "Reviewing structural integrity...")} 
                       icon={PenTool} 
                     />
                   </>
@@ -408,7 +421,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onPublish, onClose
                     name="The Photographer" 
                     role="Visual Director" 
                     status={step === 'VISUALIZING' ? 'working' : 'idle'} 
-                    action="Developing latent space artifacts..." 
+                    action={getLatestAgentLog('THE PHOTOGRAPHER', "Developing latent space artifacts...")} 
                     icon={Camera} 
                   />
                 )}
