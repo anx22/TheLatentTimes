@@ -1,22 +1,6 @@
 import { safeGenerateContent, generateImage, cleanAndParseJSON, searchTrend } from './gemini';
 import { Type } from '@google/genai';
-import { AspectRatio } from '../types';
-
-export interface GeneratedArticle {
-  headline: string;
-  deck: string;
-  body: string;
-  tags: string[];
-  suggested_visual_prompt: string;
-}
-
-export interface TickerItem {
-  id: string;
-  source: string;
-  text: string;
-  time: string;
-  type: string;
-}
+import { AspectRatio, GeneratedArticle, TickerItem } from '../types';
 
 export const agentTicker = async (sources: { github: boolean, arxiv: boolean, techcrunch: boolean }, noiseFilter: number): Promise<TickerItem[]> => {
   let query = "latest breaking news in AI, machine learning, and software engineering";
@@ -80,7 +64,7 @@ export const agentTicker = async (sources: { github: boolean, arxiv: boolean, te
   return items.slice(0, keepCount);
 };
 
-export const agentScout = async (sources: { github: boolean, arxiv: boolean, techcrunch: boolean }, noiseFilter: number): Promise<string> => {
+export const agentScout = async (sources: { github: boolean, arxiv: boolean, techcrunch: boolean }, noiseFilter: number): Promise<string[]> => {
   let query = "latest developments in AI models, open-source code repositories, machine learning workflows, and bleeding-edge technology";
   
   const activeSources = [];
@@ -97,7 +81,7 @@ export const agentScout = async (sources: { github: boolean, arxiv: boolean, tec
   const searchResult = await searchTrend(query);
   
   const prompt = `
-    You are THE SCOUT for MODUS. Your job is to find a single, highly specific hard-tech topic for our next article based on current real-world signals.
+    You are THE SCOUT for MODUS. Your job is to find 3 distinct, highly specific hard-tech topics for our next article based on current real-world signals.
     
     CRITICAL RULE: Focus ONLY on technology (AI models, code, workflows, hardware). Ignore fashion, culture, and social issues entirely at this stage. We need the raw technical foundation.
     
@@ -106,23 +90,30 @@ export const agentScout = async (sources: { github: boolean, arxiv: boolean, tec
     Here is the raw data from the live web:
     ${searchResult.text}
     
-    Synthesize this into a SINGLE, punchy topic phrase (max 5-7 words).
-    Examples: "The Rise of Local LLMs", "ComfyUI Node Architectures", "Synthetic Data Generation".
+    Synthesize this into 3 punchy topic phrases (max 5-7 words each).
     
-    Output ONLY the topic phrase, nothing else.
+    Output as a simple JSON array of strings:
+    ["Topic 1", "Topic 2", "Topic 3"]
   `;
 
   const response = await safeGenerateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      }
+    }
   });
 
-  return response.text?.trim() || "Local LLM Orchestration";
+  return cleanAndParseJSON(response.text) || ["Local LLM Orchestration", "Agentic Workflow Patterns", "Synthetic Data Pipelines"];
 };
 
-export const agentTargetedSearch = async (topic: string): Promise<string> => {
+export const agentTargetedSearch = async (topic: string): Promise<{ context: string; grounded: boolean; urls: { title: string; url: string }[] }> => {
   // Deep dive into a specific topic
-  const searchResult = await searchTrend(`latest technical details and developments regarding: ${topic}`);
+  const searchResult = await searchTrend(`latest technical details, documentation, and real-world developments regarding: ${topic}`);
   
   const prompt = `
     You are THE SCOUT. The Editor has requested a deep-dive on the following topic: "${topic}".
@@ -132,7 +123,9 @@ export const agentTargetedSearch = async (topic: string): Promise<string> => {
     Raw Data:
     ${searchResult.text}
     
-    Provide a concise, highly technical briefing (max 3 sentences) that will serve as the foundation for the Columnist.
+    If the raw data does NOT contain relevant information about "${topic}" (i.e., it's a fictional or non-existent technical topic), you MUST start your response with "UNGROUNDED:".
+    
+    Otherwise, provide a concise, highly technical briefing (max 3 sentences) that will serve as the foundation for the Columnist.
   `;
 
   const response = await safeGenerateContent({
@@ -140,7 +133,15 @@ export const agentTargetedSearch = async (topic: string): Promise<string> => {
     contents: prompt
   });
 
-  return response.text?.trim() || `Deep dive context for ${topic} acquired.`;
+  const text = response.text?.trim() || "";
+  const isGrounded = !text.startsWith("UNGROUNDED:");
+  const cleanText = text.replace("UNGROUNDED:", "").trim() || `No real-world technical grounding found for "${topic}". Proceeding with speculative synthesis.`;
+
+  return { 
+    context: cleanText, 
+    grounded: isGrounded,
+    urls: searchResult.groundingUrls
+  };
 };
 
 export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string): Promise<GeneratedArticle> => {

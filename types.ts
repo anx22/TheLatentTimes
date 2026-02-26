@@ -1,6 +1,32 @@
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
+// --- NEWSROOM TYPES ---
+export type NewsroomStep = 'IDLE' | 'SCOUTING' | 'WRITING' | 'VISUALIZING' | 'REVIEW' | 'PUBLISHED';
+
+export interface SystemLog {
+  id: string;
+  timestamp: Date;
+  agent: string;
+  message: string;
+  level: 'info' | 'action' | 'success' | 'error' | 'warning';
+}
+
+export interface TickerItem {
+  id: string;
+  text: string;
+  source: string;
+  timestamp: string;
+}
+
+export interface GeneratedArticle {
+  headline: string;
+  deck: string;
+  body: string;
+  tags: string[];
+  suggested_visual_prompt: string;
+}
+
 // --- v3.0 LAYOUT ENGINE TYPES ---
 
 // 1. CONTENT ENTITIES

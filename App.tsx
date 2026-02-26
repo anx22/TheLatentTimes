@@ -6,6 +6,7 @@ import { getSession, loadIssue } from './services/storage';
 import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
+import { NewsroomProvider } from './contexts/NewsroomContext';
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -158,45 +159,46 @@ const App: React.FC = () => {
   const activeSections = issue.sections || TEMPLATE_REGISTRY[activeTemplateKey]?.sections || TEMPLATE_REGISTRY['T1_CoverRail'].sections;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-32">
-       
-       {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
-       <Header 
-          onNavigate={() => {}}
-          onOpenNewsroom={() => setShowNewsroom(true)}
-          onOpenArchive={() => {}} // TODO: Hook up archive logic
-          onShare={handleShare}
-          session={session}
-          meta={issue.meta}
-       />
+    <NewsroomProvider onPublish={handlePublishItem}>
+      <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-32">
+         
+         {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
+         <Header 
+            onNavigate={() => {}}
+            onOpenNewsroom={() => setShowNewsroom(true)}
+            onOpenArchive={() => {}} // TODO: Hook up archive logic
+            onShare={handleShare}
+            session={session}
+            meta={issue.meta}
+         />
 
-       {/* 2. OPS LAYER (Newsroom Overlay) */}
-       {showNewsroom && (
-           <NewsroomFloor 
-               onPublish={handlePublishItem}
-               onClose={() => setShowNewsroom(false)}
-           />
-       )}
+         {/* 2. OPS LAYER (Newsroom Overlay) */}
+         {showNewsroom && (
+             <NewsroomFloor 
+                 onClose={() => setShowNewsroom(false)}
+             />
+         )}
 
-       {/* 3. CONTENT LAYER (Layout Engine) */}
-       <LayoutEngine 
-          sections={activeSections} 
-          data={issue} 
-       />
-       
-       {/* Floating Toggle (Backup access) */}
-       {!showNewsroom && session && (
-           <div className="fixed bottom-6 right-6 z-50">
-               <button 
-                    onClick={() => setShowNewsroom(true)}
-                    className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-2xl hover:scale-110 transition-transform"
-                    title="Open Redaktion"
-               >
-                   Ops
-               </button>
-           </div>
-       )}
-    </div>
+         {/* 3. CONTENT LAYER (Layout Engine) */}
+         <LayoutEngine 
+            sections={activeSections} 
+            data={issue} 
+         />
+         
+         {/* Floating Toggle (Backup access) */}
+         {!showNewsroom && session && (
+             <div className="fixed bottom-6 right-6 z-50">
+                 <button 
+                      onClick={() => setShowNewsroom(true)}
+                      className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-2xl hover:scale-110 transition-transform"
+                      title="Open Redaktion"
+                 >
+                     Ops
+                 </button>
+             </div>
+         )}
+      </div>
+    </NewsroomProvider>
   );
 };
 

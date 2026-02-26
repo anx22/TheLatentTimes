@@ -1,9 +1,14 @@
 
 import React from 'react';
 import { BlockInstance, IssueContent } from '../../types';
+import { useNewsroom } from '../../hooks/useNewsroom';
 
-export const TopicTicker: React.FC<{ config: BlockInstance, content: IssueContent }> = ({ config, content }) => {
-  const items = content.ticker || ["KLING 3 CINEMATIC RELEASED", "AGENTIC SCAFFOLDS V2", "SOCIAL HOOKS TRENDING"];
+export const TopicTicker: React.FC<{ config: BlockInstance, content: IssueContent }> = ({ config }) => {
+  const { tickerItems } = useNewsroom();
+  const items = tickerItems.length > 0 
+    ? tickerItems.map(item => `${item.source}: ${item.text}`)
+    : ["MODUS V3.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"];
+    
   const isDark = config.variant === 'M';
 
   return (

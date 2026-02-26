@@ -1,26 +1,56 @@
-import { useState, useCallback } from 'react';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, GeneratedArticle, TickerItem } from '../services/newsroom-agents';
-import { MagazineItem, AspectRatio } from '../types';
 
-export type NewsroomStep = 'IDLE' | 'SCOUTING' | 'WRITING' | 'VISUALIZING' | 'REVIEW' | 'PUBLISHED';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker } from '../services/newsroom-agents';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem } from '../types';
 
-export interface SystemLog {
-  id: string;
-  timestamp: Date;
-  agent: string;
-  message: string;
-  level: 'info' | 'action' | 'success' | 'error' | 'warning';
+interface NewsroomContextType {
+  step: NewsroomStep;
+  topic: string;
+  setTopic: (t: string) => void;
+  draft: GeneratedArticle | null;
+  image: string | null;
+  error: string | null;
+  logs: SystemLog[];
+  tickerItems: TickerItem[];
+  scoutedTopics: string[];
+  isFetchingTicker: boolean;
+  fetchTickerData: () => Promise<void>;
+  context: string;
+  setContext: (c: string) => void;
+  isResearching: boolean;
+  researchTopic: (t: string) => Promise<void>;
+  scoutTopic: () => Promise<void>;
+  runPipeline: () => Promise<void>;
+  publish: () => void;
+  reset: () => void;
+  // Parameters
+  sources: { github: boolean; arxiv: boolean; techcrunch: boolean };
+  setSources: (s: { github: boolean; arxiv: boolean; techcrunch: boolean }) => void;
+  noiseFilter: number;
+  setNoiseFilter: (n: number) => void;
+  editorialLens: string;
+  setEditorialLens: (l: string) => void;
+  wordCount: string;
+  setWordCount: (w: string) => void;
+  visualStyle: string;
+  setVisualStyle: (s: string) => void;
+  aspectRatio: AspectRatio;
+  setAspectRatio: (r: AspectRatio) => void;
 }
 
-export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
+export const NewsroomContext = createContext<NewsroomContextType | undefined>(undefined);
+
+export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem) => void }> = ({ children, onPublish }) => {
   const [step, setStep] = useState<NewsroomStep>('IDLE');
   const [topic, setTopic] = useState('');
   const [context, setContext] = useState('');
+  const [isResearching, setIsResearching] = useState(false);
   const [draft, setDraft] = useState<GeneratedArticle | null>(null);
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
+  const [scoutedTopics, setScoutedTopics] = useState<string[]>([]);
   const [isFetchingTicker, setIsFetchingTicker] = useState(false);
 
   // Parameters
@@ -57,15 +87,33 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     }
   }, [sources, noiseFilter, isFetchingTicker, addLog]);
 
+  const researchTopic = async (t: string) => {
+    if (!t.trim()) return;
+    setIsResearching(true);
+    addLog('THE SCOUT', `Conducting deep-dive research on: "${t}"...`, 'action');
+    try {
+      const result = await agentTargetedSearch(t);
+      setContext(result.context);
+      if (result.grounded) {
+        addLog('THE SCOUT', 'Deep-dive briefing compiled from real-world signals.', 'success');
+      } else {
+        addLog('THE SCOUT', 'WARNING: No real-world technical grounding found. Proceeding with speculative synthesis.', 'warning');
+      }
+    } catch (e: any) {
+      addLog('THE SCOUT', `Research failed: ${e.message}`, 'error');
+    } finally {
+      setIsResearching(false);
+    }
+  };
+
   const scoutTopic = async () => {
     setError(null);
     setStep('SCOUTING');
     addLog('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
     try {
-      const newTopic = await agentScout(sources, noiseFilter);
-      setTopic(newTopic);
-      setContext('Auto-scouted global tech trend.');
-      addLog('THE SCOUT', `Signal intercepted: "${newTopic}"`, 'success');
+      const topics = await agentScout(sources, noiseFilter);
+      setScoutedTopics(topics);
+      addLog('THE SCOUT', `Signal sweep complete. Found ${topics.length} potential vectors.`, 'success');
       setStep('IDLE');
     } catch (e: any) {
       console.error(e);
@@ -85,21 +133,23 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     let currentContext = context;
 
     try {
-      // 0. Targeted Search (if context is empty, meaning it was manually typed or clicked from ticker without deep dive)
       if (!currentContext) {
-        addLog('THE SCOUT', `Conducting deep-dive research on: "${topic}"...`, 'action');
-        currentContext = await agentTargetedSearch(topic);
+        addLog('THE SCOUT', `No context provided. Forcing emergency deep-dive on: "${topic}"...`, 'warning');
+        const result = await agentTargetedSearch(topic);
+        currentContext = result.context;
         setContext(currentContext);
-        addLog('THE SCOUT', 'Deep-dive briefing compiled.', 'success');
+        if (result.grounded) {
+          addLog('THE SCOUT', 'Deep-dive briefing compiled.', 'success');
+        } else {
+          addLog('THE SCOUT', 'WARNING: Writing on ungrounded/fictional topic.', 'warning');
+        }
       }
 
-      // 1. Write
       addLog('THE COLUMNIST', `Drafting prose (${wordCount}) and synthesizing cultural vectors...`, 'action');
       const article = await agentColumnist(topic, currentContext, editorialLens, wordCount);
       setDraft(article);
       addLog('THE COLUMNIST', 'Draft completed and submitted to The Bullpen.', 'success');
       
-      // 2. Visualize
       setStep('VISUALIZING');
       addLog('THE PHOTOGRAPHER', `Entering darkroom. Style: ${visualStyle}, Ratio: ${aspectRatio}.`, 'action');
       const imgUrl = await agentPhotographer(article.suggested_visual_prompt, visualStyle, aspectRatio);
@@ -137,7 +187,6 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     setStep('PUBLISHED');
     addLog('THE PRESS', `Artifact published to the grid. ID: ${newItem.id}`, 'success');
     
-    // Reset after a delay
     setTimeout(() => {
       setStep('IDLE');
       setTopic('');
@@ -158,27 +207,23 @@ export const useSimpleNewsroom = (onPublish: (item: MagazineItem) => void) => {
     addLog('SYSTEM', 'Manual reset triggered. Cleared all desks.', 'warning');
   };
 
-  return {
-    step,
-    topic,
-    setTopic,
-    draft,
-    image,
-    error,
-    logs,
-    tickerItems,
-    isFetchingTicker,
-    fetchTickerData,
-    scoutTopic,
-    runPipeline,
-    publish,
-    reset,
-    // Parameter states and setters
-    sources, setSources,
-    noiseFilter, setNoiseFilter,
-    editorialLens, setEditorialLens,
-    wordCount, setWordCount,
-    visualStyle, setVisualStyle,
-    aspectRatio, setAspectRatio
-  };
+  const initialFetchDone = useRef(false);
+  useEffect(() => {
+    if (!initialFetchDone.current) {
+      fetchTickerData();
+      initialFetchDone.current = true;
+    }
+  }, [fetchTickerData]);
+
+  return (
+    <NewsroomContext.Provider value={{
+      step, topic, setTopic, context, setContext, isResearching, researchTopic, draft, image, error, logs, tickerItems, scoutedTopics, isFetchingTicker,
+      fetchTickerData, scoutTopic, runPipeline, publish, reset,
+      sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
+      wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio
+    }}>
+      {children}
+    </NewsroomContext.Provider>
+  );
 };
+

@@ -1,6 +1,14 @@
 
 # DECISIONS.md
 
+## 016 - Modular Newsroom Architecture
+**Problem**: `NewsroomFloor.tsx` became a "monster god file" (800+ lines) containing all logic for every department, making it impossible to maintain or scale.
+**Decision**: Refactored the monolithic component into a modular architecture.
+1.  **Departmental Isolation**: Extracted `TheWire`, `TheBullpen`, `TheDarkroom`, and `ThePress` into their own files.
+2.  **Shared Context**: Leveraged `NewsroomContext` and the `useNewsroom` hook to manage global state, eliminating prop drilling.
+3.  **UI Orchestration**: `NewsroomFloor.tsx` now acts as a lightweight orchestrator, managing only high-level layout and navigation.
+**Why**: Improves code readability, allows for independent development of department features, and follows React best practices for component composition.
+
 ## 015 - Newspaper Terminology & Tabbed Editorial Chain
 **Problem**: The "Cockpit" metaphor and 4-column layout felt too generic and cluttered, lacking the specific "soul" of a futuristic newspaper.
 **Decision**: 

@@ -1,15 +1,9 @@
 import React from 'react';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
-import { GeneratedArticle } from '../../services/newsroom-agents';
-import { NewsroomStep } from '../../hooks/useSimpleNewsroom';
+import { useNewsroom } from '../../hooks/useNewsroom';
 
-interface TheDarkroomProps {
-  step: NewsroomStep;
-  image: string | null;
-  draft: GeneratedArticle | null;
-}
-
-export const TheDarkroom: React.FC<TheDarkroomProps> = ({ step, image, draft }) => {
+export const TheDarkroom: React.FC = () => {
+  const { step, image, draft } = useNewsroom();
   return (
     <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-6">
       {step === 'VISUALIZING' ? (

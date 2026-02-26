@@ -4,7 +4,7 @@
 MODUS is a living, breathing organism powered by a symphony of AI agents. **AI Technology is our absolute foundation.** We track the bleeding edge of models, workflows, and code. Side sectors like fashion, culture, and social issues are "add-ons" or "lenses" through which we view this technological core. It is "Vogue meets Wired meets The Matrix."
 
 ## The Newsroom (The Newsroom Floor)
-The heart of MODUS is **The Newsroom Floor**, a comprehensive, simultaneously visible workspace where human editors direct a fleet of AI agents. It is a professional tool designed for dynamic interaction, debate, and critical editing, with the long-term goal of full autonomy. It uses a persistent "Editorial Chain" to track the flow of artifacts.
+The heart of MODUS is **The Newsroom Floor**, a comprehensive, simultaneously visible workspace where human editors direct a fleet of AI agents. It is a professional tool designed for dynamic interaction, debate, and critical editing. The interface is modular, with a central workspace that switches between departments while maintaining a persistent operational context.
 
 ### The Departments & Agents
 The newsroom is divided into operational departments, staffed by specialized agents:

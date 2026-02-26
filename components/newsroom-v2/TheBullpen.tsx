@@ -1,14 +1,9 @@
 import React from 'react';
 import { PenTool } from 'lucide-react';
-import { GeneratedArticle } from '../../services/newsroom-agents';
-import { NewsroomStep } from '../../hooks/useSimpleNewsroom';
+import { useNewsroom } from '../../hooks/useNewsroom';
 
-interface TheBullpenProps {
-  step: NewsroomStep;
-  draft: GeneratedArticle | null;
-}
-
-export const TheBullpen: React.FC<TheBullpenProps> = ({ step, draft }) => {
+export const TheBullpen: React.FC = () => {
+  const { step, draft } = useNewsroom();
   return (
     <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-6">
       {step === 'WRITING' ? (

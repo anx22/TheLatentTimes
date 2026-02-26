@@ -11,13 +11,18 @@
 - [x] **Agent Liveliness**: Added Agent Cards that visually indicate when an agent is working and what they are thinking.
 - [x] **System Log**: Implemented a collapsible debug console for transparency.
 - [x] **Parameter Control UI**: Added a context-sensitive sidebar for adjusting department settings.
-- [x] **Documentation**: Updated `PROJECT.md` and `PLAN.md` to reflect the new "Newspaper" terminology.
+- [x] **The Ticker (Real Data)**: Replaced mock data with real zero-token API fetching (GitHub, Arxiv, TechCrunch).
+- [x] **Parameter Binding**: Connected "Active Sources" and "Noise Filter" UI controls to the actual fetching logic.
+- [x] **Scout Prompt Refinement**: Updated `agentScout` to be strictly "Tech-First" and return multiple signal vectors.
+- [x] **Targeted Search Logic**: Implemented a deep-dive research step with real-world grounding verification.
+- [x] **Modular Architecture**: Refactored the monolithic `NewsroomFloor.tsx` into specialized sub-components (`TheWire`, `TheBullpen`, etc.).
+- [x] **Documentation**: Updated `PROJECT.md`, `DECISIONS.md`, and `NOW.md` to reflect the current state.
 
-## Next Steps (The Wire - Logic Phase)
-- [ ] **The Ticker (Real Data)**: Replace `MOCK_TICKER` with real zero-token API fetching (e.g., GitHub trending, RSS feeds).
-- [ ] **Parameter Binding**: Connect the "Active Sources" and "Noise Filter" UI controls to the actual fetching logic.
-- [ ] **Scout Prompt Refinement**: Update `agentScout` in `newsroom-agents.ts` to be strictly "Tech-First" (focusing on AI, models, code) before applying cultural lenses.
-- [ ] **Targeted Search Logic**: Implement a deep-dive research step for specific queries before sending them to The Bullpen.
+## Next Steps (The Bullpen - Editorial Depth)
+- [ ] **Editorial Board**: Implement multiple agent personas (The Critic, The Optimist) to debate the signal before drafting.
+- [ ] **Draft Iteration**: Allow the user to request rewrites or adjustments to the draft in The Bullpen.
+- [ ] **Image Variation**: Implement the ability to generate alternative images in The Darkroom.
+- [ ] **Layout Integration**: Re-enable explicit slot binding for the new artifacts in the Layout Engine.
 
 ## Known Issues
 1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds; UI needs to maintain engagement during this wait.
