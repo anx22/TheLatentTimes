@@ -2,7 +2,14 @@
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
 // --- NEWSROOM TYPES ---
-export type NewsroomStep = 'IDLE' | 'SCOUTING' | 'WRITING' | 'VISUALIZING' | 'REVIEW' | 'PUBLISHED';
+export type NewsroomStep = 'IDLE' | 'SCOUTING' | 'DEBATING' | 'WRITING' | 'VISUALIZING' | 'REVIEW' | 'PUBLISHED';
+
+export interface EditorialAngle {
+  id: string;
+  persona: string;
+  headline: string;
+  angle: string;
+}
 
 export interface SystemLog {
   id: string;
@@ -19,10 +26,18 @@ export interface TickerItem {
   timestamp: string;
 }
 
+export interface DraftBlock {
+  id: string;
+  type: 'p' | 'h2' | 'h3' | 'quote';
+  content: string;
+  status?: 'clean' | 'flagged';
+}
+
 export interface GeneratedArticle {
   headline: string;
   deck: string;
-  body: string;
+  body: string; // Legacy support
+  blocks: DraftBlock[]; // New structured format
   tags: string[];
   suggested_visual_prompt: string;
 }

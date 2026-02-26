@@ -1,6 +1,14 @@
 
 # DECISIONS.md
 
+## 017 - Shift to Granular Collaboration (Structured Drafts)
+**Problem**: The "Re-Draft" button was a blunt instrument. If a user liked 90% of a draft but hated one paragraph, they had to regenerate the entire text, risking the loss of the good parts. The system was a linear "Generator" rather than a "Collaborator".
+**Decision**: 
+1.  **Structured Drafts**: Refactored the `GeneratedArticle` body from a single `string` to an array of `DraftBlock` objects (`{ id, type, content, status }`).
+2.  **KI-Linter (The Editor)**: Introduced an agent that analyzes individual blocks and attaches annotations (Tone Mismatch, Clarity, Fact Check).
+3.  **Micro-Actions**: Allowed users to trigger block-level rewrites or expansions without affecting the rest of the document.
+**Why**: This moves the Newsroom from a simple prompt-wrapper to a professional editorial tool. It gives the user granular control, builds trust through transparent AI critiques, and aligns with the "Director's Overview" philosophy.
+
 ## 016 - Modular Newsroom Architecture
 **Problem**: `NewsroomFloor.tsx` became a "monster god file" (800+ lines) containing all logic for every department, making it impossible to maintain or scale.
 **Decision**: Refactored the monolithic component into a modular architecture.

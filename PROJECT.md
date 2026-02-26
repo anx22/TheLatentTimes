@@ -16,8 +16,9 @@ The newsroom is divided into operational departments, staffed by specialized age
     *   *Agent*: **The Scout** (Interfacing with global data streams).
 2.  **THE BULLPEN (Ideation, Debate & Drafting)**:
     *   Agents with polarizing personas debate the signal, applying the "Cultural/Fashion Lens" to the "Tech Foundation".
+    *   **Granular Collaboration**: Drafts are structured entities (blocks/paragraphs), allowing for micro-actions (Rewrite, Expand) rather than full-document regeneration.
     *   *Agent*: **The Columnist** (Lead Writer - synthesizes vectors and data).
-    *   *Agent*: **The Editor** (Critical Review - forces rewrites and checks structural integrity).
+    *   *Agent*: **The Editor** (KI-Linter - analyzes text blocks for tone, clarity, and facts, providing actionable annotations).
 3.  **THE DARKROOM (Art & Production)**:
     *   Generates high-fidelity visual assets based on the editorial context.
     *   *Agent*: **The Photographer** (Visual Director - develops latent space artifacts).
@@ -27,17 +28,18 @@ The newsroom is divided into operational departments, staffed by specialized age
 ### The Workflow (The Editorial Chain)
 1.  **The Wire**: The Scout identifies a hard tech signal (e.g., "New ComfyUI Workflow").
 2.  **The Bullpen (Debate)**: The Board generates distinct angles (Lenses).
-3.  **The Bullpen (Drafting)**: The Columnist writes the copy; The Editor reviews it.
-4.  **The Darkroom**: The Photographer creates the imagery.
-5.  **The Press**: The artifact is reviewed and pushed to the live magazine.
+3.  **The Bullpen (Drafting)**: The Columnist writes the copy as structured blocks.
+4.  **The Bullpen (Editing)**: The Editor (KI-Linter) flags blocks; the user triggers micro-actions to refine the text.
+5.  **The Darkroom**: The Photographer creates the imagery.
+6.  **The Press**: The artifact is reviewed and pushed to the live magazine.
 
 ## Architecture
 -   **Frontend**: React + Tailwind (The Interface).
 -   **Brain**: Google Gemini (The Intelligence).
 -   **State**: LocalStorage (MVP) -> Supabase (Production).
--   **Orchestration**: Client-side agent chaining (MVP) -> Server-side queues (Production).
+-   **Orchestration**: Event-driven, entity-based state management (Drafts as block arrays) replacing linear pipelines.
 
 ## Design Philosophy
 -   **Aesthetic**: Brutalist, High-Contrast, Swiss Style, Terminal-Chic.
--   **Interaction**: Fast, Keyboard-centric, "God Mode."
+-   **Interaction**: Fast, Keyboard-centric, "God Mode", Granular Control.
 -   **Tone**: Intellectual, Accelerationist, Haughty but Insightful.

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
 import { AgentCard } from './AgentCard';
-import { Radio, Type, PenTool, Camera } from 'lucide-react';
+import { Radio, Type, PenTool, Camera, Users } from 'lucide-react';
 
 interface RightPanelProps {
   activeDept: string;
@@ -56,6 +56,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({ activeDept }) => {
             )}
             {activeDept === 'THE BULLPEN' && (
               <>
+                <AgentCard 
+                  name="The Board" 
+                  role="Editorial Debate" 
+                  status={step === 'DEBATING' ? 'working' : 'idle'} 
+                  action={getLatestAgentLog('THE BOARD', "Generating distinct editorial angles...")} 
+                  icon={Users} 
+                />
                 <AgentCard 
                   name="The Columnist" 
                   role="Lead Writer" 

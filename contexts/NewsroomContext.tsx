@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker } from '../services/newsroom-agents';
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem } from '../types';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate } from '../services/newsroom-agents';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle } from '../types';
 
 interface NewsroomContextType {
   step: NewsroomStep;
@@ -13,6 +13,7 @@ interface NewsroomContextType {
   logs: SystemLog[];
   tickerItems: TickerItem[];
   scoutedTopics: string[];
+  angles: EditorialAngle[];
   isFetchingTicker: boolean;
   fetchTickerData: () => Promise<void>;
   context: string;
@@ -20,7 +21,10 @@ interface NewsroomContextType {
   isResearching: boolean;
   researchTopic: (t: string) => Promise<void>;
   scoutTopic: () => Promise<void>;
-  runPipeline: () => Promise<void>;
+  runDebate: () => Promise<void>;
+  runPipeline: (angle?: EditorialAngle) => Promise<void>;
+  reDraft: () => Promise<void>;
+  reShoot: () => Promise<void>;
   publish: () => void;
   reset: () => void;
   // Parameters
@@ -51,6 +55,7 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [tickerItems, setTickerItems] = useState<TickerItem[]>([]);
   const [scoutedTopics, setScoutedTopics] = useState<string[]>([]);
+  const [angles, setAngles] = useState<EditorialAngle[]>([]);
   const [isFetchingTicker, setIsFetchingTicker] = useState(false);
 
   // Parameters
@@ -123,14 +128,56 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
     }
   };
 
-  const runPipeline = async () => {
+  const runDebate = async () => {
+    if (!topic.trim()) return;
+    
+    setError(null);
+    setStep('DEBATING');
+    addLog('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info');
+    
+    let currentContext = context;
+
+    try {
+      if (!currentContext) {
+        addLog('THE SCOUT', `No context provided. Forcing emergency deep-dive on: "${topic}"...`, 'warning');
+        const result = await agentTargetedSearch(topic);
+        currentContext = result.context;
+        setContext(currentContext);
+        if (result.grounded) {
+          addLog('THE SCOUT', 'Deep-dive briefing compiled.', 'success');
+        } else {
+          addLog('THE SCOUT', 'WARNING: Debating ungrounded/fictional topic.', 'warning');
+        }
+      }
+
+      addLog('THE BOARD', 'Generating distinct editorial angles...', 'action');
+      const generatedAngles = await agentDebate(topic, currentContext);
+      setAngles(generatedAngles);
+      addLog('THE BOARD', 'Debate concluded. Angles presented for selection.', 'success');
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Debate failure');
+      addLog('SYSTEM', `Debate failure: ${e.message}`, 'error');
+      setStep('IDLE');
+    }
+  };
+
+  const runPipeline = async (angle?: EditorialAngle) => {
     if (!topic.trim()) return;
     
     setError(null);
     setStep('WRITING');
-    addLog('THE EDITOR', `Commissioned piece on: "${topic}" with lens: "${editorialLens}"`, 'info');
     
     let currentContext = context;
+    let currentLens = editorialLens;
+    
+    if (angle) {
+      currentLens = `${angle.persona}: ${angle.angle}`;
+      setEditorialLens(currentLens);
+      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with selected angle: "${angle.headline}"`, 'info');
+    } else {
+      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with lens: "${editorialLens}"`, 'info');
+    }
 
     try {
       if (!currentContext) {
@@ -146,7 +193,7 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
       }
 
       addLog('THE COLUMNIST', `Drafting prose (${wordCount}) and synthesizing cultural vectors...`, 'action');
-      const article = await agentColumnist(topic, currentContext, editorialLens, wordCount);
+      const article = await agentColumnist(topic, currentContext, currentLens, wordCount);
       setDraft(article);
       addLog('THE COLUMNIST', 'Draft completed and submitted to The Bullpen.', 'success');
       
@@ -162,6 +209,58 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
       console.error(e);
       setError(e.message || 'Agent failure');
       addLog('SYSTEM', `Pipeline failure: ${e.message}`, 'error');
+      setStep('IDLE');
+    }
+  };
+
+  const reDraft = async () => {
+    if (!topic.trim() || !context.trim()) return;
+    
+    setError(null);
+    setStep('WRITING');
+    addLog('THE EDITOR', `Re-commissioned piece on: "${topic}" with NEW lens: "${editorialLens}"`, 'info');
+    
+    try {
+      addLog('THE COLUMNIST', `Re-drafting prose (${wordCount})...`, 'action');
+      const article = await agentColumnist(topic, context, editorialLens, wordCount);
+      setDraft(article);
+      addLog('THE COLUMNIST', 'Re-draft completed and submitted to The Bullpen.', 'success');
+      
+      // If we don't have an image yet, we should probably generate one to complete the pipeline
+      if (!image) {
+        setStep('VISUALIZING');
+        addLog('THE PHOTOGRAPHER', `Entering darkroom. Style: ${visualStyle}, Ratio: ${aspectRatio}.`, 'action');
+        const imgUrl = await agentPhotographer(article.suggested_visual_prompt, visualStyle, aspectRatio);
+        setImage(imgUrl);
+        addLog('THE PHOTOGRAPHER', 'Visual assets developed and attached.', 'success');
+      }
+      
+      setStep('REVIEW');
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Re-draft failure');
+      addLog('SYSTEM', `Re-draft failure: ${e.message}`, 'error');
+      setStep('IDLE');
+    }
+  };
+
+  const reShoot = async () => {
+    if (!draft) return;
+    
+    setError(null);
+    setStep('VISUALIZING');
+    addLog('THE PHOTOGRAPHER', `Re-entering darkroom with NEW Style: ${visualStyle}, Ratio: ${aspectRatio}.`, 'action');
+    
+    try {
+      const imgUrl = await agentPhotographer(draft.suggested_visual_prompt, visualStyle, aspectRatio);
+      setImage(imgUrl);
+      addLog('THE PHOTOGRAPHER', 'New visual assets developed and attached.', 'success');
+      
+      setStep('REVIEW');
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Re-shoot failure');
+      addLog('SYSTEM', `Re-shoot failure: ${e.message}`, 'error');
       setStep('IDLE');
     }
   };
@@ -203,6 +302,7 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
     setContext('');
     setDraft(null);
     setImage(null);
+    setAngles([]);
     setError(null);
     addLog('SYSTEM', 'Manual reset triggered. Cleared all desks.', 'warning');
   };
@@ -217,8 +317,8 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
 
   return (
     <NewsroomContext.Provider value={{
-      step, topic, setTopic, context, setContext, isResearching, researchTopic, draft, image, error, logs, tickerItems, scoutedTopics, isFetchingTicker,
-      fetchTickerData, scoutTopic, runPipeline, publish, reset,
+      step, topic, setTopic, context, setContext, isResearching, researchTopic, draft, image, error, logs, tickerItems, scoutedTopics, angles, isFetchingTicker,
+      fetchTickerData, scoutTopic, runDebate, runPipeline, reDraft, reShoot, publish, reset,
       sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
       wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio
     }}>

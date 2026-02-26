@@ -1,9 +1,9 @@
 import React from 'react';
-import { Loader2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon, RefreshCw, Camera } from 'lucide-react';
 import { useNewsroom } from '../../hooks/useNewsroom';
 
 export const TheDarkroom: React.FC = () => {
-  const { step, image, draft } = useNewsroom();
+  const { step, image, draft, reShoot } = useNewsroom();
   return (
     <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-6">
       {step === 'VISUALIZING' ? (
@@ -11,6 +11,7 @@ export const TheDarkroom: React.FC = () => {
           <div className="w-full max-w-2xl aspect-[16/9] bg-zinc-900 border border-zinc-800 rounded flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
+          <p className="text-sm text-zinc-500 font-bold tracking-widest uppercase">Developing visual artifacts...</p>
         </div>
       ) : image ? (
         <div className="flex-1 flex flex-col items-center justify-center space-y-6 animate-fade-in">
@@ -21,6 +22,31 @@ export const TheDarkroom: React.FC = () => {
             <span className="font-bold text-emerald-500 uppercase tracking-widest block mb-2">Developed from Prompt:</span> 
             {draft?.suggested_visual_prompt}
           </div>
+          
+          <div className="mt-8 flex justify-end w-full max-w-2xl border-t border-zinc-800 pt-6">
+            <button 
+              onClick={reShoot}
+              className="flex items-center gap-2 px-6 py-2 bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded transition-colors border border-zinc-800"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="text-xs font-bold tracking-widest">RE-SHOOT WITH NEW PARAMETERS</span>
+            </button>
+          </div>
+        </div>
+      ) : draft ? (
+        <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+          <Camera className="w-12 h-12 text-zinc-700" />
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-bold text-white">Draft Ready for Visualization</h3>
+            <p className="text-sm text-zinc-500">The Columnist has provided a visual prompt. Ready to develop.</p>
+          </div>
+          <button 
+            onClick={reShoot}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-black font-bold rounded hover:bg-emerald-400 transition-colors"
+          >
+            <Camera className="w-4 h-4" />
+            <span>DEVELOP IMAGE</span>
+          </button>
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-50">

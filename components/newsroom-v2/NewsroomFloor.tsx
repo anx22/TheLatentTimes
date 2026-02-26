@@ -25,7 +25,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   // Auto-switch tabs based on pipeline step
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (step === 'WRITING') setActiveDept('THE BULLPEN');
+    if (step === 'DEBATING' || step === 'WRITING') setActiveDept('THE BULLPEN');
     else if (step === 'VISUALIZING') setActiveDept('THE DARKROOM');
     else if (step === 'REVIEW') setActiveDept('THE PRESS');
     else if (step === 'IDLE' && draft) setActiveDept('THE PRESS'); 
@@ -37,6 +37,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
       case 'THE WIRE':
         return step === 'SCOUTING' ? { label: 'SCANNING', color: 'text-purple-400', items: 0 } : { label: 'LISTENING', color: 'text-emerald-500', items: tickerItems.length };
       case 'THE BULLPEN':
+        if (step === 'DEBATING') return { label: 'DEBATING', color: 'text-purple-400', items: 0 };
         return step === 'WRITING' ? { label: 'DRAFTING', color: 'text-amber-400', items: 1 } : { label: draft ? 'DONE' : 'IDLE', color: draft ? 'text-emerald-500' : 'text-zinc-600', items: draft ? 1 : 0 };
       case 'THE DARKROOM':
         return step === 'VISUALIZING' ? { label: 'DEVELOPING', color: 'text-amber-400', items: 1 } : { label: image ? 'DONE' : 'IDLE', color: image ? 'text-emerald-500' : 'text-zinc-600', items: image ? 1 : 0 };

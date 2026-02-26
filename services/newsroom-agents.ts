@@ -144,6 +144,64 @@ export const agentTargetedSearch = async (topic: string): Promise<{ context: str
   };
 };
 
+export const agentDebate = async (topic: string, context: string): Promise<any[]> => {
+  const prompt = `
+    You are the MODUS Editorial Board. You need to debate how to cover the following technical signal.
+    Topic: "${topic}"
+    Context: "${context}"
+
+    Generate 3 distinct editorial angles for this story from 3 different personas:
+    1. The Tech-Optimist (Focuses on progress, capabilities, and utopian potential)
+    2. The Culture-Critic (Focuses on societal impact, risks, and philosophical implications)
+    3. The Fashion-Forward (Focuses on aesthetics, design, and how this integrates into human expression/lifestyle)
+
+    Output JSON only:
+    [
+      {
+        "id": "opt",
+        "persona": "Tech-Optimist",
+        "headline": "Proposed Headline (UPPERCASE)",
+        "angle": "A 2-sentence description of the angle and why it works."
+      },
+      {
+        "id": "crit",
+        "persona": "Culture-Critic",
+        "headline": "Proposed Headline (UPPERCASE)",
+        "angle": "A 2-sentence description of the angle and why it works."
+      },
+      {
+        "id": "fash",
+        "persona": "Fashion-Forward",
+        "headline": "Proposed Headline (UPPERCASE)",
+        "angle": "A 2-sentence description of the angle and why it works."
+      }
+    ]
+  `;
+
+  const response = await safeGenerateContent({
+    model: 'gemini-3-flash-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            persona: { type: Type.STRING },
+            headline: { type: Type.STRING },
+            angle: { type: Type.STRING }
+          },
+          required: ['id', 'persona', 'headline', 'angle']
+        }
+      }
+    }
+  });
+
+  return cleanAndParseJSON(response.text) || [];
+};
+
 export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string): Promise<GeneratedArticle> => {
   let lengthInstruction = "2-3 paragraphs";
   if (wordCountTarget.includes("300")) lengthInstruction = "1-2 short, punchy paragraphs";
@@ -165,7 +223,20 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
     {
       "headline": "A 3-5 word striking title (UPPERCASE)",
       "deck": "A provocative subtitle.",
-      "body": "The main prose. Use markdown for emphasis.",
+      "blocks": [
+        {
+          "id": "b1",
+          "type": "p",
+          "content": "First paragraph text...",
+          "status": "clean"
+        },
+        {
+          "id": "b2",
+          "type": "p",
+          "content": "Second paragraph text...",
+          "status": "clean"
+        }
+      ],
       "tags": ["Tag1", "Tag2"],
       "suggested_visual_prompt": "A detailed description for an AI image generator that captures the mood."
     }
@@ -181,16 +252,33 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
         properties: {
           headline: { type: Type.STRING },
           deck: { type: Type.STRING },
-          body: { type: Type.STRING },
+          blocks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                type: { type: Type.STRING },
+                content: { type: Type.STRING },
+                status: { type: Type.STRING }
+              },
+              required: ['id', 'type', 'content', 'status']
+            }
+          },
           tags: { type: Type.ARRAY, items: { type: Type.STRING } },
           suggested_visual_prompt: { type: Type.STRING }
         },
-        required: ['headline', 'deck', 'body', 'tags', 'suggested_visual_prompt']
+        required: ['headline', 'deck', 'blocks', 'tags', 'suggested_visual_prompt']
       }
     }
   });
 
-  return cleanAndParseJSON(response.text);
+  const parsed = cleanAndParseJSON(response.text);
+  if (parsed) {
+    // Legacy support: concatenate blocks into a single body string
+    parsed.body = parsed.blocks.map((b: any) => b.content).join('\\n\\n');
+  }
+  return parsed;
 };
 
 export const agentPhotographer = async (prompt: string, visualStyle: string, aspectRatio: AspectRatio): Promise<string> => {

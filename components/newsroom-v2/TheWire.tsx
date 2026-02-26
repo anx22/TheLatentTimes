@@ -7,7 +7,7 @@ export const TheWire: React.FC = () => {
   const { 
     topic, setTopic, context, setContext, isResearching, researchTopic, 
     tickerItems, isFetchingTicker, fetchTickerData,
-    scoutTopic, scoutedTopics, step, runPipeline
+    scoutTopic, scoutedTopics, step, runDebate, draft
   } = useNewsroom();
 
   const [ingestionMode, setIngestionMode] = useState<'TICKER' | 'RESEARCH' | 'SPECIFIC'>('TICKER');
@@ -185,11 +185,11 @@ export const TheWire: React.FC = () => {
           <span className="text-sm font-bold text-emerald-400">{topic || 'NONE'}</span>
         </div>
         <button 
-          onClick={runPipeline}
-          disabled={!topic.trim() || step === 'WRITING' || step === 'VISUALIZING'}
+          onClick={runDebate}
+          disabled={!topic.trim() || step === 'DEBATING' || step === 'WRITING' || step === 'VISUALIZING'}
           className="flex items-center gap-2 bg-zinc-100 text-zinc-900 px-6 py-2 rounded font-bold hover:bg-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span>SEND TO BULLPEN</span>
+          <span>{draft ? 'START NEW STORY' : 'SEND TO BULLPEN'}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

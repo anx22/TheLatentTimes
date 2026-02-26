@@ -1,14 +1,14 @@
 
 import React from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
-import { Check } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 
 export const ThePress: React.FC = () => {
-  const { step, draft, image, publish, reset } = useNewsroom();
+  const { step, draft, image, publish, reset, reDraft, reShoot } = useNewsroom();
 
   return (
     <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-6">
-      {step === 'REVIEW' && draft && image ? (
+      {draft && image && step !== 'PUBLISHED' ? (
         <div className="flex-1 flex flex-col">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-white">Final Review</h2>
@@ -23,7 +23,18 @@ export const ThePress: React.FC = () => {
               <h3 className="text-xl font-bold text-white mb-2">{draft.headline}</h3>
               <p className="text-sm text-zinc-400 italic mb-4">{draft.deck}</p>
               <div className="text-xs text-zinc-500 space-y-2">
-                {draft.body.split('\n').slice(0, 2).map((p, i) => <p key={i}>{p}</p>)}
+                {draft.blocks ? (
+                  draft.blocks.slice(0, 2).map((block) => (
+                    <div key={block.id}>
+                      {block.type === 'h2' && <h2>{block.content}</h2>}
+                      {block.type === 'h3' && <h3>{block.content}</h3>}
+                      {block.type === 'quote' && <blockquote>{block.content}</blockquote>}
+                      {block.type === 'p' && <p>{block.content}</p>}
+                    </div>
+                  ))
+                ) : (
+                  draft.body.split('\n').slice(0, 2).map((p, i) => <p key={i}>{p}</p>)
+                )}
                 <p>...</p>
               </div>
             </div>
@@ -31,6 +42,12 @@ export const ThePress: React.FC = () => {
 
           <div className="mt-8 flex justify-center gap-4">
             <button onClick={reset} className="px-6 py-3 text-zinc-500 hover:text-white transition-colors">SCRAP ARTIFACT</button>
+            <button onClick={reDraft} className="px-6 py-3 text-zinc-400 hover:text-white transition-colors flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" /> RE-DRAFT
+            </button>
+            <button onClick={reShoot} className="px-6 py-3 text-zinc-400 hover:text-white transition-colors flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" /> RE-SHOOT
+            </button>
             <button 
               onClick={publish}
               className="flex items-center gap-2 bg-emerald-500 text-black px-8 py-3 rounded font-bold hover:bg-emerald-400 transition-colors"
