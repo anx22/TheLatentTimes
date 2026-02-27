@@ -7,7 +7,7 @@ export const TopicTicker: React.FC<{ config: BlockInstance, content: IssueConten
   const { tickerItems } = useNewsroom();
   const items = tickerItems.length > 0 
     ? tickerItems.map(item => `${item.source}: ${item.text}`)
-    : ["MODUS V3.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"];
+    : ["THE LATENT TIMES V1.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"];
     
   const isDark = config.variant === 'M';
 

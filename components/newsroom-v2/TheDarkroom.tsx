@@ -1,9 +1,9 @@
 import React from 'react';
-import { Loader2, Image as ImageIcon, RefreshCw, Camera } from 'lucide-react';
+import { Loader2, Image as ImageIcon, RefreshCw, Camera, Sparkles } from 'lucide-react';
 import { useNewsroom } from '../../hooks/useNewsroom';
 
 export const TheDarkroom: React.FC = () => {
-  const { step, image, draft, reShoot } = useNewsroom();
+  const { step, image, draft, reShoot, enhancePrompt, isEnhancing } = useNewsroom();
   return (
     <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-6">
       {step === 'VISUALIZING' ? (
@@ -18,7 +18,7 @@ export const TheDarkroom: React.FC = () => {
           <div className="relative w-full max-w-2xl aspect-[16/9] bg-black rounded overflow-hidden border border-zinc-800 shadow-2xl">
             <img src={image} alt="Generated" className="w-full h-full object-cover" />
           </div>
-          <div className="w-full max-w-2xl text-xs text-zinc-400 bg-zinc-950 p-4 rounded border border-zinc-800">
+          <div className="w-full max-w-2xl text-xs text-zinc-400 bg-zinc-950 p-4 rounded border border-zinc-800 relative group">
             <span className="font-bold text-emerald-500 uppercase tracking-widest block mb-2">Developed from Prompt:</span> 
             {draft?.suggested_visual_prompt}
           </div>
@@ -40,12 +40,29 @@ export const TheDarkroom: React.FC = () => {
             <h3 className="text-lg font-bold text-white">Draft Ready for Visualization</h3>
             <p className="text-sm text-zinc-500">The Columnist has provided a visual prompt. Ready to develop.</p>
           </div>
+
+          <div className="w-full max-w-2xl text-xs text-zinc-400 bg-zinc-950 p-6 rounded border border-zinc-800 relative">
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-bold text-emerald-500 uppercase tracking-widest">Visual Prompt</span>
+              <button 
+                onClick={enhancePrompt}
+                disabled={isEnhancing}
+                className="flex items-center gap-2 px-3 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded hover:bg-purple-500/20 transition-colors disabled:opacity-50"
+              >
+                {isEnhancing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                <span className="text-[10px] font-bold tracking-widest uppercase">Magic Enhance</span>
+              </button>
+            </div>
+            <p className="italic leading-relaxed">"{draft.suggested_visual_prompt}"</p>
+          </div>
+
           <button 
             onClick={reShoot}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-black font-bold rounded hover:bg-emerald-400 transition-colors"
+            disabled={isEnhancing}
+            className="flex items-center gap-2 px-8 py-4 bg-emerald-500 text-black font-bold rounded hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50"
           >
-            <Camera className="w-4 h-4" />
-            <span>DEVELOP IMAGE</span>
+            <Camera className="w-5 h-5" />
+            <span className="tracking-widest uppercase">DEVELOP IMAGE</span>
           </button>
         </div>
       ) : (

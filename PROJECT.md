@@ -1,10 +1,10 @@
-# MODUS: The AI-Native Fashion Magazine
+# The Latent Times: The AI-Native Fashion Magazine
 
 ## Vision
-MODUS is a living, breathing organism powered by a symphony of AI agents. **AI Technology is our absolute foundation.** We track the bleeding edge of models, workflows, and code. Side sectors like fashion, culture, and social issues are "add-ons" or "lenses" through which we view this technological core. It is "Vogue meets Wired meets The Matrix."
+The Latent Times is a living, breathing organism powered by a symphony of AI agents. **AI Technology is our absolute foundation.** We track the bleeding edge of models, workflows, and code. Side sectors like fashion, culture, and social issues are "add-ons" or "lenses" through which we view this technological core. It is "Vogue meets Wired meets The Matrix."
 
 ## The Newsroom (The Newsroom Floor)
-The heart of MODUS is **The Newsroom Floor**, a comprehensive, simultaneously visible workspace where human editors direct a fleet of AI agents. It is a professional tool designed for dynamic interaction, debate, and critical editing. The interface is modular, with a central workspace that switches between departments while maintaining a persistent operational context.
+The heart of The Latent Times is **The Newsroom Floor**, a comprehensive, simultaneously visible workspace where human editors direct a fleet of AI agents. It is a professional tool designed for dynamic interaction, debate, and critical editing. The interface is modular, with a central workspace that switches between departments while maintaining a persistent operational context.
 
 ### The Departments & Agents
 The newsroom is divided into operational departments, staffed by specialized agents:
@@ -17,8 +17,10 @@ The newsroom is divided into operational departments, staffed by specialized age
 2.  **THE BULLPEN (Ideation, Debate & Drafting)**:
     *   Agents with polarizing personas debate the signal, applying the "Cultural/Fashion Lens" to the "Tech Foundation".
     *   **Granular Collaboration**: Drafts are structured entities (blocks/paragraphs), allowing for micro-actions (Rewrite, Expand) rather than full-document regeneration.
+    *   **Editorial Excellence Module**: A surgical editing engine that enables sentence-level annotations, multi-agent critiques, and contextual rewrites that maintain global narrative coherence.
     *   *Agent*: **The Columnist** (Lead Writer - synthesizes vectors and data).
     *   *Agent*: **The Editor** (KI-Linter - analyzes text blocks for tone, clarity, and facts, providing actionable annotations).
+    *   *Agent*: **The Specialist** (Persona-driven refinement - e.g., "Fashion-Forward" or "Tech-Optimist" surgical edits).
 3.  **THE DARKROOM (Art & Production)**:
     *   Generates high-fidelity visual assets based on the editorial context.
     *   *Agent*: **The Photographer** (Visual Director - develops latent space artifacts).

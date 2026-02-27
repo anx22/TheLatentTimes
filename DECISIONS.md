@@ -1,6 +1,15 @@
 
 # DECISIONS.md
 
+## 018 - Editorial Excellence: Surgical Sentence Editing
+**Problem**: Block-level rewrites (paragraphs) are still too coarse. A user might want to fix a single awkward sentence without risking the rest of the paragraph's flow. Additionally, AI rewrites often lose the "global context" of the article.
+**Decision**: 
+1.  **Sentence-Level Granularity**: Implement a system that can split blocks into sentences for targeted editing.
+2.  **Annotation-First Workflow**: The Editor (KI-Linter) will now provide "Surgical Annotations" that target specific sentences or phrases.
+3.  **Contextual Memory Buffer**: When an agent rewrites a sentence, it is provided with the *entire* article context (the "Narrative Skelett") to ensure tonal and logical consistency.
+4.  **Multi-Agent Refinement**: Allow different agents (e.g., The Critic, The Fashion-Forward) to "pitch" sentence-level improvements based on their specific personas.
+**Why**: This achieves "Exzellenz" by moving away from generic LLM outputs toward highly crafted, individualistic prose that feels human-edited.
+
 ## 017 - Shift to Granular Collaboration (Structured Drafts)
 **Problem**: The "Re-Draft" button was a blunt instrument. If a user liked 90% of a draft but hated one paragraph, they had to regenerate the entire text, risking the loss of the good parts. The system was a linear "Generator" rather than a "Collaborator".
 **Decision**: 

@@ -20,7 +20,7 @@ export const supabase = createClient(
 // CONSTANTS
 const KEY_CURRENT_ISSUE = 'current_issue';
 const KEY_LOGS = 'current_logs';
-const LOCAL_ISSUE_KEY = 'modus_local_issue';
+const LOCAL_ISSUE_KEY = 'latent_local_issue';
 
 // --- UTILS ---
 const safeParse = (data: string | null): any | null => {
@@ -47,7 +47,7 @@ export interface OpsState {
 export const getOpsState = async (): Promise<OpsState | null> => {
     if (!IS_CONFIGURED) return null;
     const { data, error } = await supabase
-        .from('modus_ops')
+        .from('latent_ops')
         .select('*')
         .eq('key', 'global')
         .maybeSingle();
@@ -67,7 +67,7 @@ export const setOpsState = async (status: OpsState['status'], config?: any) => {
     if (status === 'IDLE') update.current_task = 'System Standby';
 
     await supabase
-        .from('modus_ops')
+        .from('latent_ops')
         .upsert({ key: 'global', ...update });
 };
 
@@ -75,10 +75,10 @@ export const subscribeToOps = (callback: (state: OpsState) => void) => {
     if (!IS_CONFIGURED) return { unsubscribe: () => {} };
 
     const channel = supabase
-        .channel('modus_ops_changes')
+        .channel('latent_ops_changes')
         .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'modus_ops', filter: 'key=eq.global' },
+            { event: 'UPDATE', schema: 'public', table: 'latent_ops', filter: 'key=eq.global' },
             (payload) => {
                 callback(payload.new as OpsState);
             }
@@ -91,14 +91,14 @@ export const subscribeToOps = (callback: (state: OpsState) => void) => {
 
 // INTERNAL EVENT BUS FOR MOCK AUTH
 const notifyMockAuth = () => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event('modus-mock-auth'));
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('latent-mock-auth'));
 };
 
 // AUTHENTICATION
 export const getSession = async () => {
     if (!IS_CONFIGURED) {
         return {
-            user: { email: 'editor@modus.news', id: 'dev-bypass-id' },
+            user: { email: 'editor@latent.times', id: 'dev-bypass-id' },
             access_token: 'mock-access-token',
             expires_at: Date.now() + 31536000000 // 1 year
         };
@@ -184,12 +184,12 @@ const saveRelationalIssue = async (issueId: string, issue: IssueContent) => {
         updated_at: new Date().toISOString()
     };
 
-    const { error: issueError } = await supabase.from('modus_issues').upsert(issuePayload);
+    const { error: issueError } = await supabase.from('latent_issues').upsert(issuePayload);
     if (issueError) throw issueError;
 
     // 2. DELETE CHILDREN (Full replacement strategy for simplicity in singleton model)
-    await supabase.from('modus_articles').delete().eq('issue_id', issueId);
-    await supabase.from('modus_recipes').delete().eq('issue_id', issueId);
+    await supabase.from('latent_articles').delete().eq('issue_id', issueId);
+    await supabase.from('latent_recipes').delete().eq('issue_id', issueId);
 
     // 3. PREPARE ARTICLES (Features, Columns, Drops, Edit)
     const articles = [
@@ -233,7 +233,7 @@ const saveRelationalIssue = async (issueId: string, issue: IssueContent) => {
     }));
 
     if (articleRows.length > 0) {
-        const { error: artError } = await supabase.from('modus_articles').insert(articleRows);
+        const { error: artError } = await supabase.from('latent_articles').insert(articleRows);
         if (artError) throw artError;
     }
 
@@ -253,7 +253,7 @@ const saveRelationalIssue = async (issueId: string, issue: IssueContent) => {
     }));
 
     if (recipeRows.length > 0) {
-        const { error: recError } = await supabase.from('modus_recipes').insert(recipeRows);
+        const { error: recError } = await supabase.from('latent_recipes').insert(recipeRows);
         if (recError) throw recError;
     }
 };
@@ -263,7 +263,7 @@ const loadRelationalIssue = async (issueId: string): Promise<IssueContent | null
 
     // 1. FETCH ISSUE
     const { data: issue, error: issueError } = await supabase
-        .from('modus_issues')
+        .from('latent_issues')
         .select('*')
         .eq('id', issueId)
         .maybeSingle();
@@ -272,13 +272,13 @@ const loadRelationalIssue = async (issueId: string): Promise<IssueContent | null
 
     // 2. FETCH CHILDREN
     const { data: articles } = await supabase
-        .from('modus_articles')
+        .from('latent_articles')
         .select('*')
         .eq('issue_id', issueId)
         .order('sort_order');
         
     const { data: recipes } = await supabase
-        .from('modus_recipes')
+        .from('latent_recipes')
         .select('*')
         .eq('issue_id', issueId)
         .order('sort_order');
@@ -381,7 +381,7 @@ export const getArchiveIndex = async (): Promise<Array<{ id: string; vol: string
     if (!IS_CONFIGURED) return [];
     
     const { data, error } = await supabase
-        .from('modus_issues')
+        .from('latent_issues')
         .select('id, vol, theme, issue_date')
         .order('issue_date', { ascending: false });
         
@@ -429,7 +429,7 @@ export const loadIssue = async (specificId?: string): Promise<IssueContent | nul
             let issueId = specificId;
             if (!issueId) {
                  // Get latest
-                 const { data } = await supabase.from('modus_issues').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+                 const { data } = await supabase.from('latent_issues').select('id').order('updated_at', { ascending: false }).limit(1).maybeSingle();
                  issueId = data?.id;
             }
 
@@ -470,7 +470,7 @@ export const saveLogs = async (logs: AgentLog[]): Promise<StorageResult> => {
 
     // Strict Supabase Upsert
     const { error } = await supabase
-        .from('modus_logs')
+        .from('latent_logs')
         .upsert({ 
             id: KEY_LOGS, 
             entries: logs.slice(-200), // Keep last 200 items in DB
@@ -495,7 +495,7 @@ export const loadLogs = async (): Promise<AgentLog[]> => {
     }
 
     const { data, error } = await supabase
-        .from('modus_logs')
+        .from('latent_logs')
         .select('entries')
         .eq('id', KEY_LOGS)
         .maybeSingle();
@@ -510,8 +510,49 @@ export const loadLogs = async (): Promise<AgentLog[]> => {
 
 export const checkDbConnection = async (): Promise<boolean> => {
     if (!IS_CONFIGURED) return false;
-    const { error } = await supabase.from('modus_logs').select('id').limit(1);
+    const { error } = await supabase.from('latent_logs').select('id').limit(1);
     // If RLS blocks select, this counts as "no connection" for the UI status
     if (error && error.code !== 'PGRST116') return false; 
     return true;
+};
+
+// --- NEWSROOM WORKING STATE ---
+export const saveNewsroomState = async (state: any) => {
+    if (!IS_CONFIGURED) {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('latent_newsroom_working_state', JSON.stringify(state));
+        }
+        return;
+    }
+    
+    await supabase
+        .from('latent_ops')
+        .upsert({ 
+            key: 'newsroom_working_state', 
+            config: state,
+            updated_at: new Date().toISOString() 
+        });
+};
+
+export const loadNewsroomState = async (): Promise<any | null> => {
+    if (!IS_CONFIGURED) {
+        if (typeof window !== 'undefined') {
+            const local = localStorage.getItem('latent_newsroom_working_state');
+            return safeParse(local);
+        }
+        return null;
+    }
+    
+    const { data, error } = await supabase
+        .from('latent_ops')
+        .select('config')
+        .eq('key', 'newsroom_working_state')
+        .maybeSingle();
+        
+    if (error) {
+        console.warn("Error loading newsroom state:", error);
+        return null;
+    }
+    
+    return data?.config || null;
 };

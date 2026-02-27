@@ -5,7 +5,7 @@ import App from './App';
 import './index.css';
 
 // --- SYSTEM DIAGNOSTICS ---
-console.log("%c MODUS OPERATING SYSTEM ", "background: #000; color: #fff; font-weight: bold; padding: 4px;");
+console.log("%c THE LATENT TIMES OPERATING SYSTEM ", "background: #000; color: #fff; font-weight: bold; padding: 4px;");
 console.log("Build Time:", new Date().toISOString());
 
 // Safely access import.meta.env to prevent white-screen crashes if environment is not fully polyfilled

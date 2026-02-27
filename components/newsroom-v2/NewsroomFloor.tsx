@@ -53,7 +53,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="font-bold tracking-widest text-xs">MODUS OPERATIONS FLOOR</span>
+            <span className="font-bold tracking-widest text-xs">THE LATENT TIMES OPERATIONS FLOOR</span>
           </div>
         </div>
         <div className="flex items-center gap-4">

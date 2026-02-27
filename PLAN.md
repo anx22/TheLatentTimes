@@ -1,4 +1,4 @@
-# MODUS Development Plan
+# The Latent Times Development Plan
 
 ## Phase 1: The Newsroom MVP (Complete)
 **Goal**: Build the simplest end-to-end pipeline for generating a magazine article from a topic.
@@ -41,3 +41,12 @@
 **Goal**: The magazine updates itself.
 
 - [ ] **Autopilot**: A master switch that allows the system to run the entire Editorial Chain autonomously.
+
+## Phase 6: Editorial Excellence (Surgical Editing)
+**Goal**: Achieve professional-grade prose through granular, multi-agent refinement.
+
+- [ ] **Architecture**: Implement a "Surgical Editing Engine" that manages sentence-level state and annotations.
+- [ ] **UI**: Build the "Editorial Desk" interface with semantic highlighting and contextual action cards.
+- [ ] **Logic**: Implement `agentRewriteSentence` with "Narrative Skelett" awareness (full article context).
+- [ ] **Logic**: Expand the KI-Linter to provide persona-driven critiques (Multi-Agent Feedback).
+- [ ] **Refinement**: Implement a "Final Polish" agent that ensures smooth transitions between edited blocks.

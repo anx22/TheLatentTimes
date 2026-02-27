@@ -19,7 +19,7 @@ Deno.serve(async (req: any) => {
     
     // 1. CHECK LOCK (Heartbeat)
     const { data: opsState, error: opsError } = await supabaseClient
-      .from('modus_ops')
+      .from('latent_ops')
       .select('*')
       .eq('key', 'global')
       .single()
@@ -35,7 +35,7 @@ Deno.serve(async (req: any) => {
 
     // 3. UPDATE HEARTBEAT (I am alive)
     await supabaseClient
-      .from('modus_ops')
+      .from('latent_ops')
       .update({ 
           last_heartbeat: new Date().toISOString(),
           current_task: 'Checking wire for signals...'
@@ -63,7 +63,7 @@ Deno.serve(async (req: any) => {
     
     // 5. UPDATE COMPLETION
     await supabaseClient
-      .from('modus_ops')
+      .from('latent_ops')
       .update({ 
           current_task: 'Cycle Complete. Sleeping.',
           last_heartbeat: new Date().toISOString()

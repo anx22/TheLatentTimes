@@ -33,6 +33,19 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
     }
 };
 
+// --- HELPER: JSON AGENT CALLER ---
+export const callJsonAgent = async <T>(prompt: string, schema: any, fallback: T): Promise<T> => {
+    const response = await safeGenerateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: schema
+        }
+    });
+    return cleanAndParseJSON(response.text) || fallback;
+};
+
 // --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s & Transient Errors) ---
 export const safeGenerateContent = async (
   params: { model: string; contents: any; config?: any }

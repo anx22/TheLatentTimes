@@ -11,6 +11,11 @@ export interface EditorialAngle {
   angle: string;
 }
 
+export interface DebateMessage {
+  persona: string;
+  message: string;
+}
+
 export interface SystemLog {
   id: string;
   timestamp: Date;
@@ -31,6 +36,14 @@ export interface DraftBlock {
   type: 'p' | 'h2' | 'h3' | 'quote';
   content: string;
   status?: 'clean' | 'flagged';
+}
+
+export interface BlockAnnotation {
+  id: string;
+  blockId: string;
+  type: 'TONE_MISMATCH' | 'CLARITY' | 'FACT_CHECK';
+  comment: string;
+  suggestion?: string;
 }
 
 export interface GeneratedArticle {
