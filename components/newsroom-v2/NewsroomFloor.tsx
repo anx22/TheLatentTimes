@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
-import { MagazineItem } from '../../types';
 import { X } from 'lucide-react';
 import { TheWire } from './TheWire';
 import { TheBullpen } from './TheBullpen';
@@ -23,8 +22,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   const [activeDept, setActiveDept] = useState<Department>('THE WIRE');
 
   // Auto-switch tabs based on pipeline step
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  React.useEffect(() => {
     if (step === 'DEBATING' || step === 'WRITING') setActiveDept('THE BULLPEN');
     else if (step === 'VISUALIZING') setActiveDept('THE DARKROOM');
     else if (step === 'REVIEW') setActiveDept('THE PRESS');

@@ -30,13 +30,10 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
         {
           "id": "b1",
           "type": "p",
-          "content": "First paragraph text...",
-          "status": "clean"
-        },
-        {
-          "id": "b2",
-          "type": "p",
-          "content": "Second paragraph text...",
+          "sentences": [
+            { "id": "b1_s1", "text": "First sentence of the paragraph." },
+            { "id": "b1_s2", "text": "Second sentence of the paragraph." }
+          ],
           "status": "clean"
         }
       ],
@@ -57,10 +54,20 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
           properties: {
             id: { type: Type.STRING },
             type: { type: Type.STRING },
-            content: { type: Type.STRING },
+            sentences: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  text: { type: Type.STRING }
+                },
+                required: ['id', 'text']
+              }
+            },
             status: { type: Type.STRING }
           },
-          required: ['id', 'type', 'content', 'status']
+          required: ['id', 'type', 'sentences', 'status']
         }
       },
       tags: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -70,7 +77,7 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
   }, null);
 
   if (parsed) {
-    parsed.body = parsed.blocks.map((b: any) => b.content).join('\\n\\n');
+    parsed.body = parsed.blocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');
   }
   return parsed;
 };

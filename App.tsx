@@ -7,6 +7,7 @@ import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
+import { ArchiveModal } from './components/ui/ArchiveModal';
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -85,6 +86,7 @@ const App: React.FC = () => {
   const [issue, setIssue] = useState<IssueContent>(SHELL_DATA);
   const [hydrated, setHydrated] = useState(false);
   const [showNewsroom, setShowNewsroom] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [session, setSession] = useState<any>(null); // Track session for Header
   
   useEffect(() => {
@@ -127,6 +129,21 @@ const App: React.FC = () => {
       }));
   };
 
+  const handleSelectIssue = async (issueId: string) => {
+      try {
+          const loadedIssue = await loadIssue(issueId);
+          if (loadedIssue) {
+              setIssue(loadedIssue);
+              setShowArchive(false);
+          } else {
+              alert("Failed to load issue.");
+          }
+      } catch (e) {
+          console.error("Error loading issue:", e);
+          alert("Error loading issue.");
+      }
+  };
+
   if (!hydrated) return null;
 
   // Resolve Template
@@ -142,7 +159,7 @@ const App: React.FC = () => {
          <Header 
             onNavigate={() => {}}
             onOpenNewsroom={() => setShowNewsroom(true)}
-            onOpenArchive={() => {}} // TODO: Hook up archive logic
+            onOpenArchive={() => setShowArchive(true)}
             onShare={handleShare}
             session={session}
             meta={issue.meta}
@@ -152,6 +169,14 @@ const App: React.FC = () => {
          {showNewsroom && (
              <NewsroomFloor 
                  onClose={() => setShowNewsroom(false)}
+             />
+         )}
+
+         {/* 2.5 ARCHIVE MODAL */}
+         {showArchive && (
+             <ArchiveModal 
+                 onClose={() => setShowArchive(false)}
+                 onSelectIssue={handleSelectIssue}
              />
          )}
 

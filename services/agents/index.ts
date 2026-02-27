@@ -1,5 +1,6 @@
 export * from './agentEditor';
 export * from './agentRewriteBlock';
+export * from './agentRewriteSentence';
 export * from './agentTicker';
 export * from './agentScout';
 export * from './agentConsensus';

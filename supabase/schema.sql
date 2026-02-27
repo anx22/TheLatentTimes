@@ -1,7 +1,7 @@
 
 -- 1. CONTROL TABLE: The "Switch" and "Status Monitor"
 -- This table holds the singleton state of the autopilot
-CREATE TABLE IF NOT EXISTS modus_ops (
+CREATE TABLE IF NOT EXISTS latent_ops (
     key TEXT PRIMARY KEY DEFAULT 'global',
     status TEXT DEFAULT 'IDLE', -- 'IDLE', 'RUNNING', 'PAUSED', 'ERROR'
     last_heartbeat TIMESTAMP WITH TIME ZONE,
@@ -11,12 +11,12 @@ CREATE TABLE IF NOT EXISTS modus_ops (
 );
 
 -- Initialize the global row if it doesn't exist
-INSERT INTO modus_ops (key, status, current_task) 
+INSERT INTO latent_ops (key, status, current_task) 
 VALUES ('global', 'IDLE', 'System Ready')
 ON CONFLICT (key) DO NOTHING;
 
 -- 2. LOGS TABLE: Ensure it exists and is robust
-CREATE TABLE IF NOT EXISTS modus_logs (
+CREATE TABLE IF NOT EXISTS latent_logs (
     id TEXT PRIMARY KEY,
     entries JSONB, -- Array of log objects
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS modus_logs (
 
 -- 3. REALTIME: Enable listening to these tables
 -- Turn on Realtime for the Ops table so the UI updates instantly
-ALTER PUBLICATION supabase_realtime ADD TABLE modus_ops;
-ALTER PUBLICATION supabase_realtime ADD TABLE modus_logs;
-ALTER PUBLICATION supabase_realtime ADD TABLE modus_issues;
+ALTER PUBLICATION supabase_realtime ADD TABLE latent_ops;
+ALTER PUBLICATION supabase_realtime ADD TABLE latent_logs;
+ALTER PUBLICATION supabase_realtime ADD TABLE latent_issues;
 
 -- 4. CRON: (Optional) Schedule the heartbeat
 -- Requires the pg_cron extension to be enabled in Supabase Dashboard

@@ -23,8 +23,8 @@
 ## Next Steps (Granular Collaboration Roadmap)
 - [x] **Phase 1: Structured Draft Entity**: Refactor `GeneratedArticle` to use an array of `DraftBlock` objects instead of a single string. Update `agentColumnist` to return JSON blocks.
 - [x] **Phase 2: KI-Linter & Micro-Actions**: Create `agentEditor` to analyze blocks. Build `TheEditorPanel` UI in The Bullpen. Implement block-level rewrite/expand actions.
-- [ ] **Phase 3: Strategic Directive & Active Consensus**: Add global directive input to The Wire. Implement periodic consensus summarization. Stream visible debate output.
-- [ ] **Phase 4: Magic Enhance & Grid Preview**: Add prompt expansion to The Darkroom. Integrate image preview directly into the final layout grid.
+- [x] **Phase 3: Strategic Directive & Active Consensus**: Add global directive input to The Wire. Implement periodic consensus summarization. Stream visible debate output.
+- [x] **Phase 4: Magic Enhance & Grid Preview**: Add prompt expansion to The Darkroom. Integrate image preview directly into the final layout grid.
 - [ ] **Phase 5: Editorial Excellence (Surgical Editing)**:
     *   **Sentence Splitting**: Implement robust sentence-level parsing for `DraftBlock` content.
     *   **Annotation Engine**: Create a modular state for "Surgical Annotations" that can be attached to sentences.

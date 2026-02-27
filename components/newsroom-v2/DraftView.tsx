@@ -5,13 +5,15 @@ import { useNewsroom } from '../../hooks/useNewsroom';
 export const DraftView: React.FC = () => {
   const { step, draft, image, reDraft, annotations, isLinting, isRewriting, runLinter, rewriteBlock } = useNewsroom();
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [selectedSentenceId, setSelectedSentenceId] = useState<string | null>(null);
   const [rewriteInstruction, setRewriteInstruction] = useState('');
 
   const handleRewriteSubmit = (blockId: string) => {
     if (!rewriteInstruction.trim()) return;
-    rewriteBlock(blockId, rewriteInstruction);
+    rewriteBlock(blockId, rewriteInstruction, selectedSentenceId || undefined);
     setRewriteInstruction('');
     setSelectedBlockId(null);
+    setSelectedSentenceId(null);
   };
 
   if (step === 'WRITING') {
@@ -56,7 +58,10 @@ export const DraftView: React.FC = () => {
                   <div 
                     key={block.id} 
                     className={`relative group p-4 -mx-4 rounded transition-colors ${isFlagged ? 'bg-red-950/20 border-l-2 border-red-500' : isSelected ? 'bg-zinc-900 border-l-2 border-emerald-500' : 'hover:bg-zinc-900 border-l-2 border-transparent'}`}
-                    onClick={() => setSelectedBlockId(block.id)}
+                    onClick={() => {
+                      setSelectedBlockId(block.id);
+                      setSelectedSentenceId(null);
+                    }}
                   >
                     {isRewritingThis ? (
                       <div className="flex items-center gap-4 text-zinc-400 py-4">
@@ -65,10 +70,30 @@ export const DraftView: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        {block.type === 'h2' && <h2 className="mt-0">{block.content}</h2>}
-                        {block.type === 'h3' && <h3 className="mt-0">{block.content}</h3>}
-                        {block.type === 'quote' && <blockquote className="mt-0">{block.content}</blockquote>}
-                        {block.type === 'p' && <p className="mt-0 mb-0">{block.content}</p>}
+                        {block.type === 'h2' && <h2 className="mt-0">{block.sentences.map(s => s.text).join(' ')}</h2>}
+                        {block.type === 'h3' && <h3 className="mt-0">{block.sentences.map(s => s.text).join(' ')}</h3>}
+                        {block.type === 'quote' && <blockquote className="mt-0">{block.sentences.map(s => s.text).join(' ')}</blockquote>}
+                        {block.type === 'p' && (
+                          <p className="mt-0 mb-0">
+                            {block.sentences.map((sentence) => {
+                              const isSentenceAnnotated = annotations.some(a => a.sentenceId === sentence.id);
+                              const isSentenceSelected = selectedSentenceId === sentence.id;
+                              return (
+                                <span 
+                                  key={sentence.id}
+                                  className={`transition-colors ${isSentenceAnnotated ? 'bg-red-950/40 border-b border-red-500/50 cursor-pointer' : ''} ${isSentenceSelected ? 'bg-emerald-900/40 text-emerald-200' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedBlockId(block.id);
+                                    setSelectedSentenceId(sentence.id);
+                                  }}
+                                >
+                                  {sentence.text}{' '}
+                                </span>
+                              );
+                            })}
+                          </p>
+                        )}
                       </>
                     )}
                     
@@ -128,15 +153,21 @@ export const DraftView: React.FC = () => {
                   <p className="text-sm">No issues detected.</p>
                 </div>
               ) : (
-                annotations.map(anno => (
-                  <div 
-                    key={anno.id} 
-                    className={`p-3 rounded border text-sm cursor-pointer transition-colors ${selectedBlockId === anno.blockId ? 'bg-red-950/40 border-red-500/50' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'}`}
-                    onClick={() => setSelectedBlockId(anno.blockId)}
-                  >
+                annotations.map(anno => {
+                  const isSelected = selectedBlockId === anno.blockId && (!anno.sentenceId || selectedSentenceId === anno.sentenceId);
+                  return (
+                    <div 
+                      key={anno.id} 
+                      className={`p-3 rounded border text-sm cursor-pointer transition-colors ${isSelected ? 'bg-red-950/40 border-red-500/50' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'}`}
+                      onClick={() => {
+                        setSelectedBlockId(anno.blockId);
+                        if (anno.sentenceId) setSelectedSentenceId(anno.sentenceId);
+                      }}
+                    >
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle className="w-4 h-4 text-red-400" />
                       <span className="text-xs font-bold text-red-400">{anno.type}</span>
+                      {anno.persona && <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest ml-auto">{anno.persona}</span>}
                     </div>
                     <p className="text-zinc-300 mb-2">{anno.comment}</p>
                     {anno.suggestion && (
@@ -145,23 +176,29 @@ export const DraftView: React.FC = () => {
                       </p>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
             {/* Micro-Action Panel (Shows when a block is selected) */}
             {selectedBlockId && (
               <div className="mt-4 pt-4 border-t border-zinc-800 animate-fade-in">
-                <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase tracking-widest">Direct The Columnist</h4>
+                <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase tracking-widest">
+                  Direct The Columnist {selectedSentenceId && <span className="text-emerald-500">(Sentence Level)</span>}
+                </h4>
                 <textarea
                   value={rewriteInstruction}
                   onChange={(e) => setRewriteInstruction(e.target.value)}
-                  placeholder="e.g., 'Make this punchier', 'Expand on the technical details', 'Fix the tone'"
+                  placeholder={selectedSentenceId ? "e.g., 'Make this sentence punchier'" : "e.g., 'Make this block punchier', 'Expand on the technical details', 'Fix the tone'"}
                   className="w-full h-24 bg-zinc-900 border border-zinc-800 rounded p-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 resize-none mb-2"
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setSelectedBlockId(null)}
+                    onClick={() => {
+                      setSelectedBlockId(null);
+                      setSelectedSentenceId(null);
+                    }}
                     className="flex-1 py-2 text-xs font-bold text-zinc-500 hover:text-white bg-zinc-900 rounded transition-colors"
                   >
                     CANCEL

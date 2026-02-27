@@ -33,7 +33,7 @@ interface NewsroomContextType {
   reDraft: () => Promise<void>;
   reShoot: () => Promise<void>;
   runLinter: () => Promise<void>;
-  rewriteBlock: (blockId: string, instruction: string) => Promise<void>;
+  rewriteBlock: (blockId: string, instruction: string, sentenceId?: string) => Promise<void>;
   enhancePrompt: () => Promise<void>;
   publish: () => void;
   reset: () => void;

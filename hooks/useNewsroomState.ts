@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage } from '../types';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentConsensus, agentPersonaSpeak } from '../services/agents';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer } from '../services/agents';
 import { saveNewsroomState, loadNewsroomState } from '../services/storage';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
@@ -31,6 +31,59 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [wordCount, setWordCount] = useState('Standard (600 words)');
   const [visualStyle, setVisualStyle] = useState('Editorial Photography');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
+  const [isHydrating, setIsHydrating] = useState(true);
+
+  // --- STATE HYDRATION ---
+  useEffect(() => {
+    let mounted = true;
+    const loadState = async () => {
+      try {
+        const state = await loadNewsroomState();
+        if (mounted && state) {
+          if (state.step) setStep(state.step);
+          if (state.topic) setTopic(state.topic);
+          if (state.globalDirective) setGlobalDirective(state.globalDirective);
+          if (state.activeConsensus) setActiveConsensus(state.activeConsensus);
+          if (state.debateTranscript) setDebateTranscript(state.debateTranscript);
+          if (state.context) setContext(state.context);
+          if (state.draft) setDraft(state.draft);
+          if (state.image) setImage(state.image);
+          if (state.tickerItems) setTickerItems(state.tickerItems);
+          if (state.scoutedTopics) setScoutedTopics(state.scoutedTopics);
+          if (state.angles) setAngles(state.angles);
+          if (state.annotations) setAnnotations(state.annotations);
+          // Parameters
+          if (state.sources) setSources(state.sources);
+          if (state.noiseFilter) setNoiseFilter(state.noiseFilter);
+          if (state.editorialLens) setEditorialLens(state.editorialLens);
+          if (state.wordCount) setWordCount(state.wordCount);
+          if (state.visualStyle) setVisualStyle(state.visualStyle);
+          if (state.aspectRatio) setAspectRatio(state.aspectRatio);
+        }
+      } catch (e) {
+        console.error("Failed to load newsroom state:", e);
+      } finally {
+        if (mounted) setIsHydrating(false);
+      }
+    };
+    loadState();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (isHydrating) return;
+    const stateToSave = {
+      step, topic, globalDirective, activeConsensus, debateTranscript,
+      context, draft, image, tickerItems, scoutedTopics, angles, annotations,
+      sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio
+    };
+    saveNewsroomState(stateToSave);
+  }, [
+    step, topic, globalDirective, activeConsensus, debateTranscript,
+    context, draft, image, tickerItems, scoutedTopics, angles, annotations,
+    sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
+    isHydrating
+  ]);
 
   const addLog = useCallback((agent: string, message: string, level: SystemLog['level'] = 'info') => {
     setLogs(prev => [...prev, {
@@ -278,22 +331,27 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     }
   };
 
-  const rewriteBlock = async (blockId: string, instruction: string) => {
+  const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
     if (!draft || !draft.blocks) return;
     const blockToRewrite = draft.blocks.find(b => b.id === blockId);
     if (!blockToRewrite) return;
 
     setIsRewriting(blockId);
-    addLog('THE COLUMNIST', `Rewriting block ${blockId} per Editor instruction...`, 'action');
+    addLog('THE COLUMNIST', `Rewriting ${sentenceId ? 'sentence' : 'block'} ${sentenceId || blockId} per Editor instruction...`, 'action');
     try {
-      const rewrittenBlock = await agentRewriteBlock(blockToRewrite, instruction, context, editorialLens, globalDirective);
+      let rewrittenBlock;
+      if (sentenceId) {
+        rewrittenBlock = await agentRewriteSentence(blockToRewrite, sentenceId, instruction, context, editorialLens, globalDirective);
+      } else {
+        rewrittenBlock = await agentRewriteBlock(blockToRewrite, instruction, context, editorialLens, globalDirective);
+      }
       
       const updatedBlocks = draft.blocks.map(b => b.id === blockId ? rewrittenBlock : b);
       setDraft({ ...draft, blocks: updatedBlocks });
       
-      setAnnotations(prev => prev.filter(a => a.blockId !== blockId));
+      setAnnotations(prev => prev.filter(a => a.blockId !== blockId || (sentenceId && a.sentenceId !== sentenceId)));
       
-      addLog('THE COLUMNIST', `Block ${blockId} rewritten successfully.`, 'success');
+      addLog('THE COLUMNIST', `${sentenceId ? 'Sentence' : 'Block'} rewritten successfully.`, 'success');
     } catch (e: any) {
       addLog('THE COLUMNIST', `Rewrite failed: ${e.message}`, 'error');
     } finally {

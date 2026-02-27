@@ -6,7 +6,7 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   const prompt = `
     ${directivePrefix}
-    You are THE EDITOR for The Latent Times, a high-fashion, accelerationist magazine.
+    You are THE EDITORIAL BOARD for The Latent Times, a high-fashion, accelerationist magazine.
     Your job is to act as a KI-Linter. Review the following draft blocks against the provided context and editorial lens.
     
     Context: "${context}"
@@ -15,16 +15,21 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
     Draft Blocks:
     ${JSON.stringify(blocks, null, 2)}
     
-    Identify specific blocks that need improvement. Focus on:
+    Identify specific sentences (or entire blocks) that need improvement. Focus on:
     1. TONE_MISMATCH: Is it too boring, too generic, or not fitting the "Vogue meets Wired" aesthetic?
     2. CLARITY: Is the technical explanation confusing or poorly phrased?
     3. FACT_CHECK: Does it contradict the provided context?
+    4. STYLE: Is it clunky or repetitive?
+    
+    Provide critiques from the perspective of specific personas (e.g., "The Critic", "The Fashion-Forward", "The Technologist").
     
     Output JSON only. Return an array of annotations. If the draft is perfect, return an empty array [].
     [
       {
         "id": "anno_1",
         "blockId": "b1",
+        "sentenceId": "b1_s2",
+        "persona": "The Critic",
         "type": "TONE_MISMATCH",
         "comment": "This metaphor is overly aggressive and leans into melodrama.",
         "suggestion": "Focus on the generative beauty instead."
@@ -39,6 +44,8 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
       properties: {
         id: { type: Type.STRING },
         blockId: { type: Type.STRING },
+        sentenceId: { type: Type.STRING },
+        persona: { type: Type.STRING },
         type: { type: Type.STRING },
         comment: { type: Type.STRING },
         suggestion: { type: Type.STRING }

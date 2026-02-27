@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Section, BlockInstance, IssueContent, MagazineItem } from '../../types';
+import { Section, IssueContent, MagazineItem } from '../../types';
 import { resolveBinding } from './BindingEngine';
 
 // Block Components
@@ -113,7 +113,7 @@ const ResizeHandle: React.FC<{
 };
 
 // --- SECTION CONTROLS ---
-const SectionControls: React.FC<{ id: string; index: number; onDelete: (id: string) => void; onMove?: (id: string, dir: 'up' | 'down') => void; }> = ({ id, index, onDelete, onMove }) => (
+const SectionControls: React.FC<{ id: string; onDelete: (id: string) => void; onMove?: (id: string, dir: 'up' | 'down') => void; }> = ({ id, onDelete, onMove }) => (
     <div className="absolute -left-10 top-0 bottom-0 w-8 flex flex-col items-end py-2 gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity z-40">
         {onMove && (
             <>
@@ -156,15 +156,14 @@ export const LayoutEngine: React.FC<LayoutEngineProps> = ({
     onBlockResize, onBlockDelete, onSectionDelete, onSectionAdd, onSectionMove, showGrid = false 
 }) => {
   const [dragOverBlock, setDragOverBlock] = useState<string | null>(null);
-  const [dragType, setDragType] = useState<'CONTENT' | 'BLOCK_TYPE' | 'BLOCK_MOVE' | null>(null);
   const [activeZone, setActiveZone] = useState<string | null>(null);
   const [isDragOverCanvas, setIsDragOverCanvas] = useState(false);
 
   // --- HANDLERS (Same logic, compacted) ---
   const handleCanvasDragOver = (e: React.DragEvent) => { e.preventDefault(); if (e.dataTransfer.types.includes('application/x-latent-slot-id')) setIsDragOverCanvas(true); };
   const handleCanvasDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragOverCanvas(false); const blockId = e.dataTransfer.getData('application/x-latent-slot-id'); if (blockId && onBlockDelete) onBlockDelete(blockId); };
-  const handleDragOver = (e: React.DragEvent, blockId: string) => { e.preventDefault(); e.stopPropagation(); if (dragOverBlock !== blockId) { setDragOverBlock(blockId); setActiveZone(null); if (e.dataTransfer.types.includes('application/x-latent-block')) setDragType('BLOCK_TYPE'); else if (e.dataTransfer.types.includes('application/x-latent-slot-id')) setDragType('BLOCK_MOVE'); else setDragType('CONTENT'); } };
-  const handleDrop = (e: React.DragEvent, blockId: string) => { e.preventDefault(); e.stopPropagation(); setDragOverBlock(null); setDragType(null); const sourceBlockId = e.dataTransfer.getData('application/x-latent-slot-id'); if (sourceBlockId && onBlockSwap && sourceBlockId !== blockId) { onBlockSwap(sourceBlockId, blockId); return; } const blockType = e.dataTransfer.getData('application/x-latent-block'); if (blockType && onBlockTypeDrop) { onBlockTypeDrop(blockId, blockType); return; } const itemId = e.dataTransfer.getData('text/plain'); if (itemId && onContentDrop) { onContentDrop(blockId, itemId); } };
+  const handleDragOver = (e: React.DragEvent, blockId: string) => { e.preventDefault(); e.stopPropagation(); if (dragOverBlock !== blockId) { setDragOverBlock(blockId); setActiveZone(null); } };
+  const handleDrop = (e: React.DragEvent, blockId: string) => { e.preventDefault(); e.stopPropagation(); setDragOverBlock(null); const sourceBlockId = e.dataTransfer.getData('application/x-latent-slot-id'); if (sourceBlockId && onBlockSwap && sourceBlockId !== blockId) { onBlockSwap(sourceBlockId, blockId); return; } const blockType = e.dataTransfer.getData('application/x-latent-block'); if (blockType && onBlockTypeDrop) { onBlockTypeDrop(blockId, blockType); return; } const itemId = e.dataTransfer.getData('text/plain'); if (itemId && onContentDrop) { onContentDrop(blockId, itemId); } };
   const handleBlockDragStart = (e: React.DragEvent, blockId: string) => { if (!onBlockClick) return; e.dataTransfer.setData('application/x-latent-slot-id', blockId); e.dataTransfer.effectAllowed = 'move'; };
   const handleZoneDragOver = (e: React.DragEvent, sectionId: string) => { e.preventDefault(); e.stopPropagation(); if (activeZone !== sectionId) setActiveZone(sectionId); };
   const handleZoneDrop = (e: React.DragEvent, sectionId: string) => { e.preventDefault(); e.stopPropagation(); setActiveZone(null); const blockType = e.dataTransfer.getData('application/x-latent-block'); const itemId = e.dataTransfer.getData('text/plain'); if (onBlockCreate) { if (blockType) onBlockCreate(sectionId, 'BLOCK', blockType); else if (itemId) onBlockCreate(sectionId, 'CONTENT', itemId); } };
@@ -192,7 +191,7 @@ export const LayoutEngine: React.FC<LayoutEngineProps> = ({
             return (
                 <React.Fragment key={section.id}>
                     <div className="relative group/section">
-                        {onSectionDelete && <SectionControls id={section.id} index={index} onDelete={onSectionDelete} onMove={onSectionMove} />}
+                        {onSectionDelete && <SectionControls id={section.id} onDelete={onSectionDelete} onMove={onSectionMove} />}
                         <section className={`
                             w-full relative z-10 grid grid-cols-12 auto-rows-[auto] gap-0
                             ${section.className || ''}
@@ -217,10 +216,10 @@ export const LayoutEngine: React.FC<LayoutEngineProps> = ({
                                         onDragStart={(e) => handleBlockDragStart(e, block.id)}
                                         className={`
                                             ${colSpanClass} ${rowSpanClass} ${chaosClass} relative group bg-white
-                                            border-b border-r border-black
+                                            border-b border-r border-black transition-all duration-200
                                             ${onBlockClick ? 'cursor-grab active:cursor-grabbing' : ''}
                                             ${isSelected ? 'ring-2 ring-black z-30' : ''}
-                                            ${isDragTarget ? 'ring-4 ring-black ring-inset z-40 bg-neutral-100' : ''}
+                                            ${isDragTarget ? 'ring-4 ring-emerald-500 ring-inset z-40 bg-emerald-50/50 scale-[0.98]' : ''}
                                         `}
                                         onClick={(e) => { if (onBlockClick) { e.stopPropagation(); onBlockClick(block.id); } }}
                                         onDragOver={(e) => onBlockClick && handleDragOver(e, block.id)}
@@ -258,7 +257,7 @@ export const LayoutEngine: React.FC<LayoutEngineProps> = ({
 
                             {onBlockCreate && (
                                 <div 
-                                    className={`col-span-12 row-span-4 border-b border-black flex flex-col items-center justify-center transition-all cursor-copy ${activeZone === section.id ? 'bg-black text-white' : 'hover:bg-neutral-50'}`}
+                                    className={`col-span-12 row-span-4 border-b border-black flex flex-col items-center justify-center transition-all duration-200 cursor-copy ${activeZone === section.id ? 'bg-emerald-500 text-white scale-[0.99] shadow-inner' : 'hover:bg-neutral-50'}`}
                                     onDragOver={(e) => handleZoneDragOver(e, section.id)}
                                     onDragLeave={() => setActiveZone(null)}
                                     onDrop={(e) => handleZoneDrop(e, section.id)}

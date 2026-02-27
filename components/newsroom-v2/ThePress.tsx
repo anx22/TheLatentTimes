@@ -26,10 +26,10 @@ export const ThePress: React.FC = () => {
                 {draft.blocks ? (
                   draft.blocks.slice(0, 2).map((block) => (
                     <div key={block.id}>
-                      {block.type === 'h2' && <h2>{block.content}</h2>}
-                      {block.type === 'h3' && <h3>{block.content}</h3>}
-                      {block.type === 'quote' && <blockquote>{block.content}</blockquote>}
-                      {block.type === 'p' && <p>{block.content}</p>}
+                      {block.type === 'h2' && <h2>{block.sentences.map(s => s.text).join(' ')}</h2>}
+                      {block.type === 'h3' && <h3>{block.sentences.map(s => s.text).join(' ')}</h3>}
+                      {block.type === 'quote' && <blockquote>{block.sentences.map(s => s.text).join(' ')}</blockquote>}
+                      {block.type === 'p' && <p>{block.sentences.map(s => s.text).join(' ')}</p>}
                     </div>
                   ))
                 ) : (

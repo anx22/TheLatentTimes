@@ -12,30 +12,44 @@ export const agentRewriteBlock = async (block: DraftBlock, instruction: string, 
     Lens: "${lens}"
     
     Original Block:
-    "${block.content}"
+    "${block.sentences.map(s => s.text).join(' ')}"
     
     Editor's Instruction:
     "${instruction}"
     
     Rewrite the block to satisfy the Editor's instruction while maintaining the intellectual, haughty, "Vogue meets Wired" tone.
+    Break the rewritten block down into individual sentences.
     
     Output JSON only:
     {
-      "content": "The rewritten text..."
+      "sentences": [
+        { "id": "b1_s1", "text": "First rewritten sentence." },
+        { "id": "b1_s2", "text": "Second rewritten sentence." }
+      ]
     }
   `;
 
-  const parsed = await callJsonAgent<{content: string}>(prompt, {
+  const parsed = await callJsonAgent<{sentences: {id: string, text: string}[]}>(prompt, {
     type: Type.OBJECT,
     properties: {
-      content: { type: Type.STRING }
+      sentences: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            text: { type: Type.STRING }
+          },
+          required: ['id', 'text']
+        }
+      }
     },
-    required: ['content']
-  }, { content: block.content });
+    required: ['sentences']
+  }, { sentences: block.sentences });
 
   return {
     ...block,
-    content: parsed.content || block.content,
+    sentences: parsed.sentences || block.sentences,
     status: 'clean'
   };
 };

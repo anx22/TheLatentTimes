@@ -31,17 +31,24 @@ export interface TickerItem {
   timestamp: string;
 }
 
+export interface DraftSentence {
+  id: string;
+  text: string;
+}
+
 export interface DraftBlock {
   id: string;
   type: 'p' | 'h2' | 'h3' | 'quote';
-  content: string;
+  sentences: DraftSentence[];
   status?: 'clean' | 'flagged';
 }
 
 export interface BlockAnnotation {
   id: string;
   blockId: string;
-  type: 'TONE_MISMATCH' | 'CLARITY' | 'FACT_CHECK';
+  sentenceId?: string; // Optional: if omitted, applies to the whole block
+  persona?: string; // e.g., "The Critic", "The Fashion-Forward"
+  type: 'TONE_MISMATCH' | 'CLARITY' | 'FACT_CHECK' | 'STYLE';
   comment: string;
   suggestion?: string;
 }
