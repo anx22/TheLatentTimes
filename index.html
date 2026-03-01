@@ -13,45 +13,6 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
-    <!-- TAILWIND CDN FALLBACK -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              background: '#ffffff',
-              paper: '#F9F8F4', /* Warm Paper */
-              surface: '#FFFFFF',
-              foreground: '#1A1A1A',
-              accent: '#C16045', /* Terra Cotta */
-              muted: '#F2F2F2',
-              'muted-foreground': '#888888',
-              border: '#E5E5E5',
-            },
-            fontFamily: {
-              display: ['"Didot"', '"Playfair Display"', 'serif'],
-              sans: ['"Helvetica Neue"', '"Inter"', 'sans-serif'],
-              condensed: ['"Archivo Narrow"', '"Helvetica Neue"', 'sans-serif'],
-              mono: ['"JetBrains Mono"', 'monospace'],
-            },
-            spacing: {
-              gutter: '32px',
-              margin: '80px',
-            },
-            fontSize: {
-              '2xs': '10px',
-            },
-            boxShadow: {
-              'editorial': '0 4px 20px rgba(0,0,0,0.04)',
-            },
-            borderWidth: {
-              'hairline': '1px',
-            }
-          },
-        }
-      }
-    </script>
   <script type="importmap">
 {
   "imports": {
@@ -59,7 +20,6 @@
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "react/": "https://esm.sh/react@^19.2.4/",
     "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.95.3",
     "vite": "https://esm.sh/vite@^7.3.1",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.4"
   }

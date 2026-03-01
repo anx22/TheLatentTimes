@@ -39,18 +39,18 @@ export const TickerView: React.FC = () => {
       <div className="space-y-3">
         {tickerItems.map(item => (
           <div 
-            key={item.id} 
+            key={item._id} 
             onClick={() => {
-              setTopic(item.text);
+              setTopic(item.title);
               setContext('');
             }}
-            className={`p-4 border rounded cursor-pointer transition-colors group ${topic === item.text ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950/50 hover:border-zinc-600'}`}
+            className={`p-4 border rounded cursor-pointer transition-colors group ${topic === item.title ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950/50 hover:border-zinc-600'}`}
           >
             <div className="flex justify-between items-start mb-2">
               <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">{item.source}</span>
-              <span className="text-[10px] text-zinc-600">{item.timestamp}</span>
+              <span className="text-[10px] text-zinc-600">{new Date(item.timestamp).toLocaleTimeString()}</span>
             </div>
-            <p className="text-base text-zinc-300 group-hover:text-white">{item.text}</p>
+            <p className="text-base text-zinc-300 group-hover:text-white">{item.title}</p>
           </div>
         ))}
       </div>

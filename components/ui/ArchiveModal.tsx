@@ -1,37 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { getArchiveIndex } from '../../services/storage';
+import React from 'react';
 import { X, BookOpen, Calendar, Hash } from 'lucide-react';
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 interface ArchiveModalProps {
   onClose: () => void;
-  onSelectIssue: (issueId: string) => void;
-}
-
-interface ArchiveItem {
-  id: string;
-  vol: string;
-  theme: string;
-  date: string;
+  onSelectIssue: (issue: any) => void;
 }
 
 export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIssue }) => {
-  const [issues, setIssues] = useState<ArchiveItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchArchive = async () => {
-      setLoading(true);
-      try {
-        const data = await getArchiveIndex();
-        setIssues(data);
-      } catch (error) {
-        console.error("Failed to fetch archive:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchArchive();
-  }, []);
+  const issues = useQuery(api.newsroom.queries.getArchiveIndex);
+  const loading = issues === undefined;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-8">
@@ -58,7 +37,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
               <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin" />
               <p className="font-mono text-sm uppercase tracking-widest">Retrieving Records...</p>
             </div>
-          ) : issues.length === 0 ? (
+          ) : (issues || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-neutral-400 gap-2">
               <BookOpen className="w-12 h-12 opacity-20 mb-2" />
               <p className="font-serif text-xl">The archive is empty.</p>
@@ -66,10 +45,10 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {issues.map((issue) => (
+              {(issues || []).map((issue: any) => (
                 <button
-                  key={issue.id}
-                  onClick={() => onSelectIssue(issue.id)}
+                  key={issue._id}
+                  onClick={() => onSelectIssue(issue)}
                   className="group flex flex-col text-left border border-black/10 rounded-lg overflow-hidden hover:border-black hover:shadow-lg transition-all bg-white"
                 >
                   <div className="bg-neutral-100 p-6 border-b border-black/10 group-hover:bg-black group-hover:text-white transition-colors">
@@ -89,7 +68,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
                   </div>
                   <div className="p-4 bg-white text-black group-hover:bg-neutral-50 transition-colors flex items-center justify-between">
                     <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
-                      ID: {issue.id.slice(0, 8)}...
+                      ID: {issue._id.slice(0, 8)}...
                     </span>
                     <span className="font-mono text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                       Load <span className="text-lg leading-none">→</span>
@@ -98,7 +77,8 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
                 </button>
               ))}
             </div>
-          )}
+          )
+        }
         </div>
       </div>
     </div>

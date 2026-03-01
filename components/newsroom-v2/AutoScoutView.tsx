@@ -18,11 +18,11 @@ export const AutoScoutView: React.FC = () => {
         </div>
         <button 
           onClick={scoutTopic}
-          disabled={step === 'SCOUTING'}
+          disabled={step === 'NEWS_TERMINAL'}
           className="flex items-center gap-2 bg-zinc-800 text-zinc-300 px-6 py-3 rounded font-bold hover:bg-zinc-700 transition-colors border border-zinc-700 disabled:opacity-50"
         >
-          {step === 'SCOUTING' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
-          <span>{step === 'SCOUTING' ? 'SCANNING THE WIRE...' : 'INITIATE SCOUT'}</span>
+          {step === 'NEWS_TERMINAL' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
+          <span>{step === 'NEWS_TERMINAL' ? 'SCANNING THE WIRE...' : 'INITIATE SCOUT'}</span>
         </button>
       </div>
 

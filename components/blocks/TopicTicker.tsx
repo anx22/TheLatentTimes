@@ -6,7 +6,7 @@ import { useNewsroom } from '../../hooks/useNewsroom';
 export const TopicTicker: React.FC<{ config: BlockInstance, content: IssueContent }> = ({ config }) => {
   const { tickerItems } = useNewsroom();
   const items = tickerItems.length > 0 
-    ? tickerItems.map(item => `${item.source}: ${item.text}`)
+    ? tickerItems.map(item => `${item.source}: ${item.title}`)
     : ["THE LATENT TIMES V1.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"];
     
   const isDark = config.variant === 'M';

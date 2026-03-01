@@ -16,7 +16,7 @@ export const DraftView: React.FC = () => {
     setSelectedSentenceId(null);
   };
 
-  if (step === 'WRITING') {
+  if (step === 'EDITORIAL_BOARD' && !draft) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
         <div className="w-full max-w-md space-y-4">
@@ -76,12 +76,23 @@ export const DraftView: React.FC = () => {
                         {block.type === 'p' && (
                           <p className="mt-0 mb-0">
                             {block.sentences.map((sentence) => {
-                              const isSentenceAnnotated = annotations.some(a => a.sentenceId === sentence.id);
+                              const sentenceAnnotations = annotations.filter(a => a.sentenceId === sentence.id);
+                              const isSentenceAnnotated = sentenceAnnotations.length > 0;
                               const isSentenceSelected = selectedSentenceId === sentence.id;
+                              
+                              let highlightClass = '';
+                              if (isSentenceAnnotated) {
+                                const primaryType = sentenceAnnotations[0].type;
+                                if (primaryType === 'STYLE') highlightClass = 'bg-emerald-950/40 border-b border-emerald-500/50';
+                                else if (primaryType === 'TONE_MISMATCH') highlightClass = 'bg-amber-950/40 border-b border-amber-500/50';
+                                else if (primaryType === 'FACT_CHECK') highlightClass = 'bg-red-950/40 border-b border-red-500/50';
+                                else highlightClass = 'bg-blue-950/40 border-b border-blue-500/50';
+                              }
+
                               return (
                                 <span 
                                   key={sentence.id}
-                                  className={`transition-colors ${isSentenceAnnotated ? 'bg-red-950/40 border-b border-red-500/50 cursor-pointer' : ''} ${isSentenceSelected ? 'bg-emerald-900/40 text-emerald-200' : ''}`}
+                                  className={`transition-colors ${highlightClass} ${isSentenceSelected ? 'bg-zinc-800 text-white border-b-2' : ''} ${isSentenceAnnotated ? 'cursor-pointer' : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedBlockId(block.id);
@@ -155,18 +166,34 @@ export const DraftView: React.FC = () => {
               ) : (
                 annotations.map(anno => {
                   const isSelected = selectedBlockId === anno.blockId && (!anno.sentenceId || selectedSentenceId === anno.sentenceId);
+                  
+                  let borderClass = 'border-zinc-800 hover:border-zinc-700';
+                  let iconColor = 'text-zinc-400';
+                  
+                  if (isSelected) {
+                    if (anno.type === 'STYLE') borderClass = 'border-emerald-500/50 bg-emerald-950/40';
+                    else if (anno.type === 'TONE_MISMATCH') borderClass = 'border-amber-500/50 bg-amber-950/40';
+                    else if (anno.type === 'FACT_CHECK') borderClass = 'border-red-500/50 bg-red-950/40';
+                    else borderClass = 'border-blue-500/50 bg-blue-950/40';
+                  }
+
+                  if (anno.type === 'STYLE') iconColor = 'text-emerald-400';
+                  else if (anno.type === 'TONE_MISMATCH') iconColor = 'text-amber-400';
+                  else if (anno.type === 'FACT_CHECK') iconColor = 'text-red-400';
+                  else iconColor = 'text-blue-400';
+
                   return (
                     <div 
                       key={anno.id} 
-                      className={`p-3 rounded border text-sm cursor-pointer transition-colors ${isSelected ? 'bg-red-950/40 border-red-500/50' : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'}`}
+                      className={`p-3 rounded border text-sm cursor-pointer transition-colors ${borderClass} ${!isSelected ? 'bg-zinc-900/50' : ''}`}
                       onClick={() => {
                         setSelectedBlockId(anno.blockId);
                         if (anno.sentenceId) setSelectedSentenceId(anno.sentenceId);
                       }}
                     >
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-4 h-4 text-red-400" />
-                      <span className="text-xs font-bold text-red-400">{anno.type}</span>
+                      <AlertTriangle className={`w-4 h-4 ${iconColor}`} />
+                      <span className={`text-xs font-bold ${iconColor}`}>{anno.type}</span>
                       {anno.persona && <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest ml-auto">{anno.persona}</span>}
                     </div>
                     <p className="text-zinc-300 mb-2">{anno.comment}</p>
@@ -187,6 +214,14 @@ export const DraftView: React.FC = () => {
                 <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase tracking-widest">
                   Direct The Columnist {selectedSentenceId && <span className="text-emerald-500">(Sentence Level)</span>}
                 </h4>
+                
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <button onClick={() => setRewriteInstruction("Sharpen the aesthetic. Make it more 'Vogue', focus on the texture and vibe.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Sharpen Aesthetic</button>
+                  <button onClick={() => setRewriteInstruction("Make this more provocative and critical. Challenge the premise.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Provoke</button>
+                  <button onClick={() => setRewriteInstruction("Clarify the technical details. Make it sound like 'Wired'.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Clarify Tech</button>
+                  <button onClick={() => setRewriteInstruction("Make this shorter, punchier, and more impactful.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Punchier</button>
+                </div>
+
                 <textarea
                   value={rewriteInstruction}
                   onChange={(e) => setRewriteInstruction(e.target.value)}

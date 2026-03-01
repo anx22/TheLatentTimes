@@ -5,7 +5,7 @@ import { useNewsroom } from '../../hooks/useNewsroom';
 export const AnglesView: React.FC = () => {
   const { step, angles, runPipeline, runDebate, debateTranscript } = useNewsroom();
 
-  if (step === 'DEBATING' && angles.length === 0) {
+  if (step === 'EDITORIAL_BOARD' && angles.length === 0) {
     return (
       <div className="space-y-6 animate-fade-in pb-8 max-w-4xl mx-auto">
         <div className="flex flex-col items-center justify-center py-12 space-y-4">

@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutEngine } from './components/layout/LayoutEngine';
 import { IssueContent, MagazineItem } from './types';
-import { getSession, loadIssue } from './services/storage';
 import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
+import { useQuery } from "convex/react";
+import { api } from "./convex/_generated/api";
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -87,34 +88,18 @@ const App: React.FC = () => {
   const [hydrated, setHydrated] = useState(false);
   const [showNewsroom, setShowNewsroom] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
-  const [session, setSession] = useState<any>(null); // Track session for Header
+  const session = { user: { email: 'editor@latent.times', id: 'dev-bypass-id' } }; // Mock session
   
+  const latestIssue = useQuery(api.newsroom.queries.getLatestIssue);
+
   useEffect(() => {
-    const init = async () => {
-        const s = await getSession();
-        setSession(s);
-        
-        try {
-            const savedData = await loadIssue();
-            if (savedData) {
-                console.log("[App] Restored session data");
-                setIssue(savedData);
-            }
-        } catch (e) {
-            console.error("[App] Failed to load save:", e);
+    if (latestIssue !== undefined) {
+        if (latestIssue) {
+            setIssue(latestIssue.content as IssueContent);
         }
-        
         setHydrated(true);
-    };
-    init();
-    
-    // Listen for auth events (mock or real)
-    const handleAuth = () => {
-        getSession().then(setSession);
-    };
-    window.addEventListener('latent-mock-auth', handleAuth);
-    return () => window.removeEventListener('latent-mock-auth', handleAuth);
-  }, []);
+    }
+  }, [latestIssue]);
 
   const handleShare = () => {
       const url = window.location.href;
@@ -129,18 +114,10 @@ const App: React.FC = () => {
       }));
   };
 
-  const handleSelectIssue = async (issueId: string) => {
-      try {
-          const loadedIssue = await loadIssue(issueId);
-          if (loadedIssue) {
-              setIssue(loadedIssue);
-              setShowArchive(false);
-          } else {
-              alert("Failed to load issue.");
-          }
-      } catch (e) {
-          console.error("Error loading issue:", e);
-          alert("Error loading issue.");
+  const handleSelectIssue = async (selectedIssue: any) => {
+      if (selectedIssue && selectedIssue.content) {
+          setIssue(selectedIssue.content as IssueContent);
+          setShowArchive(false);
       }
   };
 

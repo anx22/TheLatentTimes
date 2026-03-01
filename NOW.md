@@ -25,11 +25,18 @@
 - [x] **Phase 2: KI-Linter & Micro-Actions**: Create `agentEditor` to analyze blocks. Build `TheEditorPanel` UI in The Bullpen. Implement block-level rewrite/expand actions.
 - [x] **Phase 3: Strategic Directive & Active Consensus**: Add global directive input to The Wire. Implement periodic consensus summarization. Stream visible debate output.
 - [x] **Phase 4: Magic Enhance & Grid Preview**: Add prompt expansion to The Darkroom. Integrate image preview directly into the final layout grid.
-- [ ] **Phase 5: Editorial Excellence (Surgical Editing)**:
+- [x] **Phase 5: Editorial Excellence (Surgical Editing)**:
     *   **Sentence Splitting**: Implement robust sentence-level parsing for `DraftBlock` content.
     *   **Annotation Engine**: Create a modular state for "Surgical Annotations" that can be attached to sentences.
     *   **Multi-Agent Critique**: Expand `agentEditor` to support persona-specific critiques (e.g., "The Fashion-Forward thinks this sentence is too technical").
     *   **Surgical Rewrite**: Implement `agentRewriteSentence` which takes the full article context into account.
+
+- [ ] **Phase 6: The Editorial Experience (UX Overhaul)**:
+    *   **Renaming**: "The Wire" -> "The News Terminal", "The Bullpen" -> "The Editorial Board", "The Press" -> "The Printing Press".
+    *   **Room Fusion**: Merge "The Editorial Board" and "The Writer's Desk" into a single, powerful workspace.
+    *   **Agent Presence**: Make agents more visible and autonomous within their specific rooms.
+    *   **Workflow Clarity**: Ensure the "Signal -> Story -> Draft -> Article" progression is seamless and visible.
+    *   **Critical Engagement**: Enhance the "Editorial Board" to show source news, debated angles, and the resulting draft side-by-side.
 
 ## Known Issues
 1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds; UI needs to maintain engagement during this wait.

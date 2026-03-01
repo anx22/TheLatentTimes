@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { login, signUp, resetPassword, IS_CONFIGURED } from '../services/storage';
 import { IssueMeta } from '../types';
 
 interface HeaderProps {
@@ -21,40 +20,20 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
   const handleAuthSubmit = async (e: React.FormEvent) => { 
       e.preventDefault(); 
       setAuthError(null);
-      const { error } = await login(email, password); 
-      if (error) {
-          setAuthError(error.message);
-      } else {
+      // Mock login logic
+      if (email && password) {
           setShowLoginModal(false); 
+      } else {
+          setAuthError("Agent ID and Key required.");
       }
   };
 
-  const handleRegister = async () => {
-      setAuthError(null);
-      if (!email || !password) {
-          setAuthError("Email and password required for registration.");
-          return;
-      }
-      const { error } = await signUp(email, password);
-      if (error) {
-          setAuthError(error.message);
-      } else {
-          setAuthError("Registration successful. Please check your email or try logging in.");
-      }
+  const handleRegister = () => {
+      setAuthError("Registration is currently restricted to authorized agents.");
   };
 
-  const handleForgotPassword = async () => {
-      if (!email) {
-          setAuthError("Please enter your email first.");
-          return;
-      }
-      setAuthError(null);
-      const { error } = await resetPassword(email);
-      if (error) {
-          setAuthError(error.message);
-      } else {
-          setAuthError("Password reset link sent to your email.");
-      }
+  const handleForgotPassword = () => {
+      setAuthError("Contact system administrator for key recovery.");
   };
 
   return (
@@ -74,8 +53,8 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, onOpenNewsroom, onSh
              <span className="text-gray-400">•</span>
              <span>{meta?.theme || "SYNTHETIC ERA"}</span>
              <span className="text-gray-400">•</span>
-             <span className={IS_CONFIGURED ? "text-emerald-600" : "text-amber-600"}>
-                 STORAGE: {IS_CONFIGURED ? "CLOUD" : "DEMO (LOCAL)"}
+             <span className="text-emerald-600">
+                 STORAGE: CONVEX
              </span>
           </div>
 

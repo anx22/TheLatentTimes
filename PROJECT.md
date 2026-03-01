@@ -9,31 +9,32 @@ The heart of The Latent Times is **The Newsroom Floor**, a comprehensive, simult
 ### The Departments & Agents
 The newsroom is divided into operational departments, staffed by specialized agents:
 
-1.  **THE WIRE (Ingestion & Scouting)**: 
+1.  **THE NEWS TERMINAL (Ingestion & Scouting)**: 
     *   **The Ticker (Passive)**: Zero-token aggregation of real-world sources (GitHub, RSS). Managed via a user-installable Source Management Panel.
     *   **Auto-Scout (Active)**: AI-driven exploration of broad tech trends.
     *   **Targeted Search (Specific)**: Deep-dive research into a user-provided query.
     *   *Agent*: **The Scout** (Interfacing with global data streams).
-2.  **THE BULLPEN (Ideation, Debate & Drafting)**:
-    *   Agents with polarizing personas debate the signal, applying the "Cultural/Fashion Lens" to the "Tech Foundation".
-    *   **Granular Collaboration**: Drafts are structured entities (blocks/paragraphs), allowing for micro-actions (Rewrite, Expand) rather than full-document regeneration.
+2.  **THE EDITORIAL BOARD (Ideation, Debate, Drafting & Critique)**:
+    *   **Fusion of Angles & Drafts**: This room is the "Gold Mine". It combines the source news, the debated angles (Lenses), and the resulting first article.
+    *   **Critical Analysis**: Agents critically engage with the source material. We need confidence levels, fact-checking, and correct categorization.
+    *   **Story Transformation**: Here, raw material is transformed into a story idea using parameters and professional agent assessments.
+    *   **Granular Collaboration**: Drafts are structured entities (blocks/paragraphs/sentences), allowing for micro-actions (Rewrite, Expand) rather than full-document regeneration.
     *   **Editorial Excellence Module**: A surgical editing engine that enables sentence-level annotations, multi-agent critiques, and contextual rewrites that maintain global narrative coherence.
-    *   *Agent*: **The Columnist** (Lead Writer - synthesizes vectors and data).
-    *   *Agent*: **The Editor** (KI-Linter - analyzes text blocks for tone, clarity, and facts, providing actionable annotations).
-    *   *Agent*: **The Specialist** (Persona-driven refinement - e.g., "Fashion-Forward" or "Tech-Optimist" surgical edits).
+    *   *Agents*: **The Editor** (Lead), **The Critic** (Provocateur), **The Trendsetter** (Fashion Lens), **The Columnist** (Writer).
 3.  **THE DARKROOM (Art & Production)**:
     *   Generates high-fidelity visual assets based on the editorial context.
     *   *Agent*: **The Photographer** (Visual Director - develops latent space artifacts).
-4.  **THE PRESS (Publishing)**:
+4.  **THE PRINTING PRESS (Publishing)**:
     *   Final review and assembly of the artifact into the dynamic grid.
 
 ### The Workflow (The Editorial Chain)
-1.  **The Wire**: The Scout identifies a hard tech signal (e.g., "New ComfyUI Workflow").
-2.  **The Bullpen (Debate)**: The Board generates distinct angles (Lenses).
-3.  **The Bullpen (Drafting)**: The Columnist writes the copy as structured blocks.
-4.  **The Bullpen (Editing)**: The Editor (KI-Linter) flags blocks; the user triggers micro-actions to refine the text.
-5.  **The Darkroom**: The Photographer creates the imagery.
-6.  **The Press**: The artifact is reviewed and pushed to the live magazine.
+1.  **The News Terminal**: The Scout identifies a hard tech signal (e.g., "New ComfyUI Workflow").
+2.  **The Editorial Board**: 
+    *   The Board debates the signal and generates distinct angles (Lenses).
+    *   The Columnist writes the copy as structured blocks.
+    *   The Editor (KI-Linter) flags blocks; the user triggers micro-actions to refine the text.
+3.  **The Darkroom**: The Photographer creates the imagery.
+4.  **The Printing Press**: The artifact is reviewed and pushed to the live magazine.
 
 ## Architecture
 -   **Frontend**: React + Tailwind (The Interface).
@@ -44,4 +45,4 @@ The newsroom is divided into operational departments, staffed by specialized age
 ## Design Philosophy
 -   **Aesthetic**: Brutalist, High-Contrast, Swiss Style, Terminal-Chic.
 -   **Interaction**: Fast, Keyboard-centric, "God Mode", Granular Control.
--   **Tone**: Intellectual, Accelerationist, Haughty but Insightful.
+-   **Tone**: Intellectual, Ai Visionary, Disruptive, .

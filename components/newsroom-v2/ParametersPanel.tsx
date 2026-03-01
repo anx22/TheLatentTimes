@@ -18,7 +18,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({ activeDept }) 
         <span className="font-bold text-xs tracking-widest text-emerald-500 uppercase">{activeDept} SETTINGS</span>
       </div>
       
-      {activeDept === 'THE WIRE' && (
+      {activeDept === 'THE NEWS TERMINAL' && (
         <>
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Active Sources</h4>
@@ -54,7 +54,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({ activeDept }) 
         </>
       )}
 
-      {activeDept === 'THE BULLPEN' && (
+      {activeDept === 'THE EDITORIAL BOARD' && (
         <>
           <div className="space-y-4">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Editorial Lens</h4>
@@ -110,7 +110,7 @@ export const ParametersPanel: React.FC<ParametersPanelProps> = ({ activeDept }) 
         </>
       )}
 
-      {activeDept === 'THE PRESS' && (
+      {activeDept === 'THE PRINTING PRESS' && (
         <div className="text-xs text-zinc-500 italic">
           No parameters for final review.
         </div>
