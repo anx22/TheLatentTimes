@@ -21,7 +21,14 @@ checkEnv("Gemini API", process.env.GEMINI_API_KEY || process.env.API_KEY);
 checkEnv("Convex URL", import.meta.env.VITE_CONVEX_URL);
 // --------------------------
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL;
+let convexUrl = import.meta.env.VITE_CONVEX_URL;
+
+// Auto-correct if the user accidentally provided the HTTP Actions URL (.convex.site) 
+// instead of the Deployment URL (.convex.cloud) required for WebSockets.
+if (convexUrl && convexUrl.includes('.convex.site')) {
+  convexUrl = convexUrl.replace('.convex.site', '.convex.cloud');
+  console.warn("Corrected Convex URL from .site to .cloud for WebSocket connectivity.");
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

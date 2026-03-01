@@ -5,7 +5,6 @@ import { TheWire } from './TheWire';
 import { TheBullpen } from './TheBullpen';
 import { TheDarkroom } from './TheDarkroom';
 import { ThePress } from './ThePress';
-import { RightPanel } from './RightPanel';
 import { SystemLog } from './SystemLog';
 import { NewsroomFooter } from './NewsroomFooter';
 
@@ -17,7 +16,7 @@ type Department = 'THE NEWS TERMINAL' | 'THE EDITORIAL BOARD' | 'THE DARKROOM' |
 
 export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   const { 
-    step, draft, image, error, reset, tickerItems
+    step, draft, image, error, reset, tickerItems, isGeneratingImage, isScouting, isDebating, isDrafting
   } = useNewsroom();
   
   const [activeDept, setActiveDept] = useState<Department>('THE NEWS TERMINAL');
@@ -35,12 +34,12 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   const getDeptStatus = (dept: Department) => {
     switch (dept) {
       case 'THE NEWS TERMINAL':
-        return step === 'NEWS_TERMINAL' ? { label: 'SCANNING', color: 'text-purple-400', items: 0 } : { label: 'LISTENING', color: 'text-emerald-500', items: tickerItems.length };
+        return isScouting ? { label: 'SCANNING', color: 'text-purple-400', items: 0 } : { label: 'LISTENING', color: 'text-emerald-500', items: tickerItems.length };
       case 'THE EDITORIAL BOARD':
-        if (step === 'EDITORIAL_BOARD') return { label: 'IN SESSION', color: 'text-purple-400', items: 0 };
+        if (isDebating || isDrafting) return { label: 'IN SESSION', color: 'text-purple-400', items: 0 };
         return draft ? { label: 'DRAFT READY', color: 'text-emerald-500', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
       case 'THE DARKROOM':
-        return step === 'DARKROOM' ? { label: 'DEVELOPING', color: 'text-amber-400', items: 1 } : { label: image ? 'DONE' : 'IDLE', color: image ? 'text-emerald-500' : 'text-zinc-600', items: image ? 1 : 0 };
+        return isGeneratingImage ? { label: 'DEVELOPING', color: 'text-amber-400', items: 1 } : { label: image ? 'DONE' : 'IDLE', color: image ? 'text-emerald-500' : 'text-zinc-600', items: image ? 1 : 0 };
       case 'THE PRINTING PRESS':
         return step === 'PRINTING_PRESS' ? { label: 'FINAL REVIEW', color: 'text-red-400', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
     }
@@ -123,22 +122,20 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
       <main className="flex-1 overflow-hidden flex relative bg-zinc-900/20">
         
         {/* LEFT: MAIN CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto flex flex-col relative">
+        <div className="flex-1 overflow-y-auto flex flex-col relative w-full">
           {activeDept === 'THE NEWS TERMINAL' && <TheWire />}
           {activeDept === 'THE EDITORIAL BOARD' && <TheBullpen />}
           {activeDept === 'THE DARKROOM' && <TheDarkroom />}
           {activeDept === 'THE PRINTING PRESS' && <ThePress />}
         </div>
 
-        {/* RIGHT: PERSISTENT PANEL (AGENTS / PARAMETERS) */}
-        <RightPanel activeDept={activeDept} />
-
       </main>
 
       {/* FOOTER: THE BIG BUTTON */}
-      <NewsroomFooter />
+      {activeDept !== 'THE EDITORIAL BOARD' && (
+        <NewsroomFooter />
+      )}
 
-      {/* THE DEBUG CONSOLE (SYSTEM LOG) */}
       <SystemLog />
 
       {/* ERROR OVERLAY */}

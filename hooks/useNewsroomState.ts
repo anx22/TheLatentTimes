@@ -1,21 +1,29 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { Id } from "../convex/_generated/dataModel";
 import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage } from '../types';
 import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer } from '../services/agents';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   // --- CONVEX STATE (Real-time Database) ---
   const tickerItems = (useQuery(api.newsroom.queries.getTickerItems, {}) || []) as TickerItem[];
-  const draft = (useQuery(api.newsroom.queries.getLatestDraft) || null) as GeneratedArticle | null;
   const logs = (useQuery(api.newsroom.queries.getAgentLogs, {}) || []) as SystemLog[];
-  const latestImage = useQuery(api.newsroom.queries.getLatestImage);
-  const image = latestImage ? latestImage.url : null;
+  
+  // Local IDs for Draft/Image (Persisted)
+  const [draftId, setDraftId] = useState<Id<"drafts"> | null>(null);
+  const [imageId, setImageId] = useState<Id<"images"> | null>(null);
+
+  // Fetch specific draft/image based on ID
+  const draft = (useQuery(api.newsroom.queries.getDraftById, { id: draftId ?? undefined }) || null) as GeneratedArticle | null;
+  const imageRecord = useQuery(api.newsroom.queries.getImageById, { id: imageId ?? undefined });
+  const image = imageRecord ? imageRecord.url : null;
 
   const addTickerItemMutation = useMutation(api.newsroom.mutations.addTickerItem);
   const saveDraftMutation = useMutation(api.newsroom.mutations.saveDraft);
   const logMessageMutation = useMutation(api.newsroom.mutations.logMessage);
   const saveImageMutation = useMutation(api.newsroom.mutations.saveImage);
+  const generateUploadUrlMutation = useMutation(api.newsroom.mutations.generateUploadUrl);
   const resetNewsroomMutation = useMutation(api.newsroom.mutations.resetNewsroom);
   const saveNewsroomStateMutation = useMutation(api.newsroom.mutations.saveNewsroomState);
   const persistedState = useQuery(api.newsroom.queries.getNewsroomState);
@@ -36,6 +44,10 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [isRewriting, setIsRewriting] = useState<string | null>(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFetchingTicker, setIsFetchingTicker] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isScouting, setIsScouting] = useState(false);
+  const [isDebating, setIsDebating] = useState(false);
+  const [isDrafting, setIsDrafting] = useState(false);
 
   // Parameters
   const [sources, setSources] = useState({ github: true, arxiv: true, techcrunch: true });
@@ -51,7 +63,20 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     if (persistedState !== undefined && isHydrating) {
       if (persistedState) {
         const state = persistedState as any;
-        if (state.step) setStep(state.step);
+        
+        let recoveredStep = state.step || 'IDLE';
+
+        // --- HANGING STATE RECOVERY ---
+        // If the user closed the page while an async agent was running,
+        // the UI will be stuck in a loading state because the promise died.
+        // We roll back to the last stable step.
+        if (recoveredStep === 'NEWS_TERMINAL' && (!state.scoutedTopics || state.scoutedTopics.length === 0)) {
+          recoveredStep = 'IDLE';
+        } else if (recoveredStep === 'EDITORIAL_BOARD' && (!state.angles || state.angles.length === 0)) {
+          recoveredStep = 'NEWS_TERMINAL';
+        }
+
+        setStep(recoveredStep);
         if (state.topic) setTopic(state.topic);
         if (state.globalDirective) setGlobalDirective(state.globalDirective);
         if (state.activeConsensus) setActiveConsensus(state.activeConsensus);
@@ -60,6 +85,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         if (state.scoutedTopics) setScoutedTopics(state.scoutedTopics);
         if (state.angles) setAngles(state.angles);
         if (state.annotations) setAnnotations(state.annotations);
+        if (state.draftId) setDraftId(state.draftId);
+        if (state.imageId) setImageId(state.imageId);
         // Parameters
         if (state.sources) setSources(state.sources);
         if (state.noiseFilter) setNoiseFilter(state.noiseFilter);
@@ -76,13 +103,13 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     if (isHydrating) return;
     const stateToSave = {
       step, topic, globalDirective, activeConsensus, debateTranscript,
-      context, scoutedTopics, angles, annotations,
+      context, scoutedTopics, angles, annotations, draftId, imageId,
       sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio
     };
     saveNewsroomStateMutation({ data: stateToSave });
   }, [
     step, topic, globalDirective, activeConsensus, debateTranscript,
-    context, scoutedTopics, angles, annotations,
+    context, scoutedTopics, angles, annotations, draftId, imageId,
     sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
     isHydrating, saveNewsroomStateMutation
   ]);
@@ -152,6 +179,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const scoutTopic = async () => {
     setError(null);
     setStep('NEWS_TERMINAL');
+    setIsScouting(true);
     addLog('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
     try {
       const topics = await agentScout(sources, noiseFilter, globalDirective);
@@ -163,6 +191,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       setError(e.message || 'Scout failure');
       addLog('SYSTEM', `Scout connection failed: ${e.message}`, 'error');
       setStep('IDLE');
+    } finally {
+      setIsScouting(false);
     }
   };
 
@@ -171,6 +201,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     
     setError(null);
     setStep('EDITORIAL_BOARD');
+    setIsDebating(true);
     setDebateTranscript([]);
     setAngles([]);
     addLog('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info');
@@ -209,14 +240,16 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       console.error(e);
       setError(e.message || 'Debate failure');
       addLog('SYSTEM', `Debate failure: ${e.message}`, 'error');
-      setStep('IDLE');
+    } finally {
+      setIsDebating(false);
     }
   };
 
-  const runPipeline = async (angle?: EditorialAngle) => {
+  const runPipeline = async (angle?: EditorialAngle, selectedHeadline?: string) => {
     if (!topic.trim()) return;
     
     setError(null);
+    setIsDrafting(true);
     // Already in EDITORIAL_BOARD
     
     let currentContext = context;
@@ -224,8 +257,11 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     
     if (angle) {
       currentLens = `${angle.persona}: ${angle.angle}`;
+      if (selectedHeadline) {
+        currentLens += `\n\nMANDATORY HEADLINE: "${selectedHeadline}"`;
+      }
       setEditorialLens(currentLens);
-      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with selected angle: "${angle.headline}"`, 'info');
+      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with selected angle: "${selectedHeadline || angle.headline}"`, 'info');
     } else {
       addLog('THE EDITOR', `Commissioned piece on: "${topic}" with lens: "${editorialLens}"`, 'info');
     }
@@ -247,7 +283,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       const article = await agentColumnist(topic, currentContext, currentLens, wordCount, globalDirective);
       
       // Save draft to Convex
-      await saveDraftMutation({
+      const newDraftId = await saveDraftMutation({
         headline: article.headline,
         deck: article.deck,
         body: article.body,
@@ -256,8 +292,26 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         suggested_visual_prompt: article.suggested_visual_prompt,
         status: 'draft'
       });
+      setDraftId(newDraftId);
       
       addLog('THE COLUMNIST', 'Draft completed and submitted to The Bullpen.', 'success');
+      
+      // Automatically run KI-Linter
+      addLog('THE EDITOR', 'Running KI-Linter on new draft...', 'action');
+      setIsLinting(true);
+      try {
+        const newAnnotations = await agentEditor(article.blocks, currentContext, currentLens, globalDirective);
+        setAnnotations(newAnnotations);
+        if (newAnnotations.length === 0) {
+          addLog('THE EDITOR', 'KI-Linter found no issues. Draft is clean.', 'success');
+        } else {
+          addLog('THE EDITOR', `KI-Linter flagged ${newAnnotations.length} blocks for review.`, 'warning');
+        }
+      } catch (linterError: any) {
+        addLog('THE EDITOR', `KI-Linter failed: ${linterError.message}`, 'error');
+      } finally {
+        setIsLinting(false);
+      }
       
       // Stay in EDITORIAL_BOARD for review/editing
       addLog('THE EDITOR', 'Draft ready for review.', 'info');
@@ -265,7 +319,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       console.error(e);
       setError(e.message || 'Agent failure');
       addLog('SYSTEM', `Pipeline failure: ${e.message}`, 'error');
-      setStep('IDLE');
+    } finally {
+      setIsDrafting(false);
     }
   };
 
@@ -273,6 +328,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     if (!topic.trim() || !context.trim()) return;
     
     setError(null);
+    setIsDrafting(true);
     // Stay in EDITORIAL_BOARD
     addLog('THE EDITOR', `Re-commissioned piece on: "${topic}" with NEW lens: "${editorialLens}"`, 'info');
     
@@ -281,7 +337,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       const article = await agentColumnist(topic, context, editorialLens, wordCount, globalDirective);
       
       // Update draft in Convex (create new version)
-      await saveDraftMutation({
+      const newDraftId = await saveDraftMutation({
         headline: article.headline,
         deck: article.deck,
         body: article.body,
@@ -290,15 +346,34 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         suggested_visual_prompt: article.suggested_visual_prompt,
         status: 'draft'
       });
+      setDraftId(newDraftId);
       
       addLog('THE COLUMNIST', 'Re-draft completed and submitted to The Bullpen.', 'success');
+      
+      // Automatically run KI-Linter
+      addLog('THE EDITOR', 'Running KI-Linter on new draft...', 'action');
+      setIsLinting(true);
+      try {
+        const newAnnotations = await agentEditor(article.blocks, context, editorialLens, globalDirective);
+        setAnnotations(newAnnotations);
+        if (newAnnotations.length === 0) {
+          addLog('THE EDITOR', 'KI-Linter found no issues. Draft is clean.', 'success');
+        } else {
+          addLog('THE EDITOR', `KI-Linter flagged ${newAnnotations.length} blocks for review.`, 'warning');
+        }
+      } catch (linterError: any) {
+        addLog('THE EDITOR', `KI-Linter failed: ${linterError.message}`, 'error');
+      } finally {
+        setIsLinting(false);
+      }
       
       // Stay in EDITORIAL_BOARD
     } catch (e: any) {
       console.error(e);
       setError(e.message || 'Re-draft failure');
       addLog('SYSTEM', `Re-draft failure: ${e.message}`, 'error');
-      setStep('IDLE');
+    } finally {
+      setIsDrafting(false);
     }
   };
 
@@ -307,16 +382,35 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     
     setError(null);
     setStep('DARKROOM');
+    setIsGeneratingImage(true);
     addLog('THE PHOTOGRAPHER', `Re-entering darkroom with NEW Style: ${visualStyle}, Ratio: ${aspectRatio}.`, 'action');
     
     try {
-      const imgUrl = await agentPhotographer(draft.suggested_visual_prompt || '', visualStyle, aspectRatio, globalDirective);
+      const imgUrlBase64 = await agentPhotographer(draft.suggested_visual_prompt || '', visualStyle, aspectRatio, globalDirective);
       
-      // Save image to Convex
-      await saveImageMutation({
-        prompt: draft.suggested_visual_prompt || '',
-        url: imgUrl
+      addLog('THE PHOTOGRAPHER', 'Image generated. Uploading to storage...', 'info');
+      
+      // Convert base64 to blob
+      const response = await fetch(imgUrlBase64);
+      const blob = await response.blob();
+
+      // Get upload URL
+      const postUrl = await generateUploadUrlMutation();
+
+      // Upload to Convex storage
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": blob.type },
+        body: blob,
       });
+      const { storageId } = await result.json();
+
+      // Save image to Convex
+      const newImageId = await saveImageMutation({
+        prompt: draft.suggested_visual_prompt || '',
+        storageId: storageId
+      });
+      setImageId(newImageId);
       
       addLog('THE PHOTOGRAPHER', 'New visual assets developed and attached.', 'success');
       
@@ -325,34 +419,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       console.error(e);
       setError(e.message || 'Re-shoot failure');
       addLog('SYSTEM', `Re-shoot failure: ${e.message}`, 'error');
-      setStep('IDLE');
-    }
-  };
-
-  const runLinter = async () => {
-    if (!draft || !draft.blocks) return;
-    setIsLinting(true);
-    addLog('THE EDITOR', 'Running KI-Linter on draft blocks...', 'action');
-    try {
-      const newAnnotations = await agentEditor(draft.blocks, context, editorialLens, globalDirective);
-      setAnnotations(newAnnotations);
-      
-      if (newAnnotations.length === 0) {
-        addLog('THE EDITOR', 'KI-Linter found no issues. Draft is clean.', 'success');
-      } else {
-        addLog('THE EDITOR', `KI-Linter flagged ${newAnnotations.length} blocks for review.`, 'warning');
-        
-        // Note: We can't easily update blocks in Convex yet without a more complex schema
-        // For now, we'll just rely on the local draft state if we were using it, 
-        // but since we are using Convex, we might need to update the draft in the DB.
-        // However, the current schema stores 'body' as a string, not blocks.
-        // This part might need refactoring to support block-level editing in Convex.
-        // For now, we'll skip updating the DB and just show annotations.
-      }
-    } catch (e: any) {
-      addLog('THE EDITOR', `KI-Linter failed: ${e.message}`, 'error');
     } finally {
-      setIsLinting(false);
+      setIsGeneratingImage(false);
     }
   };
 
@@ -378,7 +446,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       const newBody = newBlocks.map(b => b.sentences.map(s => s.text).join(' ')).join('\n\n');
 
       // Save to Convex
-      await saveDraftMutation({
+      const newDraftId = await saveDraftMutation({
         headline: draft.headline,
         deck: draft.deck,
         body: newBody,
@@ -387,6 +455,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         suggested_visual_prompt: draft.suggested_visual_prompt,
         status: (draft as any).status
       });
+      setDraftId(newDraftId);
       
       addLog('THE COLUMNIST', `${sentenceId ? 'Sentence' : 'Block'} rewritten successfully.`, 'success');
     } catch (e: any) {
@@ -404,7 +473,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       const enhanced = await agentPromptEnhancer(draft.suggested_visual_prompt || '', visualStyle, globalDirective);
       
       // Update draft in Convex
-      await saveDraftMutation({
+      const newDraftId = await saveDraftMutation({
         headline: draft.headline,
         deck: draft.deck,
         body: draft.body,
@@ -413,6 +482,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         suggested_visual_prompt: enhanced,
         status: 'draft'
       });
+      setDraftId(newDraftId);
       
       addLog('THE PHOTOGRAPHER', 'Visual prompt enhanced with high-fidelity details.', 'success');
     } catch (e: any) {
@@ -435,7 +505,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       hero_image_url: image,
       status: 'published',
       featured_level: 'none',
-      score: { final: 8, recency: 10, trust: 8, novelty: 8, visual_fit: 9 }
+      score: { final: 8, recency: 10, trust: 8, novelty: 8, visual_fit: 9 },
+      body: draft.body,
+      blocks: draft.blocks
     };
 
     onPublish(newItem);
@@ -460,11 +532,11 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   };
 
   return {
-    step, topic, setTopic, globalDirective, setGlobalDirective, activeConsensus,
+    step, setStep, topic, setTopic, globalDirective, setGlobalDirective, activeConsensus,
     debateTranscript, draft, image, error, logs, tickerItems, scoutedTopics,
-    angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, fetchTickerData,
+    angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData,
     context, setContext, isResearching, researchTopic, scoutTopic, runDebate,
-    runPipeline, reDraft, reShoot, runLinter, rewriteBlock, enhancePrompt, publish, reset,
+    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, publish, reset,
     sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
     wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio
   };

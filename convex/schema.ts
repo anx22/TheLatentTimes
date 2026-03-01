@@ -48,7 +48,7 @@ export default defineSchema({
   // 4. IMAGES (Visual Assets)
   images: defineTable({
     prompt: v.string(),
-    url: v.string(),
+    storageId: v.id("_storage"),
     created_at: v.number(),
   }),
 

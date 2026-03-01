@@ -5,7 +5,7 @@ import { Activity, Loader2, Sparkles } from 'lucide-react';
 export const AutoScoutView: React.FC = () => {
   const { 
     topic, setTopic, setContext, 
-    scoutTopic, scoutedTopics, step
+    scoutTopic, scoutedTopics, step, isScouting
   } = useNewsroom();
 
   return (
@@ -18,11 +18,11 @@ export const AutoScoutView: React.FC = () => {
         </div>
         <button 
           onClick={scoutTopic}
-          disabled={step === 'NEWS_TERMINAL'}
+          disabled={isScouting}
           className="flex items-center gap-2 bg-zinc-800 text-zinc-300 px-6 py-3 rounded font-bold hover:bg-zinc-700 transition-colors border border-zinc-700 disabled:opacity-50"
         >
-          {step === 'NEWS_TERMINAL' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
-          <span>{step === 'NEWS_TERMINAL' ? 'SCANNING THE WIRE...' : 'INITIATE SCOUT'}</span>
+          {isScouting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-purple-400" />}
+          <span>{isScouting ? 'SCANNING THE WIRE...' : 'INITIATE SCOUT'}</span>
         </button>
       </div>
 

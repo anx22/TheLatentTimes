@@ -36,6 +36,16 @@ export const getLatestDraft = query({
   },
 });
 
+// 2.5 GET DRAFT BY ID
+// Fetches a specific draft by its ID.
+export const getDraftById = query({
+  args: { id: v.optional(v.id("drafts")) },
+  handler: async (ctx, args) => {
+    if (!args.id) return null;
+    return await ctx.db.get(args.id);
+  },
+});
+
 // 3. GET AGENT LOGS
 // Fetches the chat history for the "Agent Chatter" stream.
 export const getAgentLogs = query({
@@ -59,7 +69,21 @@ export const getLatestImage = query({
       .query("images")
       .order("desc")
       .first();
-    return image;
+    if (!image) return null;
+    const url = await ctx.storage.getUrl(image.storageId);
+    return { ...image, url };
+  },
+});
+
+// 4.5 GET IMAGE BY ID
+export const getImageById = query({
+  args: { id: v.optional(v.id("images")) },
+  handler: async (ctx, args) => {
+    if (!args.id) return null;
+    const image = await ctx.db.get(args.id);
+    if (!image) return null;
+    const url = await ctx.storage.getUrl(image.storageId);
+    return { ...image, url };
   },
 });
 

@@ -83,12 +83,12 @@ export const NewsroomFooter: React.FC = () => {
   const action = getPrimaryAction();
 
   return (
-    <div className="h-20 bg-zinc-950 border-t border-zinc-800 flex items-center justify-between px-8 shrink-0 z-50">
+    <div className="h-14 bg-zinc-950 border-t border-zinc-800 flex items-center justify-between px-6 shrink-0 z-50">
       {/* Status Indicator */}
-      <div className="flex items-center gap-4">
-        <div className={`w-3 h-3 rounded-full ${action.loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">CURRENT PROTOCOL</span>
+      <div className="flex items-center gap-3">
+        <div className={`w-2 h-2 rounded-full ${action.loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PROTOCOL:</span>
           <span className="text-xs font-bold text-white uppercase tracking-wider">{step.replace('_', ' ')}</span>
         </div>
       </div>
@@ -98,14 +98,14 @@ export const NewsroomFooter: React.FC = () => {
         onClick={action.onClick}
         disabled={action.disabled || action.loading}
         className={`
-          h-12 px-8 flex items-center gap-3 rounded font-bold tracking-widest text-sm transition-all
+          h-8 px-6 flex items-center gap-2 rounded font-bold tracking-widest text-xs transition-all
           ${action.disabled 
             ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800' 
-            : 'bg-emerald-500 text-black hover:bg-emerald-400 hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+            : 'bg-emerald-500 text-black hover:bg-emerald-400 hover:scale-105 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
           }
         `}
       >
-        {action.loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <action.icon className="w-5 h-5" />}
+        {action.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <action.icon className="w-4 h-4" />}
         <span>{action.label}</span>
       </button>
     </div>

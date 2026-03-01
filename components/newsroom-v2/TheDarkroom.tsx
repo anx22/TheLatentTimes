@@ -4,17 +4,17 @@ import { useNewsroom } from '../../hooks/useNewsroom';
 import { Dossier } from './Dossier';
 
 export const TheDarkroom: React.FC = () => {
-  const { step, image, draft, reShoot, enhancePrompt, isEnhancing } = useNewsroom();
+  const { step, image, draft, reShoot, enhancePrompt, isEnhancing, isGeneratingImage } = useNewsroom();
   
   return (
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full p-6 h-full overflow-hidden">
       <Dossier
         title={draft ? draft.headline : "VISUAL ASSETS"}
-        status={step === 'DARKROOM' ? "DEVELOPING" : (image ? "DEVELOPED" : "PENDING")}
+        status={isGeneratingImage ? "DEVELOPING" : (image ? "DEVELOPED" : "PENDING")}
         classification="CONFIDENTIAL"
       >
         <div className="flex-1 flex flex-col items-center justify-center h-full space-y-6">
-          {step === 'DARKROOM' ? (
+          {isGeneratingImage ? (
             <div className="flex flex-col items-center justify-center space-y-6 animate-pulse">
               <div className="w-full max-w-2xl aspect-[16/9] bg-zinc-900 border border-zinc-800 rounded flex items-center justify-center">
                 <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />

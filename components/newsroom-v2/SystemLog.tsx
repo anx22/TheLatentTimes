@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
 import { Terminal, ChevronUp, ChevronDown } from 'lucide-react';
@@ -42,9 +41,12 @@ export const SystemLog: React.FC = () => {
               if (log.level === 'error') color = 'text-red-400';
               if (log.level === 'warning') color = 'text-amber-400';
 
+              // Fix the timestamp issue by ensuring it's a Date object
+              const timeString = new Date(log.timestamp).toLocaleTimeString();
+
               return (
                 <div key={log.id} className="flex gap-4">
-                  <span className="text-zinc-600 shrink-0">{log.timestamp.toLocaleTimeString()}</span>
+                  <span className="text-zinc-600 shrink-0">{timeString}</span>
                   <span className={`font-bold shrink-0 w-32 ${color}`}>[{log.agent}]</span>
                   <span className="text-zinc-300">{log.message}</span>
                 </div>

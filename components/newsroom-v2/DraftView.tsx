@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
-import { PenTool, RefreshCw, Loader2, AlertTriangle, CheckCircle2, Edit3, Check } from 'lucide-react';
+import { PenTool, Loader2 } from 'lucide-react';
 import { useNewsroom } from '../../hooks/useNewsroom';
+import { DraftHeader } from './draft/DraftHeader';
+import { DraftBlock } from './draft/DraftBlock';
+import { DraftActions } from './draft/DraftActions';
+import { EditorPanel } from './draft/EditorPanel';
 
 export const DraftView: React.FC = () => {
-  const { step, draft, image, reDraft, annotations, isLinting, isRewriting, runLinter, rewriteBlock } = useNewsroom();
+  const { step, setStep, draft, image, reDraft, annotations, isRewriting, rewriteBlock, isLinting, isDrafting } = useNewsroom();
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedSentenceId, setSelectedSentenceId] = useState<string | null>(null);
-  const [rewriteInstruction, setRewriteInstruction] = useState('');
 
-  const handleRewriteSubmit = (blockId: string) => {
-    if (!rewriteInstruction.trim()) return;
-    rewriteBlock(blockId, rewriteInstruction, selectedSentenceId || undefined);
-    setRewriteInstruction('');
+  const handleSelectBlock = (blockId: string) => {
+    setSelectedBlockId(blockId);
+    setSelectedSentenceId(null);
+  };
+
+  const handleSelectSentence = (blockId: string, sentenceId: string | null) => {
+    setSelectedBlockId(blockId);
+    setSelectedSentenceId(sentenceId);
+  };
+
+  const handleDismissSelection = () => {
     setSelectedBlockId(null);
     setSelectedSentenceId(null);
   };
 
-  if (step === 'EDITORIAL_BOARD' && !draft) {
+  const handleSelectAnnotation = (blockId: string, sentenceId?: string) => {
+    setSelectedBlockId(blockId);
+    setSelectedSentenceId(sentenceId || null);
+    
+    // Optional: Scroll to element logic here
+    const elementId = sentenceId ? `sentence-${sentenceId}` : `block-${blockId}`;
+    const el = document.getElementById(elementId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  if (isDrafting) {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
         <div className="w-full max-w-md space-y-4">
@@ -32,224 +52,66 @@ export const DraftView: React.FC = () => {
 
   if (draft) {
     return (
-      <div className="flex gap-8 h-full">
+      <div className="flex h-full">
         {/* Left: The Draft */}
-        <div className="flex-1 space-y-8 animate-fade-in bg-zinc-950 border border-zinc-800 p-8 rounded mb-8 overflow-y-auto">
-          {image && (
-            <div className="relative w-full aspect-[21/9] bg-black rounded overflow-hidden border border-zinc-800 mb-8">
-              <img src={image} alt="Header" className="w-full h-full object-cover opacity-80" />
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-            </div>
-          )}
-          
-          <div className="space-y-4 border-b border-zinc-800 pb-6">
-            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">{draft.tags.join(' • ')}</span>
-            <h2 className="text-4xl font-display font-bold leading-tight text-white">{draft.headline}</h2>
-            <p className="text-xl text-zinc-400 italic border-l-2 border-emerald-500 pl-4">{draft.deck}</p>
-          </div>
-          <div className="prose prose-invert prose-zinc max-w-none">
-            {draft.blocks ? (
-              draft.blocks.map((block) => {
-                const isFlagged = block.status === 'flagged';
-                const isRewritingThis = isRewriting === block.id;
-                const isSelected = selectedBlockId === block.id;
-                
-                return (
-                  <div 
-                    key={block.id} 
-                    className={`relative group p-4 -mx-4 rounded transition-colors ${isFlagged ? 'bg-red-950/20 border-l-2 border-red-500' : isSelected ? 'bg-zinc-900 border-l-2 border-emerald-500' : 'hover:bg-zinc-900 border-l-2 border-transparent'}`}
-                    onClick={() => {
-                      setSelectedBlockId(block.id);
-                      setSelectedSentenceId(null);
-                    }}
-                  >
-                    {isRewritingThis ? (
-                      <div className="flex items-center gap-4 text-zinc-400 py-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
-                        <span className="text-sm font-bold tracking-widest">THE COLUMNIST IS REWRITING...</span>
-                      </div>
-                    ) : (
-                      <>
-                        {block.type === 'h2' && <h2 className="mt-0">{block.sentences.map(s => s.text).join(' ')}</h2>}
-                        {block.type === 'h3' && <h3 className="mt-0">{block.sentences.map(s => s.text).join(' ')}</h3>}
-                        {block.type === 'quote' && <blockquote className="mt-0">{block.sentences.map(s => s.text).join(' ')}</blockquote>}
-                        {block.type === 'p' && (
-                          <p className="mt-0 mb-0">
-                            {block.sentences.map((sentence) => {
-                              const sentenceAnnotations = annotations.filter(a => a.sentenceId === sentence.id);
-                              const isSentenceAnnotated = sentenceAnnotations.length > 0;
-                              const isSentenceSelected = selectedSentenceId === sentence.id;
-                              
-                              let highlightClass = '';
-                              if (isSentenceAnnotated) {
-                                const primaryType = sentenceAnnotations[0].type;
-                                if (primaryType === 'STYLE') highlightClass = 'bg-emerald-950/40 border-b border-emerald-500/50';
-                                else if (primaryType === 'TONE_MISMATCH') highlightClass = 'bg-amber-950/40 border-b border-amber-500/50';
-                                else if (primaryType === 'FACT_CHECK') highlightClass = 'bg-red-950/40 border-b border-red-500/50';
-                                else highlightClass = 'bg-blue-950/40 border-b border-blue-500/50';
-                              }
+        <div className="flex-1 h-full overflow-y-auto custom-scrollbar px-8 md:px-16 py-12 animate-fade-in">
+          <div className="max-w-4xl mx-auto space-y-8 pb-32">
+            
+            <DraftHeader 
+              image={image} 
+              tags={draft.tags} 
+              headline={draft.headline} 
+              deck={draft.deck} 
+            />
 
-                              return (
-                                <span 
-                                  key={sentence.id}
-                                  className={`transition-colors ${highlightClass} ${isSentenceSelected ? 'bg-zinc-800 text-white border-b-2' : ''} ${isSentenceAnnotated ? 'cursor-pointer' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedBlockId(block.id);
-                                    setSelectedSentenceId(sentence.id);
-                                  }}
-                                >
-                                  {sentence.text}{' '}
-                                </span>
-                              );
-                            })}
-                          </p>
-                        )}
-                      </>
-                    )}
-                    
-                    {/* Block Actions Overlay */}
-                    {!isRewritingThis && isSelected && (
-                      <div className="absolute -right-4 top-0 bottom-0 flex flex-col justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pr-4">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setSelectedBlockId(block.id); }}
-                          className="p-2 bg-zinc-800 text-zinc-300 hover:text-white rounded-full hover:bg-zinc-700"
-                          title="Edit Block"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              draft.body.split('\n').map((p, i) => <p key={i}>{p}</p>)
+            {isLinting && (
+              <div className="fixed bottom-8 right-8 bg-zinc-900 border border-zinc-800 text-zinc-300 px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-fade-in z-50">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white uppercase tracking-widest">The Editor</span>
+                  <span className="text-[10px] text-zinc-500">Reviewing draft for style & tone...</span>
+                </div>
+              </div>
             )}
-          </div>
-          
-          <div className="mt-8 flex justify-end border-t border-zinc-800 pt-6">
-            <button 
-              onClick={reDraft}
-              className="flex items-center gap-2 px-6 py-2 bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded transition-colors border border-zinc-800"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="text-xs font-bold tracking-widest">RE-DRAFT ENTIRE PIECE</span>
-            </button>
+
+            <div className="prose prose-invert prose-zinc prose-lg md:prose-xl max-w-none">
+              {draft.blocks ? (
+                draft.blocks.map((block) => (
+                  <DraftBlock
+                    key={block.id}
+                    block={block}
+                    annotations={annotations}
+                    isRewritingThis={isRewriting === block.id}
+                    isSelected={selectedBlockId === block.id}
+                    selectedSentenceId={selectedSentenceId}
+                    onSelectBlock={handleSelectBlock}
+                    onSelectSentence={handleSelectSentence}
+                    onRewrite={rewriteBlock}
+                    onDismissSelection={handleDismissSelection}
+                  />
+                ))
+              ) : (
+                draft.body.split('\n').map((p, i) => <p key={i}>{p}</p>)
+              )}
+            </div>
+            
+            <DraftActions 
+              onReDraft={reDraft} 
+              onSendToDarkroom={() => setStep('DARKROOM')} 
+            />
+
           </div>
         </div>
 
-        {/* Right: KI-Linter / Editor Panel */}
-        <div className="w-80 shrink-0 flex flex-col gap-4">
-          <div className="bg-zinc-950 border border-zinc-800 rounded p-4 flex flex-col h-full">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className={`w-5 h-5 ${annotations.length === 0 ? 'text-emerald-500' : 'text-zinc-500'}`} />
-                <h3 className="font-bold text-white tracking-widest text-sm">KI-LINTER</h3>
-              </div>
-              <button 
-                onClick={runLinter}
-                disabled={isLinting}
-                className="p-2 bg-zinc-900 text-zinc-400 hover:text-white rounded disabled:opacity-50"
-                title="Run Linter"
-              >
-                {isLinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-4">
-              {annotations.length === 0 && !isLinting ? (
-                <div className="text-center text-zinc-500 py-8 space-y-2">
-                  <CheckCircle2 className="w-8 h-8 mx-auto opacity-50" />
-                  <p className="text-sm">No issues detected.</p>
-                </div>
-              ) : (
-                annotations.map(anno => {
-                  const isSelected = selectedBlockId === anno.blockId && (!anno.sentenceId || selectedSentenceId === anno.sentenceId);
-                  
-                  let borderClass = 'border-zinc-800 hover:border-zinc-700';
-                  let iconColor = 'text-zinc-400';
-                  
-                  if (isSelected) {
-                    if (anno.type === 'STYLE') borderClass = 'border-emerald-500/50 bg-emerald-950/40';
-                    else if (anno.type === 'TONE_MISMATCH') borderClass = 'border-amber-500/50 bg-amber-950/40';
-                    else if (anno.type === 'FACT_CHECK') borderClass = 'border-red-500/50 bg-red-950/40';
-                    else borderClass = 'border-blue-500/50 bg-blue-950/40';
-                  }
-
-                  if (anno.type === 'STYLE') iconColor = 'text-emerald-400';
-                  else if (anno.type === 'TONE_MISMATCH') iconColor = 'text-amber-400';
-                  else if (anno.type === 'FACT_CHECK') iconColor = 'text-red-400';
-                  else iconColor = 'text-blue-400';
-
-                  return (
-                    <div 
-                      key={anno.id} 
-                      className={`p-3 rounded border text-sm cursor-pointer transition-colors ${borderClass} ${!isSelected ? 'bg-zinc-900/50' : ''}`}
-                      onClick={() => {
-                        setSelectedBlockId(anno.blockId);
-                        if (anno.sentenceId) setSelectedSentenceId(anno.sentenceId);
-                      }}
-                    >
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className={`w-4 h-4 ${iconColor}`} />
-                      <span className={`text-xs font-bold ${iconColor}`}>{anno.type}</span>
-                      {anno.persona && <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest ml-auto">{anno.persona}</span>}
-                    </div>
-                    <p className="text-zinc-300 mb-2">{anno.comment}</p>
-                    {anno.suggestion && (
-                      <p className="text-zinc-500 italic text-xs border-l-2 border-zinc-700 pl-2">
-                        Suggestion: {anno.suggestion}
-                      </p>
-                    )}
-                  </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Micro-Action Panel (Shows when a block is selected) */}
-            {selectedBlockId && (
-              <div className="mt-4 pt-4 border-t border-zinc-800 animate-fade-in">
-                <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase tracking-widest">
-                  Direct The Columnist {selectedSentenceId && <span className="text-emerald-500">(Sentence Level)</span>}
-                </h4>
-                
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <button onClick={() => setRewriteInstruction("Sharpen the aesthetic. Make it more 'Vogue', focus on the texture and vibe.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Sharpen Aesthetic</button>
-                  <button onClick={() => setRewriteInstruction("Make this more provocative and critical. Challenge the premise.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Provoke</button>
-                  <button onClick={() => setRewriteInstruction("Clarify the technical details. Make it sound like 'Wired'.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Clarify Tech</button>
-                  <button onClick={() => setRewriteInstruction("Make this shorter, punchier, and more impactful.")} className="text-[10px] bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2 py-1 rounded transition-colors">Punchier</button>
-                </div>
-
-                <textarea
-                  value={rewriteInstruction}
-                  onChange={(e) => setRewriteInstruction(e.target.value)}
-                  placeholder={selectedSentenceId ? "e.g., 'Make this sentence punchier'" : "e.g., 'Make this block punchier', 'Expand on the technical details', 'Fix the tone'"}
-                  className="w-full h-24 bg-zinc-900 border border-zinc-800 rounded p-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 resize-none mb-2"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedBlockId(null);
-                      setSelectedSentenceId(null);
-                    }}
-                    className="flex-1 py-2 text-xs font-bold text-zinc-500 hover:text-white bg-zinc-900 rounded transition-colors"
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    onClick={() => handleRewriteSubmit(selectedBlockId)}
-                    disabled={!rewriteInstruction.trim() || isRewriting === selectedBlockId}
-                    className="flex-1 py-2 text-xs font-bold text-black bg-emerald-500 hover:bg-emerald-400 rounded transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isRewriting === selectedBlockId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    REWRITE
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* Right: The Editor Panel */}
+        <div className="hidden xl:block h-full border-l border-zinc-800 bg-zinc-950 w-96 shrink-0">
+          <EditorPanel 
+            annotations={annotations}
+            selectedBlockId={selectedBlockId}
+            selectedSentenceId={selectedSentenceId}
+            onSelectAnnotation={handleSelectAnnotation}
+            onApplyFix={rewriteBlock}
+          />
         </div>
       </div>
     );

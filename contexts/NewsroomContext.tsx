@@ -4,6 +4,7 @@ import { useNewsroomState } from '../hooks/useNewsroomState';
 
 interface NewsroomContextType {
   step: NewsroomStep;
+  setStep: (step: NewsroomStep) => void;
   topic: string;
   setTopic: (t: string) => void;
   globalDirective: string;
@@ -22,6 +23,10 @@ interface NewsroomContextType {
   isRewriting: string | null;
   isEnhancing: boolean;
   isFetchingTicker: boolean;
+  isGeneratingImage: boolean;
+  isScouting: boolean;
+  isDebating: boolean;
+  isDrafting: boolean;
   fetchTickerData: () => Promise<void>;
   context: string;
   setContext: (c: string) => void;
@@ -29,10 +34,9 @@ interface NewsroomContextType {
   researchTopic: (t: string) => Promise<void>;
   scoutTopic: () => Promise<void>;
   runDebate: () => Promise<void>;
-  runPipeline: (angle?: EditorialAngle) => Promise<void>;
+  runPipeline: (angle?: EditorialAngle, selectedHeadline?: string) => Promise<void>;
   reDraft: () => Promise<void>;
   reShoot: () => Promise<void>;
-  runLinter: () => Promise<void>;
   rewriteBlock: (blockId: string, instruction: string, sentenceId?: string) => Promise<void>;
   enhancePrompt: () => Promise<void>;
   publish: () => void;

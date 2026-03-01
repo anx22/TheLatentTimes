@@ -9,14 +9,17 @@ export const agentDebate = async (topic: string, context: string, globalDirectiv
     The debate has already happened. Here is the transcript:
     ${transcript.map(m => `${m.persona}: ${m.message}`).join('\n')}
     
-    Based on this debate, generate 3 distinct editorial angles.
+    Based on this debate, generate exactly 3 distinct editorial angles, one for each of the following personas:
+    1. The Intellectual
+    2. The AI Visionary
+    3. The Disruptor
   ` : `
-    First, generate a short debate transcript (3-4 messages total) between the following personas discussing the topic:
-    1. The Tech-Optimist (Focuses on progress, capabilities, and utopian potential)
-    2. The Culture-Critic (Focuses on societal impact, risks, and philosophical implications)
-    3. The Fashion-Forward (Focuses on aesthetics, design, and how this integrates into human expression/lifestyle)
+    First, generate a short debate transcript (3-4 messages total) strictly between the following 3 personas (no others allowed):
+    1. The Intellectual (Focuses on deep analysis, philosophical implications, and systemic shifts)
+    2. The AI Visionary (Focuses on the bleeding edge, future trajectories, and paradigm shifts)
+    3. The Disruptor (Focuses on challenging the status quo, contrarian takes, and radical impacts)
 
-    Then, generate 3 distinct editorial angles for this story from those 3 personas.
+    Then, generate exactly 3 distinct editorial angles, one for each of these personas. For each angle, provide 3 distinct headline options.
   `;
 
   const prompt = `
@@ -27,29 +30,32 @@ export const agentDebate = async (topic: string, context: string, globalDirectiv
 
     ${transcriptSection}
     
-    Output JSON only:
+    Output JSON only. The "angles" array must contain exactly 3 objects, corresponding to the 3 personas defined above.
     {
       "transcript": [
-        { "persona": "Tech-Optimist", "message": "..." },
-        { "persona": "Culture-Critic", "message": "..." }
+        { "persona": "The Intellectual", "message": "..." },
+        { "persona": "The Disruptor", "message": "..." }
       ],
       "angles": [
         {
-          "id": "opt",
-          "persona": "Tech-Optimist",
-          "headline": "Proposed Headline (UPPERCASE)",
+          "id": "intellectual",
+          "persona": "The Intellectual",
+          "headline": "Primary Headline (UPPERCASE)",
+          "headlineOptions": ["Option 1", "Option 2", "Option 3"],
           "angle": "A 2-sentence description of the angle and why it works."
         },
         {
-          "id": "crit",
-          "persona": "Culture-Critic",
-          "headline": "Proposed Headline (UPPERCASE)",
+          "id": "visionary",
+          "persona": "The AI Visionary",
+          "headline": "Primary Headline (UPPERCASE)",
+          "headlineOptions": ["Option 1", "Option 2", "Option 3"],
           "angle": "A 2-sentence description of the angle and why it works."
         },
         {
-          "id": "fash",
-          "persona": "Fashion-Forward",
-          "headline": "Proposed Headline (UPPERCASE)",
+          "id": "disruptor",
+          "persona": "The Disruptor",
+          "headline": "Primary Headline (UPPERCASE)",
+          "headlineOptions": ["Option 1", "Option 2", "Option 3"],
           "angle": "A 2-sentence description of the angle and why it works."
         }
       ]
@@ -78,9 +84,13 @@ export const agentDebate = async (topic: string, context: string, globalDirectiv
             id: { type: Type.STRING },
             persona: { type: Type.STRING },
             headline: { type: Type.STRING },
+            headlineOptions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
             angle: { type: Type.STRING }
           },
-          required: ['id', 'persona', 'headline', 'angle']
+          required: ['id', 'persona', 'headline', 'headlineOptions', 'angle']
         }
       }
     },

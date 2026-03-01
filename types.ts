@@ -8,6 +8,7 @@ export interface EditorialAngle {
   id: string;
   persona: string;
   headline: string;
+  headlineOptions: string[];
   angle: string;
 }
 
@@ -91,6 +92,8 @@ export interface MagazineItem {
     
     // Content
     raw_excerpt?: string;
+    body?: string; // Full text content
+    blocks?: any[]; // Structured content (DraftBlock[])
     media_type: 'text' | 'image' | 'video' | 'audio';
     hero_image_url?: string;
     tags: string[];

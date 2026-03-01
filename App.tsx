@@ -7,7 +7,7 @@ import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "./convex/_generated/api";
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
@@ -91,6 +91,7 @@ const App: React.FC = () => {
   const session = { user: { email: 'editor@latent.times', id: 'dev-bypass-id' } }; // Mock session
   
   const latestIssue = useQuery(api.newsroom.queries.getLatestIssue);
+  const addItemMutation = useMutation(api.newsroom.mutations.addItemToLatestIssue);
 
   useEffect(() => {
     if (latestIssue !== undefined) {
@@ -107,11 +108,15 @@ const App: React.FC = () => {
       alert("Issue Link Copied to Clipboard");
   };
 
-  const handlePublishItem = (newItem: MagazineItem) => {
+  const handlePublishItem = async (newItem: MagazineItem) => {
+      // Optimistic update
       setIssue(prev => ({
           ...prev,
           items: [newItem, ...(prev.items || [])]
       }));
+      
+      // Persist to DB
+      await addItemMutation({ item: newItem });
   };
 
   const handleSelectIssue = async (selectedIssue: any) => {
