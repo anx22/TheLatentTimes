@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Shield, Target, Hash } from 'lucide-react';
+import { Hash } from 'lucide-react';
 
 interface DossierProps {
   title: string;

@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
-import { useNewsroom } from '../../hooks/useNewsroom';
+import { useNewsroom } from '../../../hooks/useNewsroom';
 import { Target, Radio, Globe, Search } from 'lucide-react';
 import { TickerView } from './TickerView';
 import { AutoScoutView } from './AutoScoutView';
 import { TargetedSearchView } from './TargetedSearchView';
-import { Dossier } from './Dossier';
+import { Dossier } from '../Dossier';
 
 export const TheWire: React.FC = () => {
   const { 

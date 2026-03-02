@@ -21,15 +21,6 @@ export const TopicTicker: React.FC<{ config: BlockInstance, content: IssueConten
            </span>
         ))}
       </div>
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 60s linear infinite;
-        }
-      `}</style>
     </div>
   );
 };

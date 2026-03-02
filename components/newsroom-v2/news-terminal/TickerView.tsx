@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNewsroom } from '../../hooks/useNewsroom';
+import { useNewsroom } from '../../../hooks/useNewsroom';
 import { RefreshCw } from 'lucide-react';
 
 export const TickerView: React.FC = () => {

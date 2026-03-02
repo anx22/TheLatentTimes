@@ -77,13 +77,13 @@ export const RightPanel: React.FC<RightPanelProps> = ({ activeDept }) => {
           ) : (
             logs.map((log, i) => (
               <div key={i} className="flex gap-3 animate-fade-in group">
-                <div className={`mt-1 shrink-0 ${getAgentColor(log.agent)} opacity-70 group-hover:opacity-100 transition-opacity`}>
-                  {getAgentIcon(log.agent)}
+                <div className={`mt-1 shrink-0 ${getAgentColor(log.agentName)} opacity-70 group-hover:opacity-100 transition-opacity`}>
+                  {getAgentIcon(log.agentName)}
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className={`font-bold tracking-wider text-[10px] ${getAgentColor(log.agent)}`}>
-                      {log.agent}
+                    <span className={`font-bold tracking-wider text-[10px] ${getAgentColor(log.agentName)}`}>
+                      {log.agentName}
                     </span>
                     <span className="text-[10px] text-zinc-600">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

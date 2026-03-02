@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage } from '../types';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer } from '../services/agents';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState } from '../types';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector } from '../services/agents';
+import { compressImage } from '../services/imageUtils';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   // --- CONVEX STATE (Real-time Database) ---
@@ -23,9 +24,10 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const saveDraftMutation = useMutation(api.newsroom.mutations.saveDraft);
   const logMessageMutation = useMutation(api.newsroom.mutations.logMessage);
   const saveImageMutation = useMutation(api.newsroom.mutations.saveImage);
-  const generateUploadUrlMutation = useMutation(api.newsroom.mutations.generateUploadUrl);
+  const getUploadUrlMutation = useMutation(api.media.generateUploadUrl);
   const resetNewsroomMutation = useMutation(api.newsroom.mutations.resetNewsroom);
   const saveNewsroomStateMutation = useMutation(api.newsroom.mutations.saveNewsroomState);
+  const clearLogsMutation = useMutation(api.newsroom.mutations.clearLogs);
   const persistedState = useQuery(api.newsroom.queries.getNewsroomState);
 
   // --- LOCAL UI STATE (Transient) ---
@@ -48,6 +50,19 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [isScouting, setIsScouting] = useState(false);
   const [isDebating, setIsDebating] = useState(false);
   const [isDrafting, setIsDrafting] = useState(false);
+
+  // ATELIER STATE
+  const [atelierState, setAtelierState] = useState<AtelierState>({
+    concepts: [],
+    activeConceptId: null,
+    layout: 'COVER',
+    activePalette: null,
+    suggestedPalettes: [],
+    customPrompt: '',
+    modifiers: [],
+    currentImageId: null,
+    isGenerating: false
+  });
 
   // Parameters
   const [sources, setSources] = useState({ github: true, arxiv: true, techcrunch: true });
@@ -94,6 +109,25 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         if (state.wordCount) setWordCount(state.wordCount);
         if (state.visualStyle) setVisualStyle(state.visualStyle);
         if (state.aspectRatio) setAspectRatio(state.aspectRatio);
+        
+        // Atelier Hydration (Partial)
+        if (state.atelierState) {
+           setAtelierState({
+             ...state.atelierState,
+             isGenerating: false // Always reset loading state
+           });
+        }
+        
+        // FORCE RESET ALL LOADING STATES
+        // Ensure UI is never stuck in a loading state after reload
+        setIsResearching(false);
+        setIsScouting(false);
+        setIsDebating(false);
+        setIsDrafting(false);
+        setIsGeneratingImage(false);
+        setIsEnhancing(false);
+        setIsRewriting(null);
+        setIsFetchingTicker(false);
       }
       setIsHydrating(false);
     }
@@ -104,13 +138,15 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     const stateToSave = {
       step, topic, globalDirective, activeConsensus, debateTranscript,
       context, scoutedTopics, angles, annotations, draftId, imageId,
-      sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio
+      sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
+      atelierState // Persist Atelier State
     };
     saveNewsroomStateMutation({ data: stateToSave });
   }, [
     step, topic, globalDirective, activeConsensus, debateTranscript,
     context, scoutedTopics, angles, annotations, draftId, imageId,
     sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
+    atelierState,
     isHydrating, saveNewsroomStateMutation
   ]);
 
@@ -120,6 +156,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       agentName: agent,
       message,
       step: 'UNKNOWN', // We can't easily access 'step' here due to closure, but it's fine for now
+      level,
     });
   }, [logMessageMutation]);
 
@@ -388,14 +425,13 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     try {
       const imgUrlBase64 = await agentPhotographer(draft.suggested_visual_prompt || '', visualStyle, aspectRatio, globalDirective);
       
-      addLog('THE PHOTOGRAPHER', 'Image generated. Uploading to storage...', 'info');
+      addLog('THE PHOTOGRAPHER', 'Image generated. Optimizing for web (JPEG 70%)...', 'info');
       
-      // Convert base64 to blob
-      const response = await fetch(imgUrlBase64);
-      const blob = await response.blob();
+      // Convert base64 to compressed JPEG blob
+      const blob = await compressImage(imgUrlBase64, 0.7);
 
       // Get upload URL
-      const postUrl = await generateUploadUrlMutation();
+      const postUrl = await getUploadUrlMutation();
 
       // Upload to Convex storage
       const result = await fetch(postUrl, {
@@ -531,13 +567,104 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     addLog('SYSTEM', 'Pipeline reset. Awaiting new signal.', 'info');
   };
 
+  const clearLogs = async () => {
+    await clearLogsMutation({});
+  };
+
+  // --- ATELIER ACTIONS ---
+
+  const runArtDirector = async () => {
+    if (!draft) return;
+    
+    setIsGeneratingImage(true);
+    addLog('THE ART DIRECTOR', 'Analyzing draft for visual identity...', 'action');
+    
+    try {
+      const output = await agentArtDirector(draft);
+      
+      setAtelierState(prev => ({
+        ...prev,
+        concepts: output.concepts,
+        suggestedPalettes: output.palettes,
+        activeConceptId: output.concepts[0].id,
+        activePalette: output.palettes[0],
+        customPrompt: output.concepts[0].prompt,
+        modifiers: []
+      }));
+      
+      addLog('THE ART DIRECTOR', `Visual concepts generated: ${output.metaMeaning}`, 'success');
+    } catch (e: any) {
+      addLog('THE ART DIRECTOR', `Analysis failed: ${e.message}`, 'error');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const generateAtelierImage = async (prompt: string) => {
+    setIsGeneratingImage(true);
+    addLog('THE ATELIER', 'Developing high-fidelity asset...', 'action');
+    
+    try {
+      // Construct final prompt with modifiers and palette
+      const modifiers = atelierState.modifiers.join(', ');
+      const palette = atelierState.activePalette ? `Color Palette: ${atelierState.activePalette.name} (${atelierState.activePalette.vibe})` : '';
+      const layoutDirective = `Layout Optimization: ${atelierState.layout} (Ensure composition fits this format)`;
+      
+      const finalPrompt = `${prompt}. ${modifiers}. ${palette}. ${layoutDirective}. High resolution, masterpiece.`;
+      
+      // Determine Aspect Ratio based on Layout
+      let ratio: AspectRatio = '16:9';
+      if (atelierState.layout === 'COVER') ratio = '3:4';
+      if (atelierState.layout === 'COLUMN') ratio = '1:1';
+      if (atelierState.layout === 'SOCIAL') ratio = '1:1';
+
+      const imgUrlBase64 = await agentPhotographer(finalPrompt, 'Editorial Photography', ratio, globalDirective);
+      
+      // Compress
+      const blob = await compressImage(imgUrlBase64, 0.7);
+      
+      // Upload
+      const postUrl = await getUploadUrlMutation();
+      const result = await fetch(postUrl, {
+        method: "POST",
+        headers: { "Content-Type": blob.type },
+        body: blob,
+      });
+      const { storageId } = await result.json();
+      
+      // Save
+      const newImageId = await saveImageMutation({
+        prompt: finalPrompt,
+        storageId: storageId
+      });
+      
+      setImageId(newImageId);
+      
+      // Update Local State for Preview
+      // In a real app, we'd get the URL from the ID, but for immediate feedback we can use the base64 or blob URL
+      const blobUrl = URL.createObjectURL(blob);
+      setAtelierState(prev => ({
+        ...prev,
+        currentImageId: blobUrl
+      }));
+
+      addLog('THE ATELIER', 'Asset developed and fixed.', 'success');
+    } catch (e: any) {
+      addLog('THE ATELIER', `Development failed: ${e.message}`, 'error');
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   return {
     step, setStep, topic, setTopic, globalDirective, setGlobalDirective, activeConsensus,
     debateTranscript, draft, image, error, logs, tickerItems, scoutedTopics,
     angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData,
     context, setContext, isResearching, researchTopic, scoutTopic, runDebate,
-    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, publish, reset,
+    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, publish, reset, clearLogs,
     sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
-    wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio
+    wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio,
+    // Atelier Exports
+    atelierState, setAtelierState, runArtDirector, generateAtelierImage
   };
 };

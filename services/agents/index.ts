@@ -10,3 +10,5 @@ export * from './agentColumnist';
 export * from './agentPromptEnhancer';
 export * from './agentPhotographer';
 export * from './agentPersonaSpeak';
+export * from './agentArtDirector';
+

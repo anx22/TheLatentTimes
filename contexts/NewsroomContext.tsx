@@ -1,5 +1,5 @@
 import React, { createContext } from 'react';
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage } from '../types';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState } from '../types';
 import { useNewsroomState } from '../hooks/useNewsroomState';
 
 interface NewsroomContextType {
@@ -41,6 +41,7 @@ interface NewsroomContextType {
   enhancePrompt: () => Promise<void>;
   publish: () => void;
   reset: () => void;
+  clearLogs: () => Promise<void>;
   // Parameters
   sources: { github: boolean; arxiv: boolean; techcrunch: boolean };
   setSources: (s: { github: boolean; arxiv: boolean; techcrunch: boolean }) => void;
@@ -54,6 +55,12 @@ interface NewsroomContextType {
   setVisualStyle: (s: string) => void;
   aspectRatio: AspectRatio;
   setAspectRatio: (r: AspectRatio) => void;
+  
+  // Atelier
+  atelierState: AtelierState;
+  setAtelierState: React.Dispatch<React.SetStateAction<AtelierState>>;
+  runArtDirector: () => Promise<void>;
+  generateAtelierImage: (prompt: string) => Promise<void>;
 }
 
 export const NewsroomContext = createContext<NewsroomContextType | undefined>(undefined);

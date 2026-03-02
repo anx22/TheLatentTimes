@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
 import { X, Radio, Users, Type, PenTool, Camera, Check } from 'lucide-react';
-import { TheWire } from './TheWire';
-import { TheBullpen } from './TheBullpen';
-import { TheDarkroom } from './TheDarkroom';
-import { ThePress } from './ThePress';
+import { TheWire } from './news-terminal/TheWire';
+import { TheBullpen } from './editorial-board/TheBullpen';
+import { TheAtelier } from './atelier/TheAtelier';
+import { ThePress } from './printing-press/ThePress';
 import { SystemLog } from './SystemLog';
 import { NewsroomFooter } from './NewsroomFooter';
 
@@ -12,7 +12,7 @@ interface NewsroomFloorProps {
   onClose: () => void;
 }
 
-type Department = 'THE NEWS TERMINAL' | 'THE EDITORIAL BOARD' | 'THE DARKROOM' | 'THE PRINTING PRESS';
+type Department = 'THE NEWS TERMINAL' | 'THE EDITORIAL BOARD' | 'THE ATELIER' | 'THE PRINTING PRESS';
 
 export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   const { 
@@ -25,7 +25,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
   React.useEffect(() => {
     if (step === 'NEWS_TERMINAL') setActiveDept('THE NEWS TERMINAL');
     else if (step === 'EDITORIAL_BOARD') setActiveDept('THE EDITORIAL BOARD');
-    else if (step === 'DARKROOM') setActiveDept('THE DARKROOM');
+    else if (step === 'DARKROOM') setActiveDept('THE ATELIER');
     else if (step === 'PRINTING_PRESS') setActiveDept('THE PRINTING PRESS');
     else if (step === 'PUBLISHED') setActiveDept('THE PRINTING PRESS'); 
   }, [step]);
@@ -38,7 +38,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
       case 'THE EDITORIAL BOARD':
         if (isDebating || isDrafting) return { label: 'IN SESSION', color: 'text-purple-400', items: 0 };
         return draft ? { label: 'DRAFT READY', color: 'text-emerald-500', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
-      case 'THE DARKROOM':
+      case 'THE ATELIER':
         return isGeneratingImage ? { label: 'DEVELOPING', color: 'text-amber-400', items: 1 } : { label: image ? 'DONE' : 'IDLE', color: image ? 'text-emerald-500' : 'text-zinc-600', items: image ? 1 : 0 };
       case 'THE PRINTING PRESS':
         return step === 'PRINTING_PRESS' ? { label: 'FINAL REVIEW', color: 'text-red-400', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
@@ -56,8 +56,8 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
           { name: 'Columnist', icon: Type },
           { name: 'Editor', icon: PenTool }
         ];
-      case 'THE DARKROOM':
-        return [{ name: 'Photographer', icon: Camera }];
+      case 'THE ATELIER':
+        return [{ name: 'Art Director', icon: Camera }];
       case 'THE PRINTING PRESS':
         return [{ name: 'Publisher', icon: Check }];
     }
@@ -83,7 +83,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
 
       {/* THE EDITORIAL CHAIN (TABS) */}
       <div className="flex border-b border-zinc-800 bg-zinc-900/50 shrink-0">
-        {(['THE NEWS TERMINAL', 'THE EDITORIAL BOARD', 'THE DARKROOM', 'THE PRINTING PRESS'] as Department[]).map((dept) => {
+        {(['THE NEWS TERMINAL', 'THE EDITORIAL BOARD', 'THE ATELIER', 'THE PRINTING PRESS'] as Department[]).map((dept) => {
           const status = getDeptStatus(dept);
           const isActive = activeDept === dept;
           const agents = getRoomAgents(dept);
@@ -125,7 +125,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
         <div className="flex-1 overflow-y-auto flex flex-col relative w-full">
           {activeDept === 'THE NEWS TERMINAL' && <TheWire />}
           {activeDept === 'THE EDITORIAL BOARD' && <TheBullpen />}
-          {activeDept === 'THE DARKROOM' && <TheDarkroom />}
+          {activeDept === 'THE ATELIER' && <TheAtelier />}
           {activeDept === 'THE PRINTING PRESS' && <ThePress />}
         </div>
 

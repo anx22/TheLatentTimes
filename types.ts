@@ -18,11 +18,12 @@ export interface DebateMessage {
 }
 
 export interface SystemLog {
-  id: string;
-  timestamp: Date;
-  agent: string;
+  _id: string;
+  timestamp: number;
+  agentName: string;
   message: string;
-  level: 'info' | 'action' | 'success' | 'error' | 'warning';
+  step: string;
+  level?: string;
 }
 
 export interface TickerItem {
@@ -576,11 +577,43 @@ export interface IssueContent {
   };
 }
 
-export interface AgentLog {
+// --- ATELIER TYPES (Visual Engine v2) ---
+
+export type AtelierLayoutMode = 'COVER' | 'FEATURE' | 'COLUMN' | 'SOCIAL';
+
+export interface ColorPalette {
   id: string;
-  timestamp: string;
-  phase: string;
-  agent: string; 
-  message: string;
-  data?: any;
+  name: string;
+  colors: string[]; // Hex codes
+  vibe: string;
 }
+
+export interface VisualConcept {
+  id: string;
+  name: string; // e.g., "The Literal", "The Metaphor", "The Vibe"
+  description: string;
+  prompt: string;
+  rationale: string;
+}
+
+export interface AtelierState {
+  concepts: VisualConcept[];
+  activeConceptId: string | null;
+  layout: AtelierLayoutMode;
+  activePalette: ColorPalette | null;
+  suggestedPalettes: ColorPalette[];
+  customPrompt: string;
+  modifiers: string[];
+  currentImageId: string | null;
+  isGenerating: boolean;
+}
+
+export interface ImageHistoryItem {
+  id: string;
+  url: string;
+  prompt: string;
+  timestamp: number;
+  layout: AtelierLayoutMode;
+  palette?: string;
+}
+

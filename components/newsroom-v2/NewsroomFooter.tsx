@@ -1,15 +1,21 @@
 import React from 'react';
 import { useNewsroom } from '../../hooks/useNewsroom';
-import { ArrowRight, Loader2, Check, RefreshCw, Camera } from 'lucide-react';
+import { ArrowRight, Loader2, Check, RefreshCw, Camera, RotateCcw } from 'lucide-react';
 
 export const NewsroomFooter: React.FC = () => {
   const { 
     step, topic, draft, image, 
-    runDebate, runPipeline, reDraft, reShoot, publish, reset 
+    runDebate, runPipeline, publish, reset,
+    isScouting, isDebating, isDrafting, isGeneratingImage
   } = useNewsroom();
 
   // Determine the primary action based on the current step
   const getPrimaryAction = () => {
+    if (isScouting) return { label: 'SCOUTING...', onClick: () => {}, disabled: true, icon: Loader2, loading: true };
+    if (isDebating) return { label: 'DEBATING...', onClick: () => {}, disabled: true, icon: Loader2, loading: true };
+    if (isDrafting) return { label: 'DRAFTING...', onClick: () => {}, disabled: true, icon: Loader2, loading: true };
+    if (isGeneratingImage) return { label: 'DEVELOPING...', onClick: () => {}, disabled: true, icon: Loader2, loading: true };
+
     switch (step) {
       case 'NEWS_TERMINAL':
       case 'IDLE':
@@ -23,19 +29,17 @@ export const NewsroomFooter: React.FC = () => {
       
       case 'EDITORIAL_BOARD':
         if (!draft) {
-          // In Debate Phase - Action is handled by clicking an Angle card
           return {
-            label: 'SELECT AN ANGLE ABOVE',
+            label: 'SELECT AN ANGLE IN SIDEBAR',
             onClick: () => {},
             disabled: true,
             icon: ArrowRight,
             loading: false
           };
         } else {
-          // In Draft Phase
           return {
             label: 'SEND TO DARKROOM',
-            onClick: () => runPipeline(), // Continue pipeline without new angle
+            onClick: () => runPipeline(), 
             disabled: false,
             icon: Camera,
             loading: false
@@ -44,11 +48,11 @@ export const NewsroomFooter: React.FC = () => {
 
       case 'DARKROOM':
         return {
-          label: image ? 'SEND TO PRINTING PRESS' : 'DEVELOPING...',
-          onClick: () => {}, // Logic handled in TheDarkroom for now, or we can move state transition here
+          label: image ? 'SEND TO PRINTING PRESS' : 'AWAITING IMAGE',
+          onClick: () => {}, 
           disabled: !image,
           icon: ArrowRight,
-          loading: !image
+          loading: false
         };
 
       case 'PRINTING_PRESS':
@@ -71,11 +75,11 @@ export const NewsroomFooter: React.FC = () => {
 
       default:
         return {
-          label: 'PROCESSING...',
+          label: 'STANDBY',
           onClick: () => {},
           disabled: true,
           icon: Loader2,
-          loading: true
+          loading: false
         };
     }
   };
@@ -84,13 +88,31 @@ export const NewsroomFooter: React.FC = () => {
 
   return (
     <div className="h-14 bg-zinc-950 border-t border-zinc-800 flex items-center justify-between px-6 shrink-0 z-50">
-      {/* Status Indicator */}
-      <div className="flex items-center gap-3">
-        <div className={`w-2 h-2 rounded-full ${action.loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PROTOCOL:</span>
-          <span className="text-xs font-bold text-white uppercase tracking-wider">{step.replace('_', ' ')}</span>
+      {/* Status Indicator & Reset */}
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <div className={`w-2 h-2 rounded-full ${action.loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PROTOCOL:</span>
+            <span className="text-xs font-bold text-white uppercase tracking-wider">{step.replace('_', ' ')}</span>
+          </div>
         </div>
+
+        {/* Emergency Reset Button - Always available unless IDLE */}
+        {step !== 'IDLE' && (
+          <button 
+            onClick={() => {
+              if (window.confirm('ABORT CURRENT CYCLE? This will clear all progress.')) {
+                reset();
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded border border-red-500/20 transition-colors text-[10px] font-bold tracking-widest uppercase"
+            title="Force Reset"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>ABORT</span>
+          </button>
+        )}
       </div>
 
       {/* The Big Button */}

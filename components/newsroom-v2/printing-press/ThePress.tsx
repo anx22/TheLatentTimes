@@ -1,15 +1,14 @@
-
 import React, { useState } from 'react';
-import { useNewsroom } from '../../hooks/useNewsroom';
+import { useNewsroom } from '../../../hooks/useNewsroom';
 import { Check, RefreshCw, LayoutTemplate, MonitorPlay } from 'lucide-react';
-import { Dossier } from './Dossier';
-import { MagazineItem, BlockType, BlockInstance, IssueContent } from '../../types';
+import { Dossier } from '../Dossier';
+import { MagazineItem, BlockType, BlockInstance, IssueContent } from '../../../types';
 
 // Import Layout Blocks for Preview
-import { HeroTypePlate } from '../blocks/HeroTypePlate';
-import { FeatureCard } from '../blocks/FeatureCard';
-import { BlackManifestoPanel } from '../blocks/BlackManifestoPanel';
-import { QuotePlate } from '../blocks/QuotePlate';
+import { HeroTypePlate } from '../../blocks/HeroTypePlate';
+import { FeatureCard } from '../../blocks/FeatureCard';
+import { BlackManifestoPanel } from '../../blocks/BlackManifestoPanel';
+import { QuotePlate } from '../../blocks/QuotePlate';
 
 const PREVIEW_OPTIONS: { label: string; type: BlockType }[] = [
   { label: 'Hero Plate', type: 'HeroTypePlate' },

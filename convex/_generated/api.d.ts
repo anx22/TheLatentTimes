@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as crons from "../crons.js";
+import type * as maintenance from "../maintenance.js";
+import type * as media from "../media.js";
 import type * as newsroom_mutations from "../newsroom/mutations.js";
 import type * as newsroom_queries from "../newsroom/queries.js";
 
@@ -18,6 +21,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  crons: typeof crons;
+  maintenance: typeof maintenance;
+  media: typeof media;
   "newsroom/mutations": typeof newsroom_mutations;
   "newsroom/queries": typeof newsroom_queries;
 }>;

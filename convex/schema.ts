@@ -42,6 +42,7 @@ export default defineSchema({
     agentName: v.string(), // e.g., "Scout", "Editor", "Columnist"
     message: v.string(),
     step: v.string(), // Context: "NEWS_TERMINAL", "EDITORIAL_BOARD", etc.
+    level: v.optional(v.string()), // "info", "action", "success", "error", "warning"
     timestamp: v.number(),
   }).index("by_timestamp", ["timestamp"]),
 

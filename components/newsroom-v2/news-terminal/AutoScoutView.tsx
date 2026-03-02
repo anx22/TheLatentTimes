@@ -1,11 +1,11 @@
 import React from 'react';
-import { useNewsroom } from '../../hooks/useNewsroom';
+import { useNewsroom } from '../../../hooks/useNewsroom';
 import { Activity, Loader2, Sparkles } from 'lucide-react';
 
 export const AutoScoutView: React.FC = () => {
   const { 
     topic, setTopic, setContext, 
-    scoutTopic, scoutedTopics, step, isScouting
+    scoutTopic, scoutedTopics, isScouting
   } = useNewsroom();
 
   return (

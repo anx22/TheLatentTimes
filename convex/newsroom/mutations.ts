@@ -58,6 +58,7 @@ export const logMessage = mutation({
     agentName: v.string(),
     message: v.string(),
     step: v.string(),
+    level: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("agent_logs", {
@@ -80,13 +81,6 @@ export const saveImage = mutation({
       created_at: Date.now(),
     });
     return imageId;
-  },
-});
-
-export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
   },
 });
 
@@ -155,7 +149,16 @@ export const resetNewsroom = mutation({
   },
 });
 
-// 8. ADD ITEM TO LATEST ISSUE
+// 9. CLEAR LOGS
+export const clearLogs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const logs = await ctx.db.query("agent_logs").collect();
+    for (const log of logs) {
+      await ctx.db.delete(log._id);
+    }
+  },
+});
 // Used to publish an article to the current issue.
 export const addItemToLatestIssue = mutation({
   args: {
