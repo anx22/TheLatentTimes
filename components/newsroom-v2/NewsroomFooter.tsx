@@ -5,7 +5,7 @@ import { ArrowRight, Loader2, Check, RefreshCw, Camera, RotateCcw } from 'lucide
 export const NewsroomFooter: React.FC = () => {
   const { 
     step, topic, draft, image, 
-    runDebate, runPipeline, publish, reset,
+    runDebate, runPipeline, publish, reset, reShoot,
     isScouting, isDebating, isDrafting, isGeneratingImage
   } = useNewsroom();
 
@@ -39,7 +39,7 @@ export const NewsroomFooter: React.FC = () => {
         } else {
           return {
             label: 'SEND TO DARKROOM',
-            onClick: () => runPipeline(), 
+            onClick: reShoot, 
             disabled: false,
             icon: Camera,
             loading: false

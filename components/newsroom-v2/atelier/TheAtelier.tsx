@@ -69,8 +69,19 @@ export const TheAtelier: React.FC = () => {
     setAtelierState({ ...atelierState, modifiers: next });
   };
 
-  const handleGenerate = () => {
-    generateAtelierImage(promptInput);
+  const handleGenerate = (isEdit: boolean = false) => {
+    generateAtelierImage(promptInput, isEdit);
+  };
+
+  const handleHistorySelect = (item: any) => {
+    setAtelierState({
+      ...atelierState,
+      currentImageId: item.url,
+      currentImageBase64: item.base64,
+      customPrompt: item.prompt,
+      layout: item.layout
+    });
+    setPromptInput(item.prompt);
   };
 
   return (
@@ -114,13 +125,25 @@ export const TheAtelier: React.FC = () => {
         
         {/* CANVAS */}
         <div className="flex-1 relative flex items-center justify-center p-8 overflow-hidden group">
-          {/* Layout Guides Overlay (Optional) */}
-          <div className={`absolute inset-0 pointer-events-none border-2 border-dashed border-zinc-800/50 m-8 z-10 ${atelierState.layout === 'COVER' ? 'w-[400px]' : 'w-full'}`} />
+          {/* Composition Guides Overlay */}
+          <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
+            <div className={`
+              border border-dashed border-white/10 transition-all duration-500
+              ${atelierState.layout === 'COVER' ? 'aspect-[3/4] h-[80%]' : 
+                atelierState.layout === 'FEATURE' ? 'aspect-[16/9] w-[80%]' : 
+                'aspect-square h-[80%]'}
+            `}>
+              {/* Safe Zones for Text */}
+              <div className="absolute top-0 left-0 w-full h-1/3 border-b border-dashed border-white/5 flex items-center justify-center">
+                 <span className="text-[8px] text-white/20 uppercase tracking-widest">Headline Safe Zone</span>
+              </div>
+            </div>
+          </div>
           
           {atelierState.currentImageId ? (
              <div className="relative shadow-2xl max-h-full max-w-full">
                <img 
-                 src={atelierState.currentImageId} // This will be a blob URL or base64 in practice
+                 src={atelierState.currentImageId}
                  alt="Generated" 
                  className="max-h-full max-w-full object-contain"
                />
@@ -156,8 +179,18 @@ export const TheAtelier: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-widest">PROMPT ENGINEER</span>
             </div>
             <div className="flex gap-2">
+              {atelierState.currentImageId && (
+                <button 
+                  onClick={() => handleGenerate(true)}
+                  disabled={isGeneratingImage}
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white font-bold rounded hover:bg-zinc-700 transition-colors text-xs tracking-widest uppercase disabled:opacity-50"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>REFINE</span>
+                </button>
+              )}
               <button 
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(false)}
                 disabled={isGeneratingImage}
                 className="flex items-center gap-2 px-6 py-2 bg-emerald-500 text-black font-bold rounded hover:bg-emerald-400 transition-colors text-xs tracking-widest uppercase disabled:opacity-50"
               >
@@ -235,14 +268,34 @@ export const TheAtelier: React.FC = () => {
           </div>
         </div>
 
-        {/* HISTORY (Placeholder) */}
-        <div className="p-4 h-1/3 border-t border-zinc-800 bg-zinc-900/20">
+        {/* HISTORY */}
+        <div className="p-4 h-1/3 border-t border-zinc-800 bg-zinc-900/20 overflow-y-auto">
            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
             <History className="w-3 h-3" /> HISTORY
           </h3>
-          <div className="text-center text-zinc-600 text-[10px] italic mt-8">
-            No history yet.
-          </div>
+          {atelierState.history && atelierState.history.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2">
+              {atelierState.history.map((item) => (
+                <button 
+                  key={item.id}
+                  onClick={() => handleHistorySelect(item)}
+                  className={`relative aspect-square rounded overflow-hidden border border-zinc-800 hover:border-emerald-500 transition-all ${atelierState.currentImageId === item.url ? 'ring-1 ring-emerald-500 border-emerald-500' : ''}`}
+                >
+                  {item.url ? (
+                    <img src={item.url} alt="History" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-zinc-900 flex items-center justify-center text-[8px] text-zinc-600 uppercase">
+                        EXPIRED
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-zinc-600 text-[10px] italic mt-8">
+              No history yet.
+            </div>
+          )}
         </div>
 
       </div>

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
 import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState } from '../types';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector } from '../services/agents';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector, agentPolisher } from '../services/agents';
 import { compressImage } from '../services/imageUtils';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
@@ -29,6 +29,49 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const saveNewsroomStateMutation = useMutation(api.newsroom.mutations.saveNewsroomState);
   const clearLogsMutation = useMutation(api.newsroom.mutations.clearLogs);
   const persistedState = useQuery(api.newsroom.queries.getNewsroomState);
+
+  // --- IMAGE URL HYDRATION ---
+  // Extract image IDs from persisted history to fetch valid storage URLs
+  // This fixes broken "blob:" URLs after page reload
+  const historyImageIds = ((persistedState as any)?.atelierState?.history || [])
+    .map((h: any) => h.imageId)
+    .filter((id: any) => !!id) as Id<"images">[];
+
+  const historyImageUrls = useQuery(api.newsroom.queries.getImagesByIds, { 
+    ids: historyImageIds.length > 0 ? historyImageIds : [] 
+  });
+
+  useEffect(() => {
+    if (historyImageUrls && historyImageUrls.length > 0) {
+      setAtelierState(prev => {
+        if (!prev.history) return prev;
+        
+        const newHistory = prev.history.map(h => {
+          if (h.imageId) {
+            const found = historyImageUrls.find((u: any) => u.id === h.imageId);
+            if (found && found.url && h.url !== found.url) {
+              return { ...h, url: found.url };
+            }
+          }
+          return h;
+        });
+        
+        const isChanged = newHistory.some((h, i) => h.url !== prev.history[i].url);
+        
+        if (isChanged) {
+          // Also update currentImageId if it matches a stale history URL
+          let newCurrentImageId = prev.currentImageId;
+          const currentItemIndex = prev.history.findIndex(h => h.url === prev.currentImageId);
+          if (currentItemIndex !== -1) {
+            newCurrentImageId = newHistory[currentItemIndex].url;
+          }
+          
+          return { ...prev, history: newHistory, currentImageId: newCurrentImageId };
+        }
+        return prev;
+      });
+    }
+  }, [historyImageUrls]);
 
   // --- LOCAL UI STATE (Transient) ---
   const [step, setStep] = useState<NewsroomStep>('IDLE');
@@ -61,7 +104,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     customPrompt: '',
     modifiers: [],
     currentImageId: null,
-    isGenerating: false
+    isGenerating: false,
+    history: []
   });
 
   // Parameters
@@ -71,6 +115,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [wordCount, setWordCount] = useState('Standard (600 words)');
   const [visualStyle, setVisualStyle] = useState('Editorial Photography');
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
+  const [isPolishing, setIsPolishing] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
 
   // --- STATE HYDRATION ---
@@ -139,7 +184,11 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       step, topic, globalDirective, activeConsensus, debateTranscript,
       context, scoutedTopics, angles, annotations, draftId, imageId,
       sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
-      atelierState // Persist Atelier State
+      atelierState: atelierState ? {
+        ...atelierState,
+        currentImageBase64: undefined,
+        history: atelierState.history?.map(h => ({ ...h, base64: undefined }))
+      } : undefined
     };
     saveNewsroomStateMutation({ data: stateToSave });
   }, [
@@ -528,6 +577,33 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     }
   };
 
+  const runFinalPolish = async () => {
+    if (!draft) return;
+    setIsPolishing(true);
+    addLog('THE PRESS', 'Performing final surgical polish...', 'action');
+    
+    try {
+      const polished = await agentPolisher(draft);
+      
+      const newDraftId = await saveDraftMutation({
+        headline: polished.headline,
+        deck: polished.deck,
+        body: polished.body,
+        blocks: polished.blocks,
+        tags: polished.tags,
+        suggested_visual_prompt: draft.suggested_visual_prompt,
+        status: (draft as any).status
+      });
+      setDraftId(newDraftId);
+
+      addLog('THE PRESS', 'Final polish complete. Artifact optimized.', 'success');
+    } catch (e: any) {
+      addLog('THE PRESS', `Polish failed: ${e.message}`, 'error');
+    } finally {
+      setIsPolishing(false);
+    }
+  };
+
   const publish = () => {
     if (!draft || !image) return;
     
@@ -600,9 +676,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     }
   };
 
-  const generateAtelierImage = async (prompt: string) => {
+  const generateAtelierImage = async (prompt: string, isEdit: boolean = false) => {
     setIsGeneratingImage(true);
-    addLog('THE ATELIER', 'Developing high-fidelity asset...', 'action');
+    addLog('THE ATELIER', isEdit ? 'Refining existing asset...' : 'Developing high-fidelity asset...', 'action');
     
     try {
       // Construct final prompt with modifiers and palette
@@ -618,7 +694,10 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       if (atelierState.layout === 'COLUMN') ratio = '1:1';
       if (atelierState.layout === 'SOCIAL') ratio = '1:1';
 
-      const imgUrlBase64 = await agentPhotographer(finalPrompt, 'Editorial Photography', ratio, globalDirective);
+      // If isEdit is true and we have a current image, pass it for image-to-image
+      const base64Ref = (isEdit && atelierState.currentImageBase64) ? atelierState.currentImageBase64 : undefined;
+
+      const imgUrlBase64 = await agentPhotographer(finalPrompt, 'Editorial Photography', ratio, globalDirective, base64Ref);
       
       // Compress
       const blob = await compressImage(imgUrlBase64, 0.7);
@@ -640,15 +719,27 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       
       setImageId(newImageId);
       
-      // Update Local State for Preview
-      // In a real app, we'd get the URL from the ID, but for immediate feedback we can use the base64 or blob URL
+      // Update Local State for Preview & History
       const blobUrl = URL.createObjectURL(blob);
+      const historyItem = {
+        id: Math.random().toString(36).substring(7),
+        url: blobUrl,
+        base64: imgUrlBase64,
+        imageId: newImageId, // Persist ID
+        prompt: finalPrompt,
+        timestamp: Date.now(),
+        layout: atelierState.layout,
+        palette: atelierState.activePalette?.name
+      };
+
       setAtelierState(prev => ({
         ...prev,
-        currentImageId: blobUrl
+        currentImageId: blobUrl,
+        currentImageBase64: imgUrlBase64,
+        history: [historyItem, ...(prev.history || [])].slice(0, 10) // Keep last 10
       }));
 
-      addLog('THE ATELIER', 'Asset developed and fixed.', 'success');
+      addLog('THE ATELIER', isEdit ? 'Asset refined and updated.' : 'Asset developed and fixed.', 'success');
     } catch (e: any) {
       addLog('THE ATELIER', `Development failed: ${e.message}`, 'error');
     } finally {
@@ -661,9 +752,10 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     debateTranscript, draft, image, error, logs, tickerItems, scoutedTopics,
     angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData,
     context, setContext, isResearching, researchTopic, scoutTopic, runDebate,
-    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, publish, reset, clearLogs,
+    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, runFinalPolish, publish, reset, clearLogs,
     sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
     wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio,
+    isPolishing,
     // Atelier Exports
     atelierState, setAtelierState, runArtDirector, generateAtelierImage
   };

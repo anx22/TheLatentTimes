@@ -122,3 +122,19 @@ export const getLatestIssue = query({
       .first();
   },
 });
+
+// 8. GET IMAGES BY IDS
+export const getImagesByIds = query({
+  args: { ids: v.array(v.id("images")) },
+  handler: async (ctx, args) => {
+    const results = await Promise.all(
+      args.ids.map(async (id) => {
+        const img = await ctx.db.get(id);
+        if (!img) return null;
+        const url = await ctx.storage.getUrl(img.storageId);
+        return { id: img._id, url };
+      })
+    );
+    return results.filter((r) => r !== null) as { id: string; url: string }[];
+  },
+});

@@ -7,6 +7,7 @@ import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
+import { DebugStatus } from './components/DebugStatus';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "./convex/_generated/api";
 
@@ -167,6 +168,8 @@ const App: React.FC = () => {
             sections={activeSections} 
             data={issue} 
          />
+         
+         <DebugStatus />
          
          {/* Floating Toggle (Backup access) */}
          {!showNewsroom && session && (

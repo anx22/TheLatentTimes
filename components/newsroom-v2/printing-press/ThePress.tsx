@@ -1,174 +1,128 @@
 import React, { useState } from 'react';
+import { NewspaperGrid, LayoutItem } from './grid/NewspaperGrid';
+import { GalleyRail } from './GalleyRail';
 import { useNewsroom } from '../../../hooks/useNewsroom';
-import { Check, RefreshCw, LayoutTemplate, MonitorPlay } from 'lucide-react';
-import { Dossier } from '../Dossier';
-import { MagazineItem, BlockType, BlockInstance, IssueContent } from '../../../types';
-
-// Import Layout Blocks for Preview
-import { HeroTypePlate } from '../../blocks/HeroTypePlate';
-import { FeatureCard } from '../../blocks/FeatureCard';
-import { BlackManifestoPanel } from '../../blocks/BlackManifestoPanel';
-import { QuotePlate } from '../../blocks/QuotePlate';
-
-const PREVIEW_OPTIONS: { label: string; type: BlockType }[] = [
-  { label: 'Hero Plate', type: 'HeroTypePlate' },
-  { label: 'Feature Card', type: 'FeatureCard' },
-  { label: 'Manifesto', type: 'BlackManifestoPanel' },
-  { label: 'Quote', type: 'QuotePlate' },
-];
+import { MagazineItem } from '../../../types';
 
 export const ThePress: React.FC = () => {
-  const { step, draft, image, reset, reDraft, reShoot } = useNewsroom();
-  const [previewLayout, setPreviewLayout] = useState<BlockType>('HeroTypePlate');
-
-  // Construct the preview item from current draft state
-  const previewItem: MagazineItem | null = draft && image ? {
-    id: 'preview_artifact',
-    title: draft.headline,
-    dek: draft.deck,
-    published_at: new Date().toISOString(),
-    tags: draft.tags || [],
-    media_type: 'image',
-    hero_image_url: image,
-    status: 'review',
-    featured_level: 'none',
-    body: draft.body,
-    blocks: draft.blocks
-  } : null;
-
-  // Construct a mock IssueContent for blocks that require it (HeroTypePlate, BlackManifestoPanel)
-  const mockIssueContent: IssueContent = {
-    meta: {
-        run_id: 'preview',
-        issue_id: 'preview',
-        vol: 'PREVIEW',
-        theme: 'PREVIEW',
-        date: 'NOW',
-        editor: 'YOU',
-        status: 'WRITING',
-        metrics: { signals_ingested: 0, avg_confidence: 0, error_rate: 0 }
+  const { draft, image } = useNewsroom();
+  const [scale, setScale] = useState(1.0);
+  
+  // Mock Galley Items (In real app, filter items not in layout)
+  const [galleyItems, setGalleyItems] = useState<MagazineItem[]>([
+    {
+      id: 'galley_1',
+      title: "The Future of Print",
+      dek: "Why physical media is making a comeback in the digital age.",
+      published_at: new Date().toISOString(),
+      tags: ['Culture'],
+      media_type: 'text',
+      status: 'approved',
+      featured_level: 'none'
     },
-    items: previewItem ? [previewItem] : [],
-    ticker: [],
-    cover: {
-        eyebrow: "PREVIEW",
-        title: draft?.headline || "Untitled",
-        deck: draft?.deck || "No deck",
-        coverlines: [],
-        imgPrompt: "",
-        img_base64: image || ""
-    },
-    edit: [],
-    drops: [],
-    debates: [],
-    features: [],
-    columns: [],
-    atelier: [],
-    index_keys: [],
-    colophon: { contributors: [], sources: [], corrections: [] }
-  };
-
-  // Construct a mock block configuration for the preview
-  const previewBlock: BlockInstance = {
-    id: 'preview_block',
-    block_type: previewLayout,
-    col_span: 12,
-    row_span: 6,
-    variant: 'L',
-    data_binding: { source: 'static' }
-  };
-
-  const renderPreview = () => {
-    if (!previewItem) return null;
-
-    switch (previewLayout) {
-      case 'HeroTypePlate': return <HeroTypePlate config={previewBlock} content={mockIssueContent} data={previewItem} />;
-      case 'FeatureCard': return <FeatureCard config={previewBlock} data={previewItem} />;
-      case 'BlackManifestoPanel': return <BlackManifestoPanel config={previewBlock} content={mockIssueContent} />;
-      case 'QuotePlate': return <QuotePlate config={previewBlock} data={previewItem} />;
-      default: return <HeroTypePlate config={previewBlock} content={mockIssueContent} data={previewItem} />;
+    {
+      id: 'galley_2',
+      title: "Neural Networks Visualization",
+      dek: "Seeing the unseen layers of deep learning models.",
+      published_at: new Date().toISOString(),
+      tags: ['Tech', 'Visuals'],
+      media_type: 'image',
+      status: 'approved',
+      featured_level: 'none'
     }
+  ]);
+
+  const handleLayoutChange = (layout: LayoutItem[]) => {
+    console.log('Layout changed in ThePress:', layout);
+  };
+
+  const handleDragStart = (e: React.DragEvent, item: MagazineItem) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(item));
+  };
+
+  const handleRemoveFromGalley = (id: string) => {
+    setGalleyItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleGridDrop = (layout: LayoutItem[], item: LayoutItem, e: DragEvent) => {
+    // Retrieve the item data from the drag event
+    // Note: In real RGL, the 'e' passed to onDrop might be a synthetic event or native event depending on version
+    // We might need to access the dataTransfer from the source if possible, or use a shared state for "draggingItem"
+    // However, RGL's onDrop gives us the final layout item position.
+    
+    // For now, we'll assume the item added to layout needs to be enriched with the galley item data.
+    // Since RGL doesn't pass the dataTransfer in a way we can easily read async in some versions, 
+    // a common pattern is to store the "currently dragging" item in a ref or state when drag starts in Galley.
+    
+    // But let's try to read it if possible, or better: use a state for "draggedItem" lifted to this component.
+  };
+  
+  // We need a state to track what is being dragged to pass metadata to the grid on drop
+  const [draggedItem, setDraggedItem] = useState<MagazineItem | null>(null);
+
+  const onGalleyDragStart = (e: React.DragEvent, item: MagazineItem) => {
+    setDraggedItem(item);
+    e.dataTransfer.setData('text/plain', item.id); // Required for Firefox
   };
 
   return (
-    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full p-6 h-full overflow-hidden">
-      <Dossier
-        title={draft ? draft.headline : "FINAL ARTIFACT"}
-        status={step === 'PUBLISHED' ? "PUBLISHED" : (draft && image ? "READY FOR PRESS" : "PENDING")}
-        classification="PUBLIC RELEASE"
-      >
-        <div className="flex-1 flex flex-col h-full">
-          {draft && image && step !== 'PUBLISHED' ? (
-            <div className="flex-1 flex flex-col h-full gap-6">
-              
-              {/* Header & Controls */}
-              <div className="flex items-center justify-between shrink-0">
-                <div>
-                  <h2 className="text-2xl font-bold text-white font-display">Layout Preview</h2>
-                  <p className="text-zinc-500">Verify artifact rendering on the grid.</p>
-                </div>
-                
-                <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
-                  {PREVIEW_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.type}
-                      onClick={() => setPreviewLayout(opt.type)}
-                      className={`
-                        px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition-all
-                        ${previewLayout === opt.type 
-                          ? 'bg-zinc-800 text-white shadow-sm' 
-                          : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'}
-                      `}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* The Preview Canvas */}
-              <div className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-lg overflow-hidden relative flex items-center justify-center p-8">
-                <div className="w-full max-w-4xl shadow-2xl bg-white">
-                   {/* We wrap in a div that simulates a grid cell or container */}
-                   {renderPreview()}
-                </div>
-                
-                {/* Overlay Badge */}
-                <div className="absolute top-4 right-4 bg-black/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded border border-white/10 flex items-center gap-2">
-                  <MonitorPlay className="w-3 h-3 text-emerald-500" />
-                  LIVE PREVIEW
-                </div>
-              </div>
+    <div className="flex h-full bg-zinc-950 overflow-hidden">
+      {/* 1. The Galley (Sidebar) */}
+      <GalleyRail 
+        items={galleyItems} 
+        onDragStart={onGalleyDragStart}
+        onRemove={handleRemoveFromGalley}
+      />
 
-              {/* Action Bar */}
-              <div className="flex justify-center gap-4 shrink-0 pt-2">
-                <button onClick={reset} className="px-6 py-3 text-zinc-500 hover:text-red-500 transition-colors font-bold text-xs tracking-widest">SCRAP ARTIFACT</button>
-                <button onClick={reDraft} className="px-6 py-3 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 font-bold text-xs tracking-widest border border-zinc-800 rounded hover:bg-zinc-800">
-                  <RefreshCw className="w-4 h-4" /> RE-DRAFT
-                </button>
-                <button onClick={reShoot} className="px-6 py-3 text-zinc-400 hover:text-white transition-colors flex items-center gap-2 font-bold text-xs tracking-widest border border-zinc-800 rounded hover:bg-zinc-800">
-                  <RefreshCw className="w-4 h-4" /> RE-SHOOT
-                </button>
-              </div>
+      {/* 2. The Press Bed (Main Area) */}
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        {/* Toolbar */}
+        <div className="h-12 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-900/50 z-10">
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">ZOOM LEVEL</span>
+            <div className="flex items-center gap-1 bg-zinc-950 rounded p-1 border border-zinc-800">
+              <button 
+                onClick={() => setScale(Math.max(0.25, scale - 0.1))}
+                className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+              >-</button>
+              <span className="w-12 text-center text-[10px] font-mono text-zinc-300">{(scale * 100).toFixed(0)}%</span>
+              <button 
+                onClick={() => setScale(Math.min(1.5, scale + 0.1))}
+                className="w-6 h-6 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+              >+</button>
             </div>
-          ) : step === 'PUBLISHED' ? (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-6 animate-fade-in h-full">
-              <div className="w-32 h-32 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center border-4 border-emerald-500/20">
-                <Check className="w-16 h-16" />
-              </div>
-              <div className="text-center space-y-2">
-                <h2 className="text-4xl font-black text-white tracking-tighter uppercase font-display">PUBLISHED</h2>
-                <p className="text-zinc-500 font-mono text-xs tracking-widest">THE ARTIFACT IS LIVE ON THE GRID.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4 opacity-50 h-full">
-              <LayoutTemplate className="w-12 h-12 text-zinc-600" />
-              <p className="text-sm text-zinc-500">No artifacts ready for review.</p>
-            </div>
-          )}
+          </div>
+          <div className="text-[10px] font-mono text-zinc-600">
+            PRESS BED: 1200px WIDTH
+          </div>
         </div>
-      </Dossier>
+
+        {/* Scrollable Canvas Area */}
+        <div className="flex-1 overflow-auto bg-zinc-900/50 relative p-12">
+          <div 
+            className="origin-top mx-auto transition-transform duration-200 ease-out shadow-2xl"
+            style={{ 
+              transform: `scale(${scale})`,
+              width: '1200px', // Match grid width
+              height: 'fit-content'
+            }}
+          >
+            <NewspaperGrid 
+              onLayoutChange={handleLayoutChange} 
+              scale={scale}
+              isDroppable={true}
+              draggedItem={draggedItem}
+              onDropItem={(item) => {
+                 // Remove from galley
+                 if (draggedItem) {
+                    setGalleyItems(prev => prev.filter(i => i.id !== draggedItem.id));
+                    setDraggedItem(null);
+                 }
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

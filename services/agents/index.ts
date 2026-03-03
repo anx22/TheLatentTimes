@@ -11,4 +11,5 @@ export * from './agentPromptEnhancer';
 export * from './agentPhotographer';
 export * from './agentPersonaSpeak';
 export * from './agentArtDirector';
+export * from './agentPolisher';
 

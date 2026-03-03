@@ -605,12 +605,16 @@ export interface AtelierState {
   customPrompt: string;
   modifiers: string[];
   currentImageId: string | null;
+  currentImageBase64?: string;
   isGenerating: boolean;
+  history: ImageHistoryItem[];
 }
 
 export interface ImageHistoryItem {
   id: string;
   url: string;
+  base64?: string;
+  imageId?: string; // Convex ID for persistence
   prompt: string;
   timestamp: number;
   layout: AtelierLayoutMode;

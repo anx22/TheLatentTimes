@@ -39,9 +39,11 @@ interface NewsroomContextType {
   reShoot: () => Promise<void>;
   rewriteBlock: (blockId: string, instruction: string, sentenceId?: string) => Promise<void>;
   enhancePrompt: () => Promise<void>;
+  runFinalPolish: () => Promise<void>;
   publish: () => void;
   reset: () => void;
   clearLogs: () => Promise<void>;
+  isPolishing: boolean;
   // Parameters
   sources: { github: boolean; arxiv: boolean; techcrunch: boolean };
   setSources: (s: { github: boolean; arxiv: boolean; techcrunch: boolean }) => void;
@@ -60,7 +62,7 @@ interface NewsroomContextType {
   atelierState: AtelierState;
   setAtelierState: React.Dispatch<React.SetStateAction<AtelierState>>;
   runArtDirector: () => Promise<void>;
-  generateAtelierImage: (prompt: string) => Promise<void>;
+  generateAtelierImage: (prompt: string, isEdit?: boolean) => Promise<void>;
 }
 
 export const NewsroomContext = createContext<NewsroomContextType | undefined>(undefined);

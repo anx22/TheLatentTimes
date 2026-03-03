@@ -132,9 +132,7 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
       </main>
 
       {/* FOOTER: THE BIG BUTTON */}
-      {activeDept !== 'THE EDITORIAL BOARD' && (
-        <NewsroomFooter />
-      )}
+      <NewsroomFooter />
 
       <SystemLog />
 
