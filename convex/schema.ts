@@ -15,14 +15,44 @@ import { v } from "convex/values";
  */
 
 export default defineSchema({
-  // 1. TICKER ITEMS (Raw Signals)
+  // 1. SOURCES (The Crawl Targets)
+  sources: defineTable({
+    name: v.string(), // e.g., "GitHub Trending", "TechCrunch"
+    url: v.string(), // The RSS or API endpoint
+    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github")),
+    lastFetchedAt: v.number(), // Timestamp of last successful fetch
+    crawlFrequency: v.number(), // Minutes between crawls
+    isActive: v.boolean(),
+  }).index("by_url", ["url"]),
+
+  // 2. STORIES (The Clusters / Knowledge Graph)
+  stories: defineTable({
+    title: v.string(), // Auto-generated meta-title
+    summary: v.string(), // Auto-generated meta-summary
+    keyEntities: v.array(v.string()), // e.g., ["OpenAI", "Sam Altman"]
+    lastUpdatedAt: v.number(),
+    status: v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived")),
+  }).index("by_lastUpdatedAt", ["lastUpdatedAt"]),
+
+  // 3. TICKER ITEMS (Raw Signals)
   ticker_items: defineTable({
     title: v.string(),
     source: v.string(),
-    url: v.optional(v.string()),
+    sourceId: v.optional(v.id("sources")), // Link to the source
+    url: v.optional(v.string()), // Changed to required for deduplication
+    content: v.optional(v.string()), // Snippet or full text for embedding
     timestamp: v.number(), // Unix timestamp
     status: v.union(v.literal("new"), v.literal("processing"), v.literal("archived")),
-  }).index("by_timestamp", ["timestamp"]),
+    storyId: v.optional(v.id("stories")), // The cluster it belongs to
+    embedding: v.optional(v.array(v.float64())), // The vector representation
+  })
+  .index("by_timestamp", ["timestamp"])
+  .index("by_url", ["url"]) // For hard deduplication
+  .vectorIndex("by_embedding", {
+    vectorField: "embedding",
+    dimensions: 768, // Gemini text-embedding-004 dimensions
+    filterFields: ["storyId"],
+  }),
 
   // 2. DRAFTS (The Article)
   drafts: defineTable({

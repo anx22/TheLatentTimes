@@ -1,5 +1,5 @@
 import React, { createContext } from 'react';
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState } from '../types';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, ScoutedSignal, LayoutItem } from '../types';
 import { useNewsroomState } from '../hooks/useNewsroomState';
 
 interface NewsroomContextType {
@@ -16,7 +16,8 @@ interface NewsroomContextType {
   error: string | null;
   logs: SystemLog[];
   tickerItems: TickerItem[];
-  scoutedTopics: string[];
+  newsClusters: any[];
+  scoutedTopics: ScoutedSignal[];
   angles: EditorialAngle[];
   annotations: BlockAnnotation[];
   isLinting: boolean;
@@ -28,6 +29,7 @@ interface NewsroomContextType {
   isDebating: boolean;
   isDrafting: boolean;
   fetchTickerData: () => Promise<void>;
+  synthesizeCluster: (clusterId: any) => Promise<void>;
   context: string;
   setContext: (c: string) => void;
   isResearching: boolean;
@@ -63,12 +65,17 @@ interface NewsroomContextType {
   setAtelierState: React.Dispatch<React.SetStateAction<AtelierState>>;
   runArtDirector: () => Promise<void>;
   generateAtelierImage: (prompt: string, isEdit?: boolean) => Promise<void>;
+
+  // Layout
+  layout: LayoutItem[];
+  setLayout: (l: LayoutItem[]) => void;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const NewsroomContext = createContext<NewsroomContextType | undefined>(undefined);
 
-export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem) => void }> = ({ children, onPublish }) => {
-  const state = useNewsroomState(onPublish);
+export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout: LayoutItem[]) => void, initialLayout?: LayoutItem[] }> = ({ children, onPublish, initialLayout }) => {
+  const state = useNewsroomState(onPublish, initialLayout);
 
   return (
     <NewsroomContext.Provider value={state}>

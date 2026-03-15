@@ -14,14 +14,111 @@ export const addTickerItem = mutation({
   args: {
     title: v.string(),
     source: v.string(),
-    url: v.optional(v.string()),
+    sourceId: v.optional(v.id("sources")),
+    url: v.string(),
+    content: v.optional(v.string()),
     status: v.string(),
+    storyId: v.optional(v.id("stories")),
+    embedding: v.optional(v.array(v.float64())),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("ticker_items", {
+    // Hard Deduplication: Check if URL already exists
+    const existing = await ctx.db
+      .query("ticker_items")
+      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .first();
+
+    if (existing) {
+      return existing._id; // Return existing ID, don't insert duplicate
+    }
+
+    const id = await ctx.db.insert("ticker_items", {
       ...args,
       status: args.status as "new" | "processing" | "archived",
       timestamp: Date.now(),
+    });
+    return id;
+  },
+});
+
+// 1.1 SOURCES MANAGEMENT
+export const addSource = mutation({
+  args: {
+    name: v.string(),
+    url: v.string(),
+    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github")),
+    crawlFrequency: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("sources")
+      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .first();
+
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("sources", {
+      ...args,
+      lastFetchedAt: 0,
+      isActive: true,
+    });
+  },
+});
+
+export const updateSourceFetchTime = mutation({
+  args: {
+    sourceId: v.id("sources"),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sourceId, {
+      lastFetchedAt: args.timestamp,
+    });
+  },
+});
+
+// 1.2 CLUSTER MANAGEMENT
+export const addNewsCluster = mutation({
+  args: {
+    title: v.string(),
+    summary: v.string(),
+    keyEntities: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("stories", {
+      ...args,
+      status: "emerging",
+      lastUpdatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateNewsCluster = mutation({
+  args: {
+    clusterId: v.id("stories"),
+    title: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    keyEntities: v.optional(v.array(v.string())),
+    status: v.optional(v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived"))),
+  },
+  handler: async (ctx, args) => {
+    const { clusterId, ...updates } = args;
+    await ctx.db.patch(clusterId, {
+      ...updates,
+      lastUpdatedAt: Date.now(),
+    });
+  },
+});
+
+// 1.3 UPDATE TICKER ITEM STORY
+export const updateTickerItemStory = mutation({
+  args: {
+    id: v.id("ticker_items"),
+    storyId: v.id("stories"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      storyId: args.storyId,
     });
   },
 });
@@ -163,6 +260,7 @@ export const clearLogs = mutation({
 export const addItemToLatestIssue = mutation({
   args: {
     item: v.any(),
+    layout: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const latestIssue = await ctx.db
@@ -179,6 +277,7 @@ export const addItemToLatestIssue = mutation({
         content: {
           ...content,
           items: newItems,
+          ...(args.layout ? { layout: args.layout } : {}),
         },
       });
     } else {
@@ -223,4 +322,24 @@ export const addItemToLatestIssue = mutation({
       });
     }
   },
+});
+
+// 15. SEED SOURCES
+export const seedSources = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("sources").collect();
+    if (existing.length > 0) return;
+
+    const initialSources = [
+      { name: "Hacker News", url: "https://hnrss.org/frontpage", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "TechCrunch", url: "https://techcrunch.com/feed/", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "GitHub Trending", url: "https://github.com", type: "github" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "ArXiv CS", url: "http://export.arxiv.org/rss/cs", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 }
+    ];
+
+    for (const source of initialSources) {
+      await ctx.db.insert("sources", source);
+    }
+  }
 });

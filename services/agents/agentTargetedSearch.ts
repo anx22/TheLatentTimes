@@ -13,6 +13,8 @@ export const agentTargetedSearch = async (topic: string, globalDirective?: strin
     Raw Data:
     ${searchResult.text}
     
+    ${searchResult.isFallback ? 'WARNING: Live search failed. The data above is from internal knowledge training, not real-time web search. Treat it as potentially outdated.' : ''}
+
     If the raw data does NOT contain relevant information about "${topic}" (i.e., it's a fictional or non-existent technical topic), you MUST start your response with "UNGROUNDED:".
     
     Otherwise, provide a concise, highly technical briefing (max 3 sentences) that will serve as the foundation for the Columnist.

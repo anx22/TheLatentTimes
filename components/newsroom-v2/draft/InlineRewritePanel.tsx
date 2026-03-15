@@ -10,7 +10,6 @@ interface InlineRewritePanelProps {
 }
 
 export const InlineRewritePanel: React.FC<InlineRewritePanelProps> = ({
-  blockId,
   sentenceId,
   isRewriting,
   onCancel,

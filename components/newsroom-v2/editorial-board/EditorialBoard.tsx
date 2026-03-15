@@ -7,11 +7,11 @@ import { EditorPanel } from '../draft/EditorPanel';
 import { DebateView } from './DebateView';
 import { DashboardView } from './DashboardView';
 
-export const TheBullpen: React.FC = () => {
+export const EditorialBoard: React.FC = () => {
   const { 
-    draft, angles, debateTranscript, isDebating, isDrafting, isGeneratingImage,
+    draft, angles, debateTranscript, isDebating, isDrafting,
     editorialLens, globalDirective, runPipeline, runDebate, topic,
-    annotations, rewriteBlock, reShoot
+    annotations, rewriteBlock
   } = useNewsroom();
   
   const [selectedAngle, setSelectedAngle] = useState<EditorialAngle | null>(null);
@@ -71,23 +71,6 @@ export const TheBullpen: React.FC = () => {
           </div>
         ) : draft ? (
           <div className="flex flex-col h-full">
-            {/* EMERGENCY HANDOVER BAR */}
-            <div className="bg-emerald-500/10 border-b border-emerald-500/20 p-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md">
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Draft Approved by Board</span>
-                </div>
-                <button 
-                    onClick={() => {
-                        console.log('[FORCE] Handover triggered');
-                        reShoot();
-                    }}
-                    className="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[10px] uppercase tracking-widest rounded shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2"
-                >
-                    <ArrowRight className="w-3 h-3" />
-                    <span>Handover to Darkroom</span>
-                </button>
-            </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <DraftView 
                     selectedBlockId={selectedBlockId}
@@ -218,20 +201,6 @@ export const TheBullpen: React.FC = () => {
 
             {/* SIDEBAR FOOTER */}
             <div className="p-6 border-t border-zinc-800 bg-zinc-900/20 space-y-3 relative z-50">
-               {draft && (
-                 <button 
-                   onClick={() => {
-                       if (isDrafting || isGeneratingImage) return;
-                       if (reShoot) reShoot();
-                   }}
-                   disabled={isDrafting || isGeneratingImage}
-                   className={`w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] ${isDrafting || isGeneratingImage ? 'opacity-50 cursor-not-allowed' : ''}`}
-                 >
-                   {isGeneratingImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <ArrowRight className="w-3 h-3" />}
-                   <span>{isGeneratingImage ? 'Sending...' : 'Approve & Send to Darkroom'}</span>
-                 </button>
-               )}
-               
                <button 
                  onClick={runDebate}
                  disabled={isDebating || isDrafting}

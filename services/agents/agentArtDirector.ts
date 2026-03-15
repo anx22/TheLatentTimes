@@ -24,6 +24,8 @@ export const agentArtDirector = async (article: GeneratedArticle): Promise<ArtDi
     2. "THE METAPHOR": An abstract, symbolic, or surreal interpretation of the core theme (e.g., 3D Render, Abstract Art).
     3. "THE VIBE": A mood-based, atmospheric approach that captures the feeling of the piece (e.g., Cinematic, Lo-fi, Glitch).
 
+    CRITICAL CONSTRAINT: All prompts MUST explicitly state "No text, no typography, no magazine titles, no layout elements". The generated image should be a PURE VISUAL without any words or letters.
+
     TASK 2: COLOR PALETTES (Generate 3 Distinct Palettes)
     Create 3 color palettes (5 hex codes each) that reinforce these concepts.
     Give them evocative names (e.g., "Neon Noir", "Rust & Chrome", "Digital Ether").

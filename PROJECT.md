@@ -9,11 +9,12 @@ The heart of The Latent Times is **The Newsroom Floor**, a comprehensive, simult
 ### The Departments & Agents
 The newsroom is divided into operational departments, staffed by specialized agents:
 
-1.  **THE NEWS TERMINAL (Ingestion & Scouting)**: 
-    *   **The Ticker (Passive)**: Zero-token aggregation of real-world sources (GitHub, RSS). Managed via a user-installable Source Management Panel.
-    *   **Auto-Scout (Active)**: AI-driven exploration of broad tech trends.
+1.  **THE NEWS TERMINAL (Intelligent News Engine)**: 
+    *   **Source Management**: Tracking of specific feeds, APIs, and webhooks with `last_fetched` cutoffs to prevent redundant crawling.
+    *   **Vector Clustering (The Ticker)**: Incoming news is embedded via Gemini and clustered into "Stories" based on semantic similarity. Deduplication happens automatically.
+    *   **Auto-Scout (Active)**: AI-driven exploration of broad tech trends to discover new sources.
     *   **Targeted Search (Specific)**: Deep-dive research into a user-provided query.
-    *   *Agent*: **The Scout** (Interfacing with global data streams).
+    *   *Agent*: **The Scout** (Interfacing with global data streams and managing the Knowledge Graph).
 2.  **THE EDITORIAL BOARD (Ideation, Debate, Drafting & Critique)**:
     *   **Fusion of Angles & Drafts**: This room is the "Gold Mine". It combines the source news, the debated angles (Lenses), and the resulting first article.
     *   **Critical Analysis**: Agents critically engage with the source material. We need confidence levels, fact-checking, and correct categorization.
@@ -26,6 +27,7 @@ The newsroom is divided into operational departments, staffed by specialized age
     *   *Agent*: **The Photographer** (Visual Director - develops latent space artifacts).
 4.  **THE PRINTING PRESS (Publishing)**:
     *   Final review and assembly of the artifact into the dynamic grid.
+    *   **Technology**: `react-grid-layout` with native handles for drag-and-drop editorial control.
 
 ### The Workflow (The Editorial Chain)
 1.  **The News Terminal**: The Scout identifies a hard tech signal (e.g., "New ComfyUI Workflow").

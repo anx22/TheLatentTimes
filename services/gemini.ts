@@ -14,18 +14,18 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
     if (!text) return {};
     try {
         return JSON.parse(text);
-    } catch (e) {
+    } catch {
         try {
             const clean = text.replace(/```json\n?|```/g, '').trim();
             return JSON.parse(clean);
-        } catch (e2) {
+        } catch {
             try {
                 const firstOpen = text.search(/[{[]/);
                 const lastClose = text.search(/[}\]](?!.*[}\]])/);
                 if (firstOpen !== -1 && lastClose !== -1) {
                     return JSON.parse(text.substring(firstOpen, lastClose + 1));
                 }
-            } catch (e3) {
+            } catch {
                 console.warn("[Parser] JSON Parse Failed", text?.slice(0, 100));
             }
             return {};
@@ -54,9 +54,7 @@ const getApiKey = (): string => {
         // The previous check `typeof process !== 'undefined'` caused it to be skipped in the browser.
         if (process.env.GEMINI_API_KEY) apiKey = process.env.GEMINI_API_KEY;
         else if (process.env.API_KEY) apiKey = process.env.API_KEY;
-        // @ts-ignore
         else if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        // @ts-ignore
         else if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) apiKey = import.meta.env.VITE_API_KEY;
     } catch (e) {
         console.warn("[NET] Error retrieving API key from env", e);
@@ -190,7 +188,7 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
 };
 
 // Search Grounding using Gemini 3 Flash Preview
-export const searchTrend = async (query: string): Promise<SearchResult> => {
+export const searchTrend = async (query: string): Promise<SearchResult & { isFallback?: boolean }> => {
   try {
     const response = await safeGenerateContent({
       model: 'gemini-3-flash-preview',
@@ -205,7 +203,7 @@ export const searchTrend = async (query: string): Promise<SearchResult> => {
       .map((chunk: any) => chunk.web ? { title: chunk.web.title, url: chunk.web.uri } : null)
       .filter((item: any) => item !== null) as { title: string; url: string }[];
 
-    return { text, groundingUrls };
+    return { text, groundingUrls, isFallback: false };
   } catch (e) {
     console.warn("[NET] Search Grounding failed (likely auth/billing). Falling back to internal knowledge.", e);
     
@@ -220,7 +218,56 @@ export const searchTrend = async (query: string): Promise<SearchResult> => {
 
     return { 
       text: fallbackResponse.text || "Search unavailable and fallback failed.", 
-      groundingUrls: [] 
+      groundingUrls: [],
+      isFallback: true
     };
+  }
+};
+
+export const listModels = async () => {
+  const apiKey = getApiKey();
+  const client = new GoogleGenAI({ apiKey: apiKey });
+  try {
+    const response = await client.models.list();
+    for await (const model of response) {
+      if (model.name?.includes('embed')) {
+        console.log("MODEL:", model.name);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
+export const generateEmbedding = async (text: string): Promise<number[]> => {
+  const apiKey = getApiKey();
+  const client = new GoogleGenAI({ apiKey: apiKey });
+  
+  try {
+    const response = await client.models.embedContent({
+      model: 'text-embedding-004',
+      contents: text,
+    });
+    
+    if (response.embeddings && response.embeddings.length > 0) {
+      const values = response.embeddings[0].values;
+      if (values) return values;
+    }
+    throw new Error("No embedding returned");
+  } catch (e: any) {
+    console.warn("[NET] text-embedding-004 failed, trying embedding-001", e.message);
+    try {
+      const response = await client.models.embedContent({
+        model: 'embedding-001',
+        contents: text,
+      });
+      if (response.embeddings && response.embeddings.length > 0) {
+        const values = response.embeddings[0].values;
+        if (values) return values;
+      }
+      throw new Error("No embedding returned from fallback");
+    } catch (fallbackError) {
+      console.error("[NET] Embedding Generation FAILED", fallbackError);
+      throw fallbackError;
+    }
   }
 };

@@ -28,7 +28,7 @@ export const GalleyRail: React.FC<GalleyRailProps> = ({ items, onDragStart, onRe
             <button 
               onClick={(e) => {
                 e.stopPropagation(); // Prevent drag start when clicking remove
-                onRemove && onRemove(item.id);
+                if (onRemove) onRemove(item.id);
               }}
               className="absolute top-2 right-2 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Remove from Galley"

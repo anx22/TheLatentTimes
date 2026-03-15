@@ -30,19 +30,43 @@
 - [ ] **Selection**: User selects the winning angle to proceed to Drafting.
 - [ ] **Parameter Binding**: Connect the "Editorial Lens" and "Word Count" sidebar settings to the drafting agents.
 
-## Phase 4: The Darkroom & The Press
+## Phase 4: The Darkroom & The Press (Complete)
 **Goal**: Advanced drafting, critical editing, and layout.
 
-- [ ] **Critical Editing**: Introduce an Editor agent that reviews the Columnist's draft and forces rewrites if quality is low.
-- [ ] **Parameter Binding**: Connect the "Visual Style" and "Aspect Ratio" sidebar settings to the image generation agent.
-- [ ] **Layout Engine Integration**: Connect published artifacts directly to the dynamic grid.
+- [x] **Critical Editing**: Introduce an Editor agent that reviews the Columnist's draft and forces rewrites if quality is low.
+- [x] **Parameter Binding**: Connect the "Visual Style" and "Aspect Ratio" sidebar settings to the image generation agent.
+- [x] **Layout Engine Integration**: Connect published artifacts directly to the dynamic grid (`NewspaperGrid`).
 
-## Phase 5: The Living Magazine
-**Goal**: The magazine updates itself.
+## Phase 5: Visual Polish & Editorial Experience (In Progress)
+**Goal**: Refine the visual language and user experience to match the "Vogue meets Wired" vision.
 
+- [ ] **Fine Design**: Polish the Press Room UI (lighter background, cleaner rails).
+- [ ] **Grid Styling**: Ensure grid lines and handles are subtle and professional.
+- [ ] **Block Typography**: Refine `HeroTypePlate` and `FeatureCard` typography for maximum impact.
 - [ ] **Autopilot**: A master switch that allows the system to run the entire Editorial Chain autonomously.
 
-## Phase 6: Editorial Excellence (Surgical Editing)
+## Phase 6: Intelligent News Engine (Vector Clustering & Sources)
+**Goal**: Transform the News Terminal from a dumb aggregator into a dynamic Knowledge Graph that understands context, filters noise, and groups related stories.
+
+- [x] **Phase 6.1: Database Foundation & Source Management**:
+    *   Create `sources` table in Convex (`url`, `type`, `lastFetchedAt`, `crawlFrequency`).
+    *   Update ingestion logic to use `lastFetchedAt` as a hard cutoff for API calls (GitHub, RSS).
+    *   Implement basic URL normalization and hard-deduplication on the database level.
+- [x] **Phase 6.2: Vector Clustering & Deduplication**:
+    *   Add `embedding` field (Vector) to `tickerItems`.
+    *   Integrate Gemini to generate embeddings for incoming articles.
+    *   Implement Convex Vector Search:
+        *   Similarity > 95%: Mark as duplicate/ignore.
+        *   Similarity > 75%: Group into an existing `Story` cluster.
+        *   Else: Create a new `Story` cluster.
+- [x] **Phase 6.3: UI/UX Redesign (The Story View)**:
+    *   Redesign the News Terminal to display `Stories` (Clusters) instead of isolated `TickerItems`.
+    *   Show metadata for clusters (e.g., "3 Sources: GitHub, TechCrunch, Arxiv").
+    *   Implement an "Entity Extraction" view (Named Entity Recognition) to show connections (e.g., "Sam Altman" -> 5 related stories).
+- [x] **Phase 6.4: The Synthesis Agent**:
+    *   Create an agent that automatically writes a "Meta-Summary" when a `Story` cluster reaches a certain size or velocity.
+
+## Phase 7: Editorial Excellence (Surgical Editing)
 **Goal**: Achieve professional-grade prose through granular, multi-agent refinement.
 
 - [ ] **Architecture**: Implement a "Surgical Editing Engine" that manages sentence-level state and annotations.

@@ -1,63 +1,44 @@
-import React, { useState } from 'react';
-import { NewspaperGrid, LayoutItem } from './grid/NewspaperGrid';
+import React, { useState, useEffect } from 'react';
+import { NewspaperGrid } from './grid/NewspaperGrid';
 import { GalleyRail } from './GalleyRail';
 import { useNewsroom } from '../../../hooks/useNewsroom';
 import { MagazineItem } from '../../../types';
 
-export const ThePress: React.FC = () => {
-  const { draft, image } = useNewsroom();
+export const PrintingPress: React.FC = () => {
+  const { draft, image, publish, layout, setLayout } = useNewsroom();
   const [scale, setScale] = useState(1.0);
   
-  // Mock Galley Items (In real app, filter items not in layout)
-  const [galleyItems, setGalleyItems] = useState<MagazineItem[]>([
-    {
-      id: 'galley_1',
-      title: "The Future of Print",
-      dek: "Why physical media is making a comeback in the digital age.",
-      published_at: new Date().toISOString(),
-      tags: ['Culture'],
-      media_type: 'text',
-      status: 'approved',
-      featured_level: 'none'
-    },
-    {
-      id: 'galley_2',
-      title: "Neural Networks Visualization",
-      dek: "Seeing the unseen layers of deep learning models.",
-      published_at: new Date().toISOString(),
-      tags: ['Tech', 'Visuals'],
-      media_type: 'image',
-      status: 'approved',
-      featured_level: 'none'
+  const [galleyItems, setGalleyItems] = useState<MagazineItem[]>([]);
+
+  useEffect(() => {
+    if (draft) {
+      const draftItem: MagazineItem = {
+        id: 'current_draft',
+        title: draft.headline,
+        dek: draft.deck,
+        published_at: new Date().toISOString(),
+        tags: draft.tags || [],
+        media_type: image ? 'image' : 'text',
+        hero_image_url: image || undefined,
+        status: 'approved',
+        featured_level: 'none',
+        body: draft.body,
+        blocks: draft.blocks
+      };
+      
+      setGalleyItems(prev => {
+        if (!prev.find(i => i.id === 'current_draft')) {
+          return [draftItem, ...prev];
+        }
+        return prev;
+      });
     }
-  ]);
-
-  const handleLayoutChange = (layout: LayoutItem[]) => {
-    console.log('Layout changed in ThePress:', layout);
-  };
-
-  const handleDragStart = (e: React.DragEvent, item: MagazineItem) => {
-    e.dataTransfer.setData('application/json', JSON.stringify(item));
-  };
+  }, [draft, image]);
 
   const handleRemoveFromGalley = (id: string) => {
     setGalleyItems(prev => prev.filter(item => item.id !== id));
   };
-
-  const handleGridDrop = (layout: LayoutItem[], item: LayoutItem, e: DragEvent) => {
-    // Retrieve the item data from the drag event
-    // Note: In real RGL, the 'e' passed to onDrop might be a synthetic event or native event depending on version
-    // We might need to access the dataTransfer from the source if possible, or use a shared state for "draggingItem"
-    // However, RGL's onDrop gives us the final layout item position.
-    
-    // For now, we'll assume the item added to layout needs to be enriched with the galley item data.
-    // Since RGL doesn't pass the dataTransfer in a way we can easily read async in some versions, 
-    // a common pattern is to store the "currently dragging" item in a ref or state when drag starts in Galley.
-    
-    // But let's try to read it if possible, or better: use a state for "draggedItem" lifted to this component.
-  };
   
-  // We need a state to track what is being dragged to pass metadata to the grid on drop
   const [draggedItem, setDraggedItem] = useState<MagazineItem | null>(null);
 
   const onGalleyDragStart = (e: React.DragEvent, item: MagazineItem) => {
@@ -92,8 +73,16 @@ export const ThePress: React.FC = () => {
               >+</button>
             </div>
           </div>
-          <div className="text-[10px] font-mono text-zinc-600">
-            PRESS BED: 1200px WIDTH
+          <div className="flex items-center gap-4">
+            <div className="text-[10px] font-mono text-zinc-600">
+              PRESS BED: 1200px WIDTH
+            </div>
+            <button
+              onClick={publish}
+              className="px-4 py-1.5 bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-widest rounded hover:bg-emerald-400 transition-colors shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+            >
+              Publish Issue
+            </button>
           </div>
         </div>
 
@@ -108,11 +97,12 @@ export const ThePress: React.FC = () => {
             }}
           >
             <NewspaperGrid 
-              onLayoutChange={handleLayoutChange} 
+              layout={layout}
+              onLayoutChange={setLayout} 
               scale={scale}
               isDroppable={true}
               draggedItem={draggedItem}
-              onDropItem={(item) => {
+              onDropItem={() => {
                  // Remove from galley
                  if (draggedItem) {
                     setGalleyItems(prev => prev.filter(i => i.id !== draggedItem.id));

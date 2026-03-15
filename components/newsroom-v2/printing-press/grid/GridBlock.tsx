@@ -1,10 +1,7 @@
 import React, { forwardRef } from 'react';
 import { Maximize2 } from 'lucide-react';
-import { HeroTypePlate } from '../../../blocks/HeroTypePlate';
-import { FeatureCard } from '../../../blocks/FeatureCard';
-import { QuotePlate } from '../../../blocks/QuotePlate';
-import { BlackManifestoPanel } from '../../../blocks/BlackManifestoPanel';
-import { BlockInstance, IssueContent, MagazineItem } from '../../../../types';
+import { MagazineItem } from '../../../../types';
+import * as EditorialBlocks from '../../../blocks/EditorialBlocks';
 
 interface GridBlockProps {
   style?: React.CSSProperties;
@@ -15,84 +12,59 @@ interface GridBlockProps {
   children?: React.ReactNode;
   // Custom props
   headline: string;
-  type: string;
-  blockType?: 'HeroTypePlate' | 'FeatureCard' | 'QuotePlate' | 'BlackManifestoPanel';
+  blockType?: string;
   data?: MagazineItem;
+  readOnly?: boolean;
 }
 
-// Mock data helpers for preview
-const createMockBlock = (type: string): BlockInstance => ({
-  id: 'mock',
-  block_type: type as any,
-  col_span: 12,
-  variant: 'M',
-  data_binding: { source: 'static' }
-});
-
-const createMockContent = (headline: string, data?: MagazineItem): IssueContent => ({
-  meta: {} as any,
-  items: [],
-  ticker: [],
-  cover: { 
-    title: data?.title || headline, 
-    deck: data?.dek || "Mock Deck", 
-    eyebrow: data?.tags?.[0] || "Mock Eyebrow", 
-    coverlines: [], 
-    imgPrompt: "" 
-  },
-  edit: [],
-  drops: [],
-  debates: [],
-  features: [],
-  columns: [],
-  atelier: [],
-  index_keys: [],
-  colophon: { contributors: [], sources: [], corrections: [] }
-});
-
-const createMockItem = (headline: string, data?: MagazineItem): MagazineItem => {
-  if (data) return data;
-  
-  return {
-    id: 'mock',
-    title: headline,
-    dek: "A sample deck for the grid layout preview.",
-    published_at: new Date().toISOString(),
-    tags: ['Design', 'System'],
-    media_type: 'image',
-    status: 'published',
-    featured_level: 'none'
-  };
-};
-
 export const GridBlock = forwardRef<HTMLDivElement, GridBlockProps>(
-  ({ style, className, onMouseDown, onMouseUp, onTouchEnd, children, headline, type, blockType, data, ...props }, ref) => {
+  ({ style, className, onMouseDown, onMouseUp, onTouchEnd, children, headline, blockType, data, readOnly, ...props }, ref) => {
     
     const renderContent = () => {
-      const mockBlock = createMockBlock(blockType || 'HeroTypePlate');
-      const mockContent = createMockContent(headline, data);
-      const itemData = createMockItem(headline, data);
-
       switch (blockType) {
-        case 'HeroTypePlate':
-          return <HeroTypePlate config={mockBlock} content={mockContent} data={itemData} />;
-        case 'FeatureCard':
-          return <FeatureCard config={mockBlock} data={itemData} />;
-        case 'QuotePlate':
-          return <QuotePlate config={mockBlock} data={itemData} />;
-        case 'BlackManifestoPanel':
-          return <BlackManifestoPanel config={mockBlock} content={mockContent} />;
+        case 'CoverStory':
+          return <EditorialBlocks.CoverStoryBlock data={data} />;
+        case 'Glamour':
+          return <EditorialBlocks.GlamourBlock data={data} />;
+        case 'Image':
+          return <EditorialBlocks.ImageBlock imageUrl={data?.hero_image_url || 'https://picsum.photos/800/1200?random=1'} caption={data?.dek} />;
+        case 'Quote':
+          return <EditorialBlocks.QuoteBlock quote={data?.dek || "The algorithm doesn't want your truth. It wants your retention."} author={data?.author || "ANON, CHIEF HOOK OFFICER"} />;
+        case 'SectionHeader':
+          return <EditorialBlocks.SectionHeaderBlock text={<>We are entering the <span className="text-[#e60042] italic">Golden Age</span> of synthetic media. Not as a tool, but as a material. The prompt is dead; the cursor is a conductor's baton.</>} />;
+        case 'NewCanon':
+          return <EditorialBlocks.NewCanonBlock />;
+        case 'IdentitySystems':
+          return <EditorialBlocks.IdentitySystemsBlock />;
+        case 'SyntheticEra':
+          return <EditorialBlocks.SyntheticEraBlock />;
+        case 'HouseView':
+          return <EditorialBlocks.HouseViewBlock />;
+        case 'CuratorsDilemma':
+          return <EditorialBlocks.CuratorsDilemmaBlock />;
+        case 'SmallArticle':
+          return <EditorialBlocks.SmallArticleBlock category={data?.tags?.[0] || 'ESSAY / CODE'} title={headline} deck={data?.dek || 'When the pipeline fixes its own breaks, the engineer becomes the curator.'} imageUrl={data?.hero_image_url || 'https://picsum.photos/400/300?random=2'} />;
+        case 'LargeQuote':
+          return <EditorialBlocks.LargeQuoteBlock />;
+        case 'MassiveHeadline':
+          return <EditorialBlocks.MassiveHeadlineBlock />;
+        case 'HookFactory':
+          return <EditorialBlocks.HookFactoryBlock />;
+        case 'LatentSpace':
+          return <EditorialBlocks.LatentSpaceBlock />;
+        case 'SyntheticHallucination':
+          return <EditorialBlocks.SyntheticHallucinationBlock />;
+        case 'IndexList':
+          return <EditorialBlocks.IndexListBlock />;
         default:
           return (
-            <div className="flex-1 min-h-0 p-4 flex flex-col justify-center h-full">
-              <h3 className="font-display font-bold text-lg leading-tight uppercase tracking-tight text-black line-clamp-3">
-                {itemData.title}
+            <div className="flex flex-col h-full p-6 border-t border-black bg-[#faf9f6]">
+              <h3 className="font-serif font-bold text-2xl leading-tight text-zinc-950 mb-3">
+                {headline}
               </h3>
-              {itemData.dek && (
-                <p className="text-xs text-zinc-500 mt-2 line-clamp-3 font-serif">
-                  {itemData.dek}
-                </p>
-              )}
+              <p className="text-sm text-zinc-700 leading-relaxed font-serif">
+                {data?.dek || "Placeholder deck text."}
+              </p>
             </div>
           );
       }
@@ -102,26 +74,23 @@ export const GridBlock = forwardRef<HTMLDivElement, GridBlockProps>(
       <div
         ref={ref}
         style={style}
-        className={`${className} bg-white border border-zinc-800 shadow-sm flex flex-col relative group overflow-hidden`}
+        className={`${className} flex flex-col relative group overflow-hidden`}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
         onTouchEnd={onTouchEnd}
         {...props}
       >
-        {/* Header / Type Label Overlay */}
-        <div className="absolute top-2 left-2 z-10 pointer-events-none">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 bg-white/90 px-1">{type}</span>
-        </div>
-
         {/* Content */}
-        <div className="flex-1 w-full h-full overflow-hidden pointer-events-none">
+        <div className="flex-1 w-full h-full overflow-hidden flex flex-col">
           {renderContent()}
         </div>
 
         {/* Resize Handle (Visual Only - RGL handles the actual drag) */}
-        <div className="absolute bottom-2 right-2 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-          <Maximize2 className="w-4 h-4" />
-        </div>
+        {!readOnly && (
+          <div className="absolute bottom-2 right-2 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+            <Maximize2 className="w-4 h-4" />
+          </div>
+        )}
         
         {children}
       </div>

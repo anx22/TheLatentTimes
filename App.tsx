@@ -1,15 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutEngine } from './components/layout/LayoutEngine';
-import { IssueContent, MagazineItem } from './types';
+import { IssueContent, MagazineItem, LayoutItem } from './types';
 import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
-import { TEMPLATE_REGISTRY } from './services/templates';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
 import { DebugStatus } from './components/DebugStatus';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "./convex/_generated/api";
+import { NewspaperGrid } from './components/newsroom-v2/printing-press/grid/NewspaperGrid';
+
+const MainNewspaper: React.FC<{ layout?: LayoutItem[] }> = ({ layout }) => {
+  return <NewspaperGrid layout={layout} onLayoutChange={() => {}} readOnly={true} />;
+};
+
+const Ticker: React.FC<{ items: string[] }> = ({ items }) => (
+  <div className="w-full bg-black text-white py-2 overflow-hidden border-b border-zinc-800">
+    <div className="flex whitespace-nowrap animate-marquee">
+      {[...items, ...items, ...items].map((item, i) => (
+        <span key={i} className="mx-8 text-[10px] font-mono uppercase tracking-[0.3em] flex items-center gap-4">
+          <span className="w-1.5 h-1.5 bg-[#e60042] rounded-full"></span>
+          {item}
+        </span>
+      ))}
+    </div>
+  </div>
+);
 
 // --- MOCK V3 CONTENT (The "MagazineItems") ---
 const MOCK_ITEMS: MagazineItem[] = [
@@ -109,15 +125,16 @@ const App: React.FC = () => {
       alert("Issue Link Copied to Clipboard");
   };
 
-  const handlePublishItem = async (newItem: MagazineItem) => {
+  const handlePublishItem = async (newItem: MagazineItem, layout: any[]) => {
       // Optimistic update
       setIssue(prev => ({
           ...prev,
-          items: [newItem, ...(prev.items || [])]
+          items: [newItem, ...(prev.items || [])],
+          layout: layout
       }));
       
       // Persist to DB
-      await addItemMutation({ item: newItem });
+      await addItemMutation({ item: newItem, layout });
   };
 
   const handleSelectIssue = async (selectedIssue: any) => {
@@ -129,14 +146,9 @@ const App: React.FC = () => {
 
   if (!hydrated) return null;
 
-  // Resolve Template
-  const activeTemplateKey = issue.meta.template_key || 'T1_CoverRail';
-  // Use persistent sections from Issue if available (customized), otherwise fall back to registry default
-  const activeSections = issue.sections || TEMPLATE_REGISTRY[activeTemplateKey]?.sections || TEMPLATE_REGISTRY['T1_CoverRail'].sections;
-
   return (
-    <NewsroomProvider onPublish={handlePublishItem}>
-      <div className="min-h-screen bg-background text-foreground font-sans selection:bg-accent selection:text-white pb-32">
+    <NewsroomProvider onPublish={handlePublishItem} initialLayout={issue.layout}>
+      <div className="min-h-screen bg-[#faf9f6] text-foreground font-sans selection:bg-accent selection:text-white pb-32">
          
          {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
          <Header 
@@ -147,6 +159,7 @@ const App: React.FC = () => {
             session={session}
             meta={issue.meta}
          />
+         <Ticker items={issue.ticker || []} />
 
          {/* 2. OPS LAYER (Newsroom Overlay) */}
          {showNewsroom && (
@@ -163,11 +176,10 @@ const App: React.FC = () => {
              />
          )}
 
-         {/* 3. CONTENT LAYER (Layout Engine) */}
-         <LayoutEngine 
-            sections={activeSections} 
-            data={issue} 
-         />
+         {/* 3. CONTENT LAYER (React Grid Layout) */}
+         <div className="pt-16">
+           <MainNewspaper layout={issue.layout} />
+         </div>
          
          <DebugStatus />
          

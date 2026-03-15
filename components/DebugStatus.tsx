@@ -17,15 +17,11 @@ export const DebugStatus: React.FC = () => {
       key = process.env.API_KEY;
       source = 'process.env.API_KEY';
     } 
-    // @ts-ignore
     else if (import.meta.env?.VITE_GEMINI_API_KEY) {
-      // @ts-ignore
       key = import.meta.env.VITE_GEMINI_API_KEY;
       source = 'import.meta.env.VITE_GEMINI_API_KEY';
     }
-    // @ts-ignore
     else if (import.meta.env?.VITE_API_KEY) {
-      // @ts-ignore
       key = import.meta.env.VITE_API_KEY;
       source = 'import.meta.env.VITE_API_KEY';
     }

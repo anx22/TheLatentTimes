@@ -12,4 +12,6 @@ export * from './agentPhotographer';
 export * from './agentPersonaSpeak';
 export * from './agentArtDirector';
 export * from './agentPolisher';
+export * from './agentSynthesis';
+export * from './agentLayoutDesigner';
 

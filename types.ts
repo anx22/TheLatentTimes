@@ -4,6 +4,16 @@ export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 // --- NEWSROOM TYPES ---
 export type NewsroomStep = 'IDLE' | 'NEWS_TERMINAL' | 'EDITORIAL_BOARD' | 'DARKROOM' | 'PRINTING_PRESS' | 'PUBLISHED';
 
+export interface ScoutedSignal {
+  id: string;
+  headline: string;
+  context: string;
+  url?: string;
+  source?: string;
+  date?: string;
+  score: number;
+}
+
 export interface EditorialAngle {
   id: string;
   persona: string;
@@ -26,14 +36,39 @@ export interface SystemLog {
   level?: string;
 }
 
+export interface Source {
+  _id: string;
+  _creationTime: number;
+  name: string;
+  url: string;
+  type: 'rss' | 'api' | 'github';
+  lastFetchedAt: number;
+  crawlFrequency: number;
+  isActive: boolean;
+}
+
+export interface NewsCluster {
+  _id: string;
+  _creationTime: number;
+  title: string;
+  summary: string;
+  keyEntities: string[];
+  lastUpdatedAt: number;
+  status: 'emerging' | 'trending' | 'archived';
+}
+
 export interface TickerItem {
   _id: string;
   _creationTime: number;
   title: string;
   source: string;
-  url?: string;
+  sourceId?: string;
+  url: string;
+  content?: string;
   timestamp: number;
   status: 'new' | 'processing' | 'archived';
+  storyId?: string;
+  embedding?: number[];
 }
 
 export interface DraftSentence {
@@ -546,6 +581,27 @@ export interface RecipeArtifact {
 
 export type Recipe = RecipeArtifact;
 
+export interface LayoutItem {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minW?: number;
+  maxW?: number;
+  minH?: number;
+  maxH?: number;
+  static?: boolean;
+  isDraggable?: boolean;
+  isResizable?: boolean;
+  resizeHandles?: string[];
+  // Custom data
+  headline?: string;
+  type?: string;
+  blockType?: string;
+  data?: MagazineItem;
+}
+
 export interface IssueContent {
   meta: IssueMeta;
   ticker: string[];
@@ -560,6 +616,7 @@ export interface IssueContent {
   
   // v3.0 Layout Data
   sections?: Section[]; // NEW: Layout Persistence
+  layout?: LayoutItem[];
   
   // Content Pools
   items?: MagazineItem[];

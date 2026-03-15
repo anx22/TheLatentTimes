@@ -1,8 +1,7 @@
-
 # The Latent Times Status Log
 
-**Current Cycle:** v1.3.0-newsroom-floor // Granular Collaboration & KI-Linter
-**Focus:** Shifting the Newsroom from a linear state machine to an entity-based, block-level editing system.
+**Current Cycle:** v1.7.0-surgical-editing // Surgical Editing Engine
+**Focus:** Achieve professional-grade prose through granular, multi-agent refinement.
 
 ## Goals (Complete)
 - [x] **Newsroom MVP**: Implemented `SimpleNewsroom.tsx` for a streamlined end-to-end pipeline.
@@ -19,25 +18,33 @@
 - [x] **Editorial Board**: Implemented multiple agent personas (The Critic, The Optimist) to debate the signal before drafting.
 - [x] **Draft Iteration**: Allowed the user to request rewrites or adjustments to the draft in The Bullpen using new parameters.
 - [x] **Image Variation**: Implemented the ability to generate alternative images in The Darkroom using new parameters.
+- [x] **Layout Engine (Technical)**: Implemented `NewspaperGrid` using `react-grid-layout` with native resize handles.
+- [x] **Layout Binding**: Connected the "Galley" (Asset Pool) to the Grid via Drag-and-Drop.
+- [x] **Workflow Streamlining**:
+    - [x] **Room Action Buttons**: Moved "Handover" buttons to the Room Name bar (Tab Bar).
+    - [x] **Context-Aware Logic**: Buttons are now tied to the *active room*, not the global step.
+    - [x] **Removed Clutter**: Deleted the "Big Button" footer and redundant sidebar buttons.
+    - [x] **Fixed Logic**: "Publish" button no longer appears in News Terminal.
+    - [x] **Layout Refinement**: Refactored `TheWire` (News Terminal) to use full-height layout with sub-frames, removing the legacy `Dossier` wrapper.
+    - [x] **Auto Scout Overhaul**: Upgraded `agentScout` to return rich `ScoutedSignal` objects (Headline, Context, URL) instead of raw strings.
+    - [x] **Signal Context Flow**: Fixed the data flow so selecting a signal in Auto Scout correctly passes the full context to the Editorial Board, preventing hallucinations.
+    - [x] **Vocabulary & Layout**: Renamed rooms (removed "THE"), updated code vocabulary (Bullpen -> Editorial Board), and refactored News Terminal layout (Tabs on top, removed redundant Active Signal box).
+    - [x] **Signal Properties**: Added `date` and `source` to `ScoutedSignal` and updated `agentScout` to extract them.
+    - [x] **Wiring Fix**: Updated `AutoScoutView` to pass enriched context (including source/date) to the Editorial Board.
+    - [x] **Editorial Board UI**: Added "Commence Debate" button to DashboardView when no transcript exists, and removed redundant buttons.
+    - [x] **Phase 6.1: Database Foundation & Source Management**: Created `sources` table, updated ingestion logic, implemented basic URL normalization.
+    - [x] **Phase 6.2: Vector Clustering & Deduplication**: Added `embedding` field, integrated Gemini embeddings, implemented Convex Vector Search.
+    - [x] **Phase 6.3: UI/UX Redesign (The Story View)**: Redesigned News Terminal to display `Stories` (Clusters).
+    - [x] **Phase 6.4: The Synthesis Agent**: Created an agent that automatically writes a "Meta-Summary" for clusters.
 
-## Next Steps (Granular Collaboration Roadmap)
-- [x] **Phase 1: Structured Draft Entity**: Refactor `GeneratedArticle` to use an array of `DraftBlock` objects instead of a single string. Update `agentColumnist` to return JSON blocks.
-- [x] **Phase 2: KI-Linter & Micro-Actions**: Create `agentEditor` to analyze blocks. Build `TheEditorPanel` UI in The Bullpen. Implement block-level rewrite/expand actions.
-- [x] **Phase 3: Strategic Directive & Active Consensus**: Add global directive input to The Wire. Implement periodic consensus summarization. Stream visible debate output.
-- [x] **Phase 4: Magic Enhance & Grid Preview**: Add prompt expansion to The Darkroom. Integrate image preview directly into the final layout grid.
-- [x] **Phase 5: Editorial Excellence (Surgical Editing)**:
-    *   **Sentence Splitting**: Implement robust sentence-level parsing for `DraftBlock` content.
-    *   **Annotation Engine**: Create a modular state for "Surgical Annotations" that can be attached to sentences.
-    *   **Multi-Agent Critique**: Expand `agentEditor` to support persona-specific critiques (e.g., "The Fashion-Forward thinks this sentence is too technical").
-    *   **Surgical Rewrite**: Implement `agentRewriteSentence` which takes the full article context into account.
+## Next Steps (Surgical Editing - Phase 7)
+- [ ] **Architecture**: Implement a "Surgical Editing Engine" that manages sentence-level state and annotations.
+- [ ] **UI**: Build the "Editorial Desk" interface with semantic highlighting and contextual action cards.
+- [ ] **Logic**: Implement `agentRewriteSentence` with "Narrative Skelett" awareness (full article context).
+- [ ] **Logic**: Expand the KI-Linter to provide persona-driven critiques (Multi-Agent Feedback).
+- [ ] **Refinement**: Implement a "Final Polish" agent that ensures smooth transitions between edited blocks.
 
-- [ ] **Phase 6: The Editorial Experience (UX Overhaul)**:
-    *   **Renaming**: "The Wire" -> "The News Terminal", "The Bullpen" -> "The Editorial Board", "The Press" -> "The Printing Press".
-    *   **Room Fusion**: Merge "The Editorial Board" and "The Writer's Desk" into a single, powerful workspace.
-    *   **Agent Presence**: Make agents more visible and autonomous within their specific rooms.
-    *   **Workflow Clarity**: Ensure the "Signal -> Story -> Draft -> Article" progression is seamless and visible.
-    *   **Critical Engagement**: Enhance the "Editorial Board" to show source news, debated angles, and the resulting draft side-by-side.
+## Backlog (Visual Polish & Editorial Experience)
 
 ## Known Issues
-1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds; UI needs to maintain engagement during this wait.
-2.  **Layout Binding**: Currently, published items are prepended to the `items` array. We need to re-enable explicit slot binding for the new MVP artifacts.
+1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds.

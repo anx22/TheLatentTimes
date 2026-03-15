@@ -1,6 +1,20 @@
 
 # DECISIONS.md
 
+## 020 - Intelligent News Engine (Vector Clustering & Source Cutoffs)
+**Problem**: The Ticker acts as a dumb aggregator. It fetches the same news repeatedly, causing redundancy, and fails to connect related articles from different sources (e.g., a GitHub repo and a TechCrunch article about the same tool).
+**Decision**: 
+1.  **Source Management**: Introduce a `sources` table in Convex with `last_fetched_at` timestamps to implement hard cutoffs and prevent redundant API calls.
+2.  **Vector Embeddings**: Every incoming article is embedded via Gemini.
+3.  **Semantic Clustering**: Use vector similarity search to group related articles into `Stories` (Clusters). High similarity (>95%) triggers deduplication; moderate similarity (>75%) groups articles into a single evolving story.
+4.  **UI Shift**: The News Terminal will display "Stories" (clusters of articles) rather than isolated, chronological items.
+**Why**: Transforms the app from a simple RSS reader into a "Knowledge Graph" that understands context, reduces noise, and provides a much richer foundation for the Editorial Board.
+
+## 019 - Native Grid Layout Handles
+**Problem**: Custom resize handles (e.g., "Magenta Corner Markers") were over-engineered, causing duplication issues and visual glitches during drag operations.
+**Decision**: Reverted to using the native `react-grid-layout` resize handles, styled minimally with CSS.
+**Why**: Prioritizes stability and standard behavior over complex custom UI code. "Boring is better" for core interaction mechanics.
+
 ## 018 - Editorial Excellence: Surgical Sentence Editing
 **Problem**: Block-level rewrites (paragraphs) are still too coarse. A user might want to fix a single awkward sentence without risking the rest of the paragraph's flow. Additionally, AI rewrites often lose the "global context" of the article.
 **Decision**: 

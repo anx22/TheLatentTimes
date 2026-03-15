@@ -1,16 +1,16 @@
 import { Type } from '@google/genai';
 import { searchTrend, callJsonAgent } from '../gemini';
+import { ScoutedSignal, Source } from '../../types';
 
-export const agentScout = async (sources: { github: boolean, arxiv: boolean, techcrunch: boolean }, noiseFilter: number, globalDirective?: string): Promise<string[]> => {
+export const agentScout = async (sources: Source[], noiseFilter: number, globalDirective?: string): Promise<ScoutedSignal[]> => {
   let query = "latest developments in AI models, open-source code repositories, machine learning workflows, and bleeding-edge technology";
   
-  const activeSources = [];
-  if (sources.github) activeSources.push("github.com");
-  if (sources.arxiv) activeSources.push("arxiv.org");
-  if (sources.techcrunch) activeSources.push("techcrunch.com");
+  const activeSources = sources.filter(s => s.isActive).map(s => {
+    try { return new URL(s.url).hostname; } catch { return s.url; }
+  });
   
   if (activeSources.length > 0) {
-    query += ` site:\${activeSources.join(' OR site:')}`;
+    query += ` site:${activeSources.join(' OR site:')}`;
   }
 
   const strictness = noiseFilter > 70 ? "EXTREMELY STRICT: Only return highly credible, groundbreaking, and verified technical breakthroughs." : "BROAD: You can include speculative, emerging, or niche technical trends.";
@@ -29,14 +29,35 @@ export const agentScout = async (sources: { github: boolean, arxiv: boolean, tec
     Here is the raw data from the live web:
     ${searchResult.text}
     
-    Synthesize this into 3 punchy topic phrases (max 5-7 words each).
+    Synthesize this into 3 punchy, concrete signals.
+    For each signal, provide:
+    - headline: A short, punchy title (max 7 words).
+    - context: A brief summary of WHY this matters and what the technical detail is (max 2 sentences).
+    - url: The most relevant source URL found in the text (or empty string if none).
+    - source: The name of the publication or domain (e.g., "TechCrunch", "GitHub").
+    - date: The publication date if available (e.g., "Oct 24, 2025"), otherwise "Recent".
+    - score: A relevance score from 0-100 based on the directive.
     
-    Output as a simple JSON array of strings:
-    ["Topic 1", "Topic 2", "Topic 3"]
+    Output as a JSON array of objects.
   `;
 
-  return callJsonAgent<string[]>(prompt, {
+  return callJsonAgent<ScoutedSignal[]>(prompt, {
     type: Type.ARRAY,
-    items: { type: Type.STRING }
-  }, ["Local LLM Orchestration", "Agentic Workflow Patterns", "Synthetic Data Pipelines"]);
+    items: { 
+      type: Type.OBJECT,
+      properties: {
+        id: { type: Type.STRING },
+        headline: { type: Type.STRING },
+        context: { type: Type.STRING },
+        url: { type: Type.STRING },
+        source: { type: Type.STRING },
+        date: { type: Type.STRING },
+        score: { type: Type.NUMBER }
+      },
+      required: ["headline", "context", "score"]
+    }
+  }, [
+    { id: "1", headline: "Local LLM Orchestration", context: "New frameworks allow running complex agent swarms on consumer hardware.", url: "https://github.com/example", source: "GitHub", date: "Oct 24, 2025", score: 95 },
+    { id: "2", headline: "Synthetic Data Pipelines", context: "Major shift towards using AI-generated data to train smaller, more efficient models.", url: "", source: "ArXiv", date: "Recent", score: 88 }
+  ]);
 };

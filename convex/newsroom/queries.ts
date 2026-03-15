@@ -138,3 +138,24 @@ export const getImagesByIds = query({
     return results.filter((r) => r !== null) as { id: string; url: string }[];
   },
 });
+
+// 9. GET SOURCES
+export const getSources = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("sources").collect();
+  },
+});
+
+// 10. GET NEWS CLUSTERS
+export const getNewsClusters = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    return await ctx.db
+      .query("stories")
+      .withIndex("by_lastUpdatedAt")
+      .order("desc")
+      .take(limit);
+  },
+});

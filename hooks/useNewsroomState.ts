@@ -1,15 +1,33 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useQuery, useMutation } from "convex/react";
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Id } from "../convex/_generated/dataModel";
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState } from '../types';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector, agentPolisher } from '../services/agents';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, ScoutedSignal, LayoutItem } from '../types';
+import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector, agentPolisher, agentSynthesis, agentLayoutDesigner } from '../services/agents';
 import { compressImage } from '../services/imageUtils';
+import { INITIAL_LAYOUT } from '../constants';
+import { cosineSimilarity } from '../lib/vector';
 
-export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
+import { listModels } from '../services/gemini';
+
+export const useNewsroomState = (onPublish: (item: MagazineItem, layout: LayoutItem[]) => void, initialLayout?: LayoutItem[]) => {
+  useEffect(() => {
+    listModels();
+  }, []);
   // --- CONVEX STATE (Real-time Database) ---
-  const tickerItems = (useQuery(api.newsroom.queries.getTickerItems, {}) || []) as TickerItem[];
+  const rawTickerItems = useQuery(api.newsroom.queries.getTickerItems, {});
+  const tickerItems = useMemo(() => (rawTickerItems || []) as TickerItem[], [rawTickerItems]);
+  const newsClusters = useQuery(api.newsroom.queries.getNewsClusters, {}) || [];
   const logs = (useQuery(api.newsroom.queries.getAgentLogs, {}) || []) as SystemLog[];
+  const dbSourcesResult = useQuery(api.newsroom.queries.getSources, {});
+  const dbSources = useMemo(() => dbSourcesResult || [], [dbSourcesResult]);
+  const seedSourcesMutation = useMutation(api.newsroom.mutations.seedSources);
+
+  useEffect(() => {
+    if (dbSourcesResult !== undefined && dbSourcesResult.length === 0) {
+      seedSourcesMutation();
+    }
+  }, [dbSourcesResult, seedSourcesMutation]);
   
   // Local IDs for Draft/Image (Persisted)
   const [draftId, setDraftId] = useState<Id<"drafts"> | null>(null);
@@ -82,7 +100,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [context, setContext] = useState('');
   const [isResearching, setIsResearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scoutedTopics, setScoutedTopics] = useState<string[]>([]);
+  const [scoutedTopics, setScoutedTopics] = useState<ScoutedSignal[]>([]);
   const [angles, setAngles] = useState<EditorialAngle[]>([]);
   const [annotations, setAnnotations] = useState<BlockAnnotation[]>([]);
   const [isLinting, setIsLinting] = useState(false);
@@ -117,6 +135,13 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
   const [isPolishing, setIsPolishing] = useState(false);
   const [isHydrating, setIsHydrating] = useState(true);
+  const [layout, setLayout] = useState<LayoutItem[]>(initialLayout || INITIAL_LAYOUT);
+
+  useEffect(() => {
+    if (initialLayout) {
+      setLayout(initialLayout);
+    }
+  }, [initialLayout]);
 
   // --- STATE HYDRATION ---
   useEffect(() => {
@@ -209,21 +234,104 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     });
   }, [logMessageMutation]);
 
+  const updateSourceFetchTimeMutation = useMutation(api.newsroom.mutations.updateSourceFetchTime);
+
+  const addNewsClusterMutation = useMutation(api.newsroom.mutations.addNewsCluster);
+  const updateTickerItemStoryMutation = useMutation(api.newsroom.mutations.updateTickerItemStory);
+
+  const updateNewsClusterMutation = useMutation(api.newsroom.mutations.updateNewsCluster);
+  const fetchRssAction = useAction(api.newsroom.actions.fetchRss);
+
+  const synthesizeCluster = async (clusterId: Id<"stories">) => {
+    const cluster = newsClusters.find(c => c._id === clusterId);
+    if (!cluster) return;
+
+    const items = tickerItems.filter(i => i.storyId === clusterId);
+    if (items.length === 0) return;
+
+    addLog('THE WIRE', `Synthesizing story cluster: ${cluster.title}`, 'info');
+    
+    try {
+      const { summary, keyEntities } = await agentSynthesis(cluster.title, items);
+      await updateNewsClusterMutation({
+        clusterId,
+        summary,
+        keyEntities,
+        status: items.length > 2 ? 'trending' : 'emerging'
+      });
+      addLog('THE WIRE', `Synthesis complete for: ${cluster.title}`, 'success');
+    } catch (e: any) {
+      addLog('THE WIRE', `Synthesis failed: ${e.message}`, 'error');
+    }
+  };
+
   const fetchTickerData = useCallback(async () => {
     if (isFetchingTicker) return;
     setIsFetchingTicker(true);
     addLog('THE WIRE', 'Polling active sources for new signals...', 'info');
     
     try {
-      const items = await agentTicker(sources, noiseFilter, globalDirective);
-      // Save items to Convex
+      const items = await agentTicker(dbSources as any[], noiseFilter, globalDirective, fetchRssAction);
+      
+      // Clustering Logic
       for (const item of items) {
+        let assignedStoryId: Id<"stories"> | undefined = undefined;
+        
+        if (item.embedding && item.embedding.length > 0) {
+          // Find most similar existing item
+          let bestMatch: TickerItem | null = null;
+          let highestSim = 0;
+          
+          for (const existing of tickerItems) {
+            if (existing.embedding && existing.embedding.length > 0) {
+              const sim = cosineSimilarity(item.embedding, existing.embedding);
+              if (sim > highestSim) {
+                highestSim = sim;
+                bestMatch = existing;
+              }
+            }
+          }
+          
+          // Threshold for semantic similarity
+          if (highestSim > 0.85 && bestMatch) {
+            addLog('THE WIRE', `Semantic match found (${(highestSim*100).toFixed(1)}%): ${item.title} matches ${bestMatch.title}`, 'info');
+            
+            if (bestMatch.storyId) {
+              assignedStoryId = bestMatch.storyId as Id<"stories">;
+            } else {
+              // Create a new cluster
+              assignedStoryId = await addNewsClusterMutation({
+                title: bestMatch.title,
+                summary: "Emerging cluster of related signals.",
+                keyEntities: []
+              });
+              // Update the existing item to belong to this new cluster
+              await updateTickerItemStoryMutation({
+                id: bestMatch._id as Id<"ticker_items">,
+                storyId: assignedStoryId
+              });
+            }
+          }
+        }
+
+        // Save item to Convex
         await addTickerItemMutation({
           title: item.title,
           source: item.source,
+          sourceId: item.sourceId,
           url: item.url,
+          content: item.content,
+          embedding: item.embedding,
+          storyId: assignedStoryId,
           status: 'new'
         });
+      }
+      
+      // Update fetch times for all active sources
+      for (const source of dbSources) {
+        if (source.isActive) {
+          await updateSourceFetchTimeMutation({ sourceId: source._id, timestamp: Date.now() });
+        }
       }
       
       addLog('THE WIRE', `Intercepted ${items.length} signals from active sources.`, 'success');
@@ -241,7 +349,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     } finally {
       setIsFetchingTicker(false);
     }
-  }, [sources, noiseFilter, isFetchingTicker, addLog, globalDirective, addTickerItemMutation]);
+  }, [dbSources, noiseFilter, isFetchingTicker, addLog, globalDirective, addTickerItemMutation, updateSourceFetchTimeMutation, tickerItems, addNewsClusterMutation, updateTickerItemStoryMutation, fetchRssAction]);
 
   const researchTopic = async (t: string) => {
     if (!t.trim()) return;
@@ -268,7 +376,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     setIsScouting(true);
     addLog('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
     try {
-      const topics = await agentScout(sources, noiseFilter, globalDirective);
+      const topics = await agentScout(dbSources as any[], noiseFilter, globalDirective);
       setScoutedTopics(topics);
       addLog('THE SCOUT', `Signal sweep complete. Found ${topics.length} potential vectors.`, 'success');
       // Stay in NEWS_TERMINAL to show results
@@ -290,6 +398,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     setIsDebating(true);
     setDebateTranscript([]);
     setAngles([]);
+    setDraftId(null); // Clear previous draft
     addLog('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info');
     
     let currentContext = context;
@@ -379,6 +488,20 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
         status: 'draft'
       });
       setDraftId(newDraftId);
+      
+      // Clear Atelier state to force re-generation for new draft
+      setAtelierState({
+        concepts: [],
+        activeConceptId: null,
+        layout: 'COVER',
+        activePalette: null,
+        suggestedPalettes: [],
+        customPrompt: '',
+        modifiers: [],
+        currentImageId: null,
+        isGenerating: false,
+        history: []
+      });
       
       addLog('THE COLUMNIST', 'Draft completed and submitted to The Bullpen.', 'success');
       
@@ -604,7 +727,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
     }
   };
 
-  const publish = () => {
+  const publish = async () => {
     if (!draft || !image) return;
     
     const newItem: MagazineItem = {
@@ -622,9 +745,49 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       blocks: draft.blocks
     };
 
-    onPublish(newItem);
-    setStep('PUBLISHED');
-    addLog('SYSTEM', 'Artifact successfully published to the grid.', 'success');
+    addLog('SYSTEM', 'Publishing artifact and designing layout...', 'action');
+    
+    try {
+      let newLayout = [...layout];
+      const manuallyPlacedItemIndex = newLayout.findIndex(l => l.i === 'current_draft');
+      
+      if (manuallyPlacedItemIndex !== -1) {
+        // User manually placed the item, just update it
+        newLayout[manuallyPlacedItemIndex] = {
+          ...newLayout[manuallyPlacedItemIndex],
+          i: newItem.id,
+          headline: newItem.title,
+          data: newItem
+        };
+        addLog('SYSTEM', 'Using manually placed layout position.', 'info');
+      } else {
+        // Agent decides placement
+        try {
+          newLayout = await agentLayoutDesigner(newItem, layout);
+        } catch (e: any) {
+          addLog('SYSTEM', `Layout design failed, falling back to default placement: ${e.message}`, 'warning');
+          // Fallback: append to the end of the layout
+          const maxY = Math.max(...layout.map(l => l.y + l.h), 0);
+          newLayout.push({
+            i: newItem.id,
+            x: 0,
+            y: maxY,
+            w: 4,
+            h: 4,
+            headline: newItem.title,
+            blockType: 'SmallArticle',
+            data: newItem
+          });
+        }
+      }
+
+      setLayout(newLayout);
+      onPublish(newItem, newLayout);
+      setStep('PUBLISHED');
+      addLog('SYSTEM', 'Artifact successfully published to the grid.', 'success');
+    } catch (e: any) {
+      addLog('SYSTEM', `Publishing failed: ${e.message}`, 'error');
+    }
   };
 
   const reset = async () => {
@@ -686,7 +849,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
       const palette = atelierState.activePalette ? `Color Palette: ${atelierState.activePalette.name} (${atelierState.activePalette.vibe})` : '';
       const layoutDirective = `Layout Optimization: ${atelierState.layout} (Ensure composition fits this format)`;
       
-      const finalPrompt = `${prompt}. ${modifiers}. ${palette}. ${layoutDirective}. High resolution, masterpiece.`;
+      const finalPrompt = `${prompt}. ${modifiers}. ${palette}. ${layoutDirective}. High resolution, masterpiece. No text, no typography, no words, no letters.`;
       
       // Determine Aspect Ratio based on Layout
       let ratio: AspectRatio = '16:9';
@@ -749,14 +912,16 @@ export const useNewsroomState = (onPublish: (item: MagazineItem) => void) => {
 
   return {
     step, setStep, topic, setTopic, globalDirective, setGlobalDirective, activeConsensus,
-    debateTranscript, draft, image, error, logs, tickerItems, scoutedTopics,
-    angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData,
+    debateTranscript, draft, image, error, logs, tickerItems, newsClusters, scoutedTopics,
+    angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData, synthesizeCluster,
     context, setContext, isResearching, researchTopic, scoutTopic, runDebate,
     runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, runFinalPolish, publish, reset, clearLogs,
     sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
     wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio,
     isPolishing,
     // Atelier Exports
-    atelierState, setAtelierState, runArtDirector, generateAtelierImage
+    atelierState, setAtelierState, runArtDirector, generateAtelierImage,
+    // Layout
+    layout, setLayout
   };
 };

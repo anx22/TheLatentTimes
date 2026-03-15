@@ -3,6 +3,24 @@
 @tailwind components;
 @tailwind utilities;
 
+
+/* Grid Layout Hover Effects */
+.react-grid-layout {
+  background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px),
+    linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
+  background-size: calc(100% / 12) 30px;
+}
+
+/* Default: Magenta border with 30% opacity when hovering over the grid */
+.react-grid-layout:hover .react-grid-item {
+  outline: 2px solid rgba(255, 0, 255, 0.3);
+}
+
+/* Specific item hover: Magenta border 100% opacity */
+.react-grid-item:hover {
+  outline: 2px solid rgba(255, 0, 255, 1) !important;
+}
+
 /* Global Styles extracted from index.html */
 body {
   background-color: #ffffff;
