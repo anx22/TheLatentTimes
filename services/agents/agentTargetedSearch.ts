@@ -1,6 +1,6 @@
 import { safeGenerateContent, searchTrend } from '../gemini';
 
-export const agentTargetedSearch = async (topic: string, globalDirective?: string): Promise<{ context: string; grounded: boolean; urls: { title: string; url: string }[] }> => {
+export const agentTargetedSearch = async (topic: string, globalDirective?: string, missionId?: string): Promise<{ context: string; grounded: boolean; urls: { title: string; url: string }[] }> => {
   const searchResult = await searchTrend(`latest technical details, documentation, and real-world developments regarding: ${topic}`);
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
@@ -22,7 +22,8 @@ export const agentTargetedSearch = async (topic: string, globalDirective?: strin
 
   const response = await safeGenerateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt
+    contents: prompt,
+    missionId
   });
 
   const text = response.text?.trim() || "";

@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { GeneratedArticle } from '../../types';
 import { callJsonAgent } from '../gemini';
 
-export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string, globalDirective?: string): Promise<GeneratedArticle> => {
+export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string, globalDirective?: string, missionId?: string): Promise<GeneratedArticle> => {
   let lengthInstruction = "2-3 paragraphs";
   if (wordCountTarget.includes("300")) lengthInstruction = "1-2 short, punchy paragraphs";
   if (wordCountTarget.includes("1200")) lengthInstruction = "4-5 detailed paragraphs";
@@ -74,7 +74,7 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
       suggested_visual_prompt: { type: Type.STRING }
     },
     required: ['headline', 'deck', 'blocks', 'tags', 'suggested_visual_prompt']
-  }, null);
+  }, null, missionId);
 
   if (parsed) {
     parsed.body = parsed.blocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');

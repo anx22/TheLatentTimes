@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { DraftBlock, BlockAnnotation } from '../../types';
 import { callJsonAgent } from '../gemini';
 
-export const agentEditor = async (blocks: DraftBlock[], context: string, lens: string, globalDirective?: string): Promise<BlockAnnotation[]> => {
+export const agentEditor = async (blocks: DraftBlock[], context: string, lens: string, globalDirective?: string, missionId?: string): Promise<BlockAnnotation[]> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   const prompt = `
     ${directivePrefix}
@@ -15,15 +15,23 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
     Draft Blocks:
     ${JSON.stringify(blocks, null, 2)}
     
-    Identify specific sentences (or entire blocks) that need improvement. Focus on:
-    1. TONE_MISMATCH: Is it too boring, too generic, or not fitting the "Vogue meets Wired" aesthetic?
-    2. CLARITY: Is the technical explanation confusing or poorly phrased?
-    3. FACT_CHECK: Does it contradict the provided context?
-    4. STYLE: Is it clunky or repetitive?
+    Identify specific sentences (or entire blocks) that need improvement. 
     
-    Provide critiques from the perspective of specific personas (e.g., "The Critic", "The Fashion-Forward", "The Technologist").
+    SIMULATE A HEATED EDITORIAL DEBATE between the following three personas:
+    1. THE CRITIC: Harsh, focused on "Vogue" style, hates clichés, demands elegance.
+    2. THE TECHNOLOGIST: Focused on "Wired" accuracy, demands technical depth, hates hand-wavy explanations.
+    3. THE REBEL: Focused on "Accelerationism", demands provocative takes, hates playing it safe.
+
+    For each issue found, specify which persona is raising the concern. 
+    We want conflicting opinions. If one block is too technical, THE CRITIC might complain, while THE TECHNOLOGIST defends it.
     
-    Output JSON only. Return an array of annotations. If the draft is perfect, return an empty array [].
+    Focus on:
+    1. TONE_MISMATCH: Too boring/generic.
+    2. CLARITY: Confusing technicals.
+    3. FACT_CHECK: Context contradictions.
+    4. STYLE: Clunkiness.
+    
+    Output JSON only. Return an array of annotations.
     [
       {
         "id": "anno_1",
@@ -52,5 +60,5 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
       },
       required: ['id', 'blockId', 'type', 'comment']
     }
-  }, []);
+  }, [], missionId);
 };

@@ -6,7 +6,8 @@ export const agentPersonaSpeak = async (
   topic: string, 
   context: string, 
   transcript: { persona: string, message: string }[],
-  globalDirective?: string
+  globalDirective?: string,
+  missionId?: string
 ): Promise<{ persona: string, message: string }> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
@@ -39,5 +40,5 @@ export const agentPersonaSpeak = async (
       message: { type: Type.STRING }
     },
     required: ['persona', 'message']
-  }, { persona, message: "..." });
+  }, { persona, message: "..." }, missionId);
 };

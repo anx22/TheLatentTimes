@@ -7,7 +7,7 @@ interface ArtDirectorOutput {
   metaMeaning: string;
 }
 
-export const agentArtDirector = async (article: GeneratedArticle): Promise<ArtDirectorOutput> => {
+export const agentArtDirector = async (article: GeneratedArticle, missionId?: string): Promise<ArtDirectorOutput> => {
   const prompt = `
     You are THE ART DIRECTOR for a high-end, avant-garde magazine (think Wired meets Vogue meets The New Yorker).
     
@@ -115,5 +115,5 @@ export const agentArtDirector = async (article: GeneratedArticle): Promise<ArtDi
     metaMeaning: "The article discusses complex themes."
   };
 
-  return await callJsonAgent<ArtDirectorOutput>(prompt, schema, fallback);
+  return await callJsonAgent<ArtDirectorOutput>(prompt, schema, fallback, missionId);
 };

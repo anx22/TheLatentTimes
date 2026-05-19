@@ -1,927 +1,127 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useAction } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, ScoutedSignal, LayoutItem } from '../types';
-import { agentScout, agentTargetedSearch, agentColumnist, agentPhotographer, agentTicker, agentDebate, agentEditor, agentRewriteBlock, agentRewriteSentence, agentConsensus, agentPersonaSpeak, agentPromptEnhancer, agentArtDirector, agentPolisher, agentSynthesis, agentLayoutDesigner } from '../services/agents';
-import { compressImage } from '../services/imageUtils';
-import { INITIAL_LAYOUT } from '../constants';
-import { cosineSimilarity } from '../lib/vector';
-
+import { useCallback, useEffect, useMemo } from 'react';
+import { MagazineItem, EditorialAngle, AspectRatio } from '../types';
+import { EditorialOrchestrator } from '../services/editorial';
+import { AtelierEngine } from '../services/visual';
+import { PublicationOrchestrator } from '../services/publication';
+import { ArchitectureDrill } from '../services/testing';
 import { listModels } from '../services/gemini';
+import { MissionRegistry } from '../services/mission';
 
-export const useNewsroomState = (onPublish: (item: MagazineItem, layout: LayoutItem[]) => void, initialLayout?: LayoutItem[]) => {
+// Refactored Sub-Hooks
+import { useNewsroomUIState } from './useNewsroomUIState';
+import { useNewsroomData } from './useNewsroomData';
+import { useEditorialAgents } from './useEditorialAgents';
+import { useVisualAgents } from './useVisualAgents';
+import { usePublicationFlow } from './usePublicationFlow';
+
+export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
   useEffect(() => {
     listModels();
   }, []);
-  // --- CONVEX STATE (Real-time Database) ---
-  const rawTickerItems = useQuery(api.newsroom.queries.getTickerItems, {});
-  const tickerItems = useMemo(() => (rawTickerItems || []) as TickerItem[], [rawTickerItems]);
-  const newsClusters = useQuery(api.newsroom.queries.getNewsClusters, {}) || [];
-  const logs = (useQuery(api.newsroom.queries.getAgentLogs, {}) || []) as SystemLog[];
-  const dbSourcesResult = useQuery(api.newsroom.queries.getSources, {});
-  const dbSources = useMemo(() => dbSourcesResult || [], [dbSourcesResult]);
-  const seedSourcesMutation = useMutation(api.newsroom.mutations.seedSources);
 
-  useEffect(() => {
-    if (dbSourcesResult !== undefined && dbSourcesResult.length === 0) {
-      seedSourcesMutation();
-    }
-  }, [dbSourcesResult, seedSourcesMutation]);
-  
-  // Local IDs for Draft/Image (Persisted)
-  const [draftId, setDraftId] = useState<Id<"drafts"> | null>(null);
-  const [imageId, setImageId] = useState<Id<"images"> | null>(null);
+  // 1. DOMAIN STATE
+  const ui = useNewsroomUIState();
+  const data = useNewsroomData();
 
-  // Fetch specific draft/image based on ID
-  const draft = (useQuery(api.newsroom.queries.getDraftById, { id: draftId ?? undefined }) || null) as GeneratedArticle | null;
-  const imageRecord = useQuery(api.newsroom.queries.getImageById, { id: imageId ?? undefined });
-  const image = imageRecord ? imageRecord.url : null;
+  // 2. MISSION REGISTRY
+  const missionRegistry = useMemo(() => new MissionRegistry(data.mutations), [data.mutations]);
 
-  const addTickerItemMutation = useMutation(api.newsroom.mutations.addTickerItem);
-  const saveDraftMutation = useMutation(api.newsroom.mutations.saveDraft);
-  const logMessageMutation = useMutation(api.newsroom.mutations.logMessage);
-  const saveImageMutation = useMutation(api.newsroom.mutations.saveImage);
-  const getUploadUrlMutation = useMutation(api.media.generateUploadUrl);
-  const resetNewsroomMutation = useMutation(api.newsroom.mutations.resetNewsroom);
-  const saveNewsroomStateMutation = useMutation(api.newsroom.mutations.saveNewsroomState);
-  const clearLogsMutation = useMutation(api.newsroom.mutations.clearLogs);
-  const persistedState = useQuery(api.newsroom.queries.getNewsroomState);
-
-  // --- IMAGE URL HYDRATION ---
-  // Extract image IDs from persisted history to fetch valid storage URLs
-  // This fixes broken "blob:" URLs after page reload
-  const historyImageIds = ((persistedState as any)?.atelierState?.history || [])
-    .map((h: any) => h.imageId)
-    .filter((id: any) => !!id) as Id<"images">[];
-
-  const historyImageUrls = useQuery(api.newsroom.queries.getImagesByIds, { 
-    ids: historyImageIds.length > 0 ? historyImageIds : [] 
-  });
-
-  useEffect(() => {
-    if (historyImageUrls && historyImageUrls.length > 0) {
-      setAtelierState(prev => {
-        if (!prev.history) return prev;
-        
-        const newHistory = prev.history.map(h => {
-          if (h.imageId) {
-            const found = historyImageUrls.find((u: any) => u.id === h.imageId);
-            if (found && found.url && h.url !== found.url) {
-              return { ...h, url: found.url };
-            }
-          }
-          return h;
-        });
-        
-        const isChanged = newHistory.some((h, i) => h.url !== prev.history[i].url);
-        
-        if (isChanged) {
-          // Also update currentImageId if it matches a stale history URL
-          let newCurrentImageId = prev.currentImageId;
-          const currentItemIndex = prev.history.findIndex(h => h.url === prev.currentImageId);
-          if (currentItemIndex !== -1) {
-            newCurrentImageId = newHistory[currentItemIndex].url;
-          }
-          
-          return { ...prev, history: newHistory, currentImageId: newCurrentImageId };
-        }
-        return prev;
-      });
-    }
-  }, [historyImageUrls]);
-
-  // --- LOCAL UI STATE (Transient) ---
-  const [step, setStep] = useState<NewsroomStep>('IDLE');
-  const [topic, setTopic] = useState('');
-  const [globalDirective, setGlobalDirective] = useState('');
-  const [activeConsensus, setActiveConsensus] = useState<string | null>(null);
-  const [debateTranscript, setDebateTranscript] = useState<DebateMessage[]>([]);
-  const [context, setContext] = useState('');
-  const [isResearching, setIsResearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scoutedTopics, setScoutedTopics] = useState<ScoutedSignal[]>([]);
-  const [angles, setAngles] = useState<EditorialAngle[]>([]);
-  const [annotations, setAnnotations] = useState<BlockAnnotation[]>([]);
-  const [isLinting, setIsLinting] = useState(false);
-  const [isRewriting, setIsRewriting] = useState<string | null>(null);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [isFetchingTicker, setIsFetchingTicker] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [isScouting, setIsScouting] = useState(false);
-  const [isDebating, setIsDebating] = useState(false);
-  const [isDrafting, setIsDrafting] = useState(false);
-
-  // ATELIER STATE
-  const [atelierState, setAtelierState] = useState<AtelierState>({
-    concepts: [],
-    activeConceptId: null,
-    layout: 'COVER',
-    activePalette: null,
-    suggestedPalettes: [],
-    customPrompt: '',
-    modifiers: [],
-    currentImageId: null,
-    isGenerating: false,
-    history: []
-  });
-
-  // Parameters
-  const [sources, setSources] = useState({ github: true, arxiv: true, techcrunch: true });
-  const [noiseFilter, setNoiseFilter] = useState(50);
-  const [editorialLens, setEditorialLens] = useState('Tech-Optimist (Default)');
-  const [wordCount, setWordCount] = useState('Standard (600 words)');
-  const [visualStyle, setVisualStyle] = useState('Editorial Photography');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
-  const [isPolishing, setIsPolishing] = useState(false);
-  const [isHydrating, setIsHydrating] = useState(true);
-  const [layout, setLayout] = useState<LayoutItem[]>(initialLayout || INITIAL_LAYOUT);
-
-  useEffect(() => {
-    if (initialLayout) {
-      setLayout(initialLayout);
-    }
-  }, [initialLayout]);
-
-  // --- STATE HYDRATION ---
-  useEffect(() => {
-    if (persistedState !== undefined && isHydrating) {
-      if (persistedState) {
-        const state = persistedState as any;
-        
-        let recoveredStep = state.step || 'IDLE';
-
-        // --- HANGING STATE RECOVERY ---
-        // If the user closed the page while an async agent was running,
-        // the UI will be stuck in a loading state because the promise died.
-        // We roll back to the last stable step.
-        if (recoveredStep === 'NEWS_TERMINAL' && (!state.scoutedTopics || state.scoutedTopics.length === 0)) {
-          recoveredStep = 'IDLE';
-        } else if (recoveredStep === 'EDITORIAL_BOARD' && (!state.angles || state.angles.length === 0)) {
-          recoveredStep = 'NEWS_TERMINAL';
-        }
-
-        setStep(recoveredStep);
-        if (state.topic) setTopic(state.topic);
-        if (state.globalDirective) setGlobalDirective(state.globalDirective);
-        if (state.activeConsensus) setActiveConsensus(state.activeConsensus);
-        if (state.debateTranscript) setDebateTranscript(state.debateTranscript);
-        if (state.context) setContext(state.context);
-        if (state.scoutedTopics) setScoutedTopics(state.scoutedTopics);
-        if (state.angles) setAngles(state.angles);
-        if (state.annotations) setAnnotations(state.annotations);
-        if (state.draftId) setDraftId(state.draftId);
-        if (state.imageId) setImageId(state.imageId);
-        // Parameters
-        if (state.sources) setSources(state.sources);
-        if (state.noiseFilter) setNoiseFilter(state.noiseFilter);
-        if (state.editorialLens) setEditorialLens(state.editorialLens);
-        if (state.wordCount) setWordCount(state.wordCount);
-        if (state.visualStyle) setVisualStyle(state.visualStyle);
-        if (state.aspectRatio) setAspectRatio(state.aspectRatio);
-        
-        // Atelier Hydration (Partial)
-        if (state.atelierState) {
-           setAtelierState({
-             ...state.atelierState,
-             isGenerating: false // Always reset loading state
-           });
-        }
-        
-        // FORCE RESET ALL LOADING STATES
-        // Ensure UI is never stuck in a loading state after reload
-        setIsResearching(false);
-        setIsScouting(false);
-        setIsDebating(false);
-        setIsDrafting(false);
-        setIsGeneratingImage(false);
-        setIsEnhancing(false);
-        setIsRewriting(null);
-        setIsFetchingTicker(false);
-      }
-      setIsHydrating(false);
-    }
-  }, [persistedState, isHydrating]);
-
-  useEffect(() => {
-    if (isHydrating) return;
-    const stateToSave = {
-      step, topic, globalDirective, activeConsensus, debateTranscript,
-      context, scoutedTopics, angles, annotations, draftId, imageId,
-      sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
-      atelierState: atelierState ? {
-        ...atelierState,
-        currentImageBase64: undefined,
-        history: atelierState.history?.map(h => ({ ...h, base64: undefined }))
-      } : undefined
-    };
-    saveNewsroomStateMutation({ data: stateToSave });
-  }, [
-    step, topic, globalDirective, activeConsensus, debateTranscript,
-    context, scoutedTopics, angles, annotations, draftId, imageId,
-    sources, noiseFilter, editorialLens, wordCount, visualStyle, aspectRatio,
-    atelierState,
-    isHydrating, saveNewsroomStateMutation
-  ]);
-
-  const addLog = useCallback((agent: string, message: string, level: SystemLog['level'] = 'info') => {
-    // We use the mutation to log to the database
-    logMessageMutation({
+  // 3. LOGGING HELPER
+  const addLog = useCallback((agent: string, message: string, level: any = 'info') => {
+    data.mutations.logMessage({
       agentName: agent,
       message,
-      step: 'UNKNOWN', // We can't easily access 'step' here due to closure, but it's fine for now
       level,
+      step: ui.step,
+      missionId: (ui as any).activeMissionId
     });
-  }, [logMessageMutation]);
+  }, [data.mutations, ui.step, (ui as any).activeMissionId]);
 
-  const updateSourceFetchTimeMutation = useMutation(api.newsroom.mutations.updateSourceFetchTime);
+  // 4. ENGINES
+  const orchestrator = useMemo(() => new EditorialOrchestrator({
+    globalDirective: ui.globalDirective,
+    missionId: (ui as any).activeMissionId,
+    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'EDITORIAL', missionId: mId as any })
+  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
 
-  const addNewsClusterMutation = useMutation(api.newsroom.mutations.addNewsCluster);
-  const updateTickerItemStoryMutation = useMutation(api.newsroom.mutations.updateTickerItemStory);
+  const atelier = useMemo(() => new AtelierEngine({
+    globalDirective: ui.globalDirective,
+    onLog: (source, msg, type) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'DARKROOM', missionId: (ui as any).activeMissionId as any })
+  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
 
-  const updateNewsClusterMutation = useMutation(api.newsroom.mutations.updateNewsCluster);
-  const fetchRssAction = useAction(api.newsroom.actions.fetchRss);
+  const publication = useMemo(() => new PublicationOrchestrator({
+    globalDirective: ui.globalDirective,
+    missionId: (ui as any).activeMissionId,
+    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'PRESS', missionId: mId as any })
+  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
 
-  const synthesizeCluster = async (clusterId: Id<"stories">) => {
-    const cluster = newsClusters.find(c => c._id === clusterId);
-    if (!cluster) return;
+  // 5. ACTION HOOKS
+  const editorial = useEditorialAgents(data, ui, orchestrator, missionRegistry, addLog);
+  const visual = useVisualAgents(data, ui, atelier, missionRegistry, addLog);
+  const press = usePublicationFlow(data, ui, publication, onPublish, missionRegistry, addLog);
 
-    const items = tickerItems.filter(i => i.storyId === clusterId);
-    if (items.length === 0) return;
-
-    addLog('THE WIRE', `Synthesizing story cluster: ${cluster.title}`, 'info');
-    
-    try {
-      const { summary, keyEntities } = await agentSynthesis(cluster.title, items);
-      await updateNewsClusterMutation({
-        clusterId,
-        summary,
-        keyEntities,
-        status: items.length > 2 ? 'trending' : 'emerging'
-      });
-      addLog('THE WIRE', `Synthesis complete for: ${cluster.title}`, 'success');
-    } catch (e: any) {
-      addLog('THE WIRE', `Synthesis failed: ${e.message}`, 'error');
-    }
-  };
-
-  const fetchTickerData = useCallback(async () => {
-    if (isFetchingTicker) return;
-    setIsFetchingTicker(true);
-    addLog('THE WIRE', 'Polling active sources for new signals...', 'info');
-    
-    try {
-      const items = await agentTicker(dbSources as any[], noiseFilter, globalDirective, fetchRssAction);
-      
-      // Clustering Logic
-      for (const item of items) {
-        let assignedStoryId: Id<"stories"> | undefined = undefined;
-        
-        if (item.embedding && item.embedding.length > 0) {
-          // Find most similar existing item
-          let bestMatch: TickerItem | null = null;
-          let highestSim = 0;
-          
-          for (const existing of tickerItems) {
-            if (existing.embedding && existing.embedding.length > 0) {
-              const sim = cosineSimilarity(item.embedding, existing.embedding);
-              if (sim > highestSim) {
-                highestSim = sim;
-                bestMatch = existing;
-              }
-            }
-          }
-          
-          // Threshold for semantic similarity
-          if (highestSim > 0.85 && bestMatch) {
-            addLog('THE WIRE', `Semantic match found (${(highestSim*100).toFixed(1)}%): ${item.title} matches ${bestMatch.title}`, 'info');
-            
-            if (bestMatch.storyId) {
-              assignedStoryId = bestMatch.storyId as Id<"stories">;
-            } else {
-              // Create a new cluster
-              assignedStoryId = await addNewsClusterMutation({
-                title: bestMatch.title,
-                summary: "Emerging cluster of related signals.",
-                keyEntities: []
-              });
-              // Update the existing item to belong to this new cluster
-              await updateTickerItemStoryMutation({
-                id: bestMatch._id as Id<"ticker_items">,
-                storyId: assignedStoryId
-              });
-            }
-          }
-        }
-
-        // Save item to Convex
-        await addTickerItemMutation({
-          title: item.title,
-          source: item.source,
-          sourceId: item.sourceId,
-          url: item.url,
-          content: item.content,
-          embedding: item.embedding,
-          storyId: assignedStoryId,
-          status: 'new'
-        });
+  // 5. HYDRATION & PERSISTENCE
+  useEffect(() => {
+    if (data.persistedState !== undefined && ui.isHydrating) {
+      if (data.persistedState) {
+        const state = data.persistedState as any;
+        ui.setStep(state.step || 'IDLE');
+        ui.setTopic(state.topic || '');
+        ui.setGlobalDirective(state.globalDirective || '');
+        ui.setContext(state.context || '');
+        ui.setScoutedTopics(state.scoutedTopics || []);
+        ui.setAngles(state.angles || []);
+        data.setDraftId(state.draftId || null);
+        data.setImageId(state.imageId || null);
+        ui.setAtelierState(state.atelierState || ui.atelierState);
+        // Reset all loading
+        ui.setIsResearching(false);
+        ui.setIsScouting(false);
+        ui.setIsDebating(false);
+        ui.setIsDrafting(false);
       }
-      
-      // Update fetch times for all active sources
-      for (const source of dbSources) {
-        if (source.isActive) {
-          await updateSourceFetchTimeMutation({ sourceId: source._id, timestamp: Date.now() });
-        }
+      ui.setIsHydrating(false);
+    }
+  }, [data.persistedState, ui]);
+
+  useEffect(() => {
+    if (ui.isHydrating) return;
+    data.mutations.saveNewsroomState({
+      data: {
+        step: ui.step, topic: ui.topic, globalDirective: ui.globalDirective,
+        context: ui.context, scoutedTopics: ui.scoutedTopics, angles: ui.angles,
+        draftId: data.draftId, imageId: data.imageId, atelierState: ui.atelierState
       }
-      
-      addLog('THE WIRE', `Intercepted ${items.length} signals from active sources.`, 'success');
+    });
+  }, [ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles, data.draftId, data.imageId, ui.atelierState, ui.isHydrating, data.mutations]);
 
-      if (items.length > 0) {
-        addLog('THE DIRECTOR', 'Synthesizing active consensus...', 'info');
-        const consensus = await agentConsensus(items, globalDirective);
-        setActiveConsensus(consensus);
-        addLog('THE DIRECTOR', 'Active consensus established.', 'success');
-      } else {
-        setActiveConsensus(null);
-      }
-    } catch (e: any) {
-      addLog('THE WIRE', `Failed to poll sources: ${e.message}`, 'error');
-    } finally {
-      setIsFetchingTicker(false);
-    }
-  }, [dbSources, noiseFilter, isFetchingTicker, addLog, globalDirective, addTickerItemMutation, updateSourceFetchTimeMutation, tickerItems, addNewsClusterMutation, updateTickerItemStoryMutation, fetchRssAction]);
-
-  const researchTopic = async (t: string) => {
-    if (!t.trim()) return;
-    setIsResearching(true);
-    addLog('THE SCOUT', `Conducting deep-dive research on: "${t}"...`, 'action');
-    try {
-      const result = await agentTargetedSearch(t, globalDirective);
-      setContext(result.context);
-      if (result.grounded) {
-        addLog('THE SCOUT', 'Deep-dive briefing compiled from real-world signals.', 'success');
-      } else {
-        addLog('THE SCOUT', 'WARNING: No real-world technical grounding found. Proceeding with speculative synthesis.', 'warning');
-      }
-    } catch (e: any) {
-      addLog('THE SCOUT', `Research failed: ${e.message}`, 'error');
-    } finally {
-      setIsResearching(false);
-    }
-  };
-
-  const scoutTopic = async () => {
-    setError(null);
-    setStep('NEWS_TERMINAL');
-    setIsScouting(true);
-    addLog('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
-    try {
-      const topics = await agentScout(dbSources as any[], noiseFilter, globalDirective);
-      setScoutedTopics(topics);
-      addLog('THE SCOUT', `Signal sweep complete. Found ${topics.length} potential vectors.`, 'success');
-      // Stay in NEWS_TERMINAL to show results
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Scout failure');
-      addLog('SYSTEM', `Scout connection failed: ${e.message}`, 'error');
-      setStep('IDLE');
-    } finally {
-      setIsScouting(false);
-    }
-  };
-
-  const runDebate = async () => {
-    if (!topic.trim()) return;
-    
-    setError(null);
-    setStep('EDITORIAL_BOARD');
-    setIsDebating(true);
-    setDebateTranscript([]);
-    setAngles([]);
-    setDraftId(null); // Clear previous draft
-    addLog('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info');
-    
-    let currentContext = context;
-
-    try {
-      if (!currentContext) {
-        addLog('THE SCOUT', `No context provided. Forcing emergency deep-dive on: "${topic}"...`, 'warning');
-        const result = await agentTargetedSearch(topic, globalDirective);
-        currentContext = result.context;
-        setContext(currentContext);
-        if (result.grounded) {
-          addLog('THE SCOUT', 'Deep-dive briefing compiled.', 'success');
-        } else {
-          addLog('THE SCOUT', 'WARNING: Debating ungrounded/fictional topic.', 'warning');
-        }
-      }
-
-      // Sequential Debate
-      const personas = ['The Tech-Optimist', 'The Culture-Critic', 'The Fashion-Forward'];
-      const transcript: DebateMessage[] = [];
-
-      for (const persona of personas) {
-        addLog('THE BOARD', `${persona} is contributing to the debate...`, 'action');
-        const message = await agentPersonaSpeak(persona, topic, currentContext, transcript, globalDirective);
-        transcript.push(message);
-        setDebateTranscript([...transcript]);
-      }
-
-      addLog('THE BOARD', 'Synthesizing editorial angles from the debate...', 'action');
-      const generatedAngles = await agentDebate(topic, currentContext, globalDirective, transcript);
-      setAngles(generatedAngles.angles);
-      addLog('THE BOARD', 'Debate concluded. Angles presented for selection.', 'success');
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Debate failure');
-      addLog('SYSTEM', `Debate failure: ${e.message}`, 'error');
-    } finally {
-      setIsDebating(false);
-    }
-  };
-
-  const runPipeline = async (angle?: EditorialAngle, selectedHeadline?: string) => {
-    if (!topic.trim()) return;
-    
-    setError(null);
-    setIsDrafting(true);
-    // Already in EDITORIAL_BOARD
-    
-    let currentContext = context;
-    let currentLens = editorialLens;
-    
-    if (angle) {
-      currentLens = `${angle.persona}: ${angle.angle}`;
-      if (selectedHeadline) {
-        currentLens += `\n\nMANDATORY HEADLINE: "${selectedHeadline}"`;
-      }
-      setEditorialLens(currentLens);
-      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with selected angle: "${selectedHeadline || angle.headline}"`, 'info');
-    } else {
-      addLog('THE EDITOR', `Commissioned piece on: "${topic}" with lens: "${editorialLens}"`, 'info');
-    }
-
-    try {
-      if (!currentContext) {
-        addLog('THE SCOUT', `No context provided. Forcing emergency deep-dive on: "${topic}"...`, 'warning');
-        const result = await agentTargetedSearch(topic, globalDirective);
-        currentContext = result.context;
-        setContext(currentContext);
-        if (result.grounded) {
-          addLog('THE SCOUT', 'Deep-dive briefing compiled.', 'success');
-        } else {
-          addLog('THE SCOUT', 'WARNING: Writing on ungrounded/fictional topic.', 'warning');
-        }
-      }
-
-      addLog('THE COLUMNIST', `Drafting prose (${wordCount}) and synthesizing cultural vectors...`, 'action');
-      const article = await agentColumnist(topic, currentContext, currentLens, wordCount, globalDirective);
-      
-      // Save draft to Convex
-      const newDraftId = await saveDraftMutation({
-        headline: article.headline,
-        deck: article.deck,
-        body: article.body,
-        blocks: article.blocks,
-        tags: article.tags,
-        suggested_visual_prompt: article.suggested_visual_prompt,
-        status: 'draft'
-      });
-      setDraftId(newDraftId);
-      
-      // Clear Atelier state to force re-generation for new draft
-      setAtelierState({
-        concepts: [],
-        activeConceptId: null,
-        layout: 'COVER',
-        activePalette: null,
-        suggestedPalettes: [],
-        customPrompt: '',
-        modifiers: [],
-        currentImageId: null,
-        isGenerating: false,
-        history: []
-      });
-      
-      addLog('THE COLUMNIST', 'Draft completed and submitted to The Bullpen.', 'success');
-      
-      // Automatically run KI-Linter
-      addLog('THE EDITOR', 'Running KI-Linter on new draft...', 'action');
-      setIsLinting(true);
-      try {
-        const newAnnotations = await agentEditor(article.blocks, currentContext, currentLens, globalDirective);
-        setAnnotations(newAnnotations);
-        if (newAnnotations.length === 0) {
-          addLog('THE EDITOR', 'KI-Linter found no issues. Draft is clean.', 'success');
-        } else {
-          addLog('THE EDITOR', `KI-Linter flagged ${newAnnotations.length} blocks for review.`, 'warning');
-        }
-      } catch (linterError: any) {
-        addLog('THE EDITOR', `KI-Linter failed: ${linterError.message}`, 'error');
-      } finally {
-        setIsLinting(false);
-      }
-      
-      // Stay in EDITORIAL_BOARD for review/editing
-      addLog('THE EDITOR', 'Draft ready for review.', 'info');
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Agent failure');
-      addLog('SYSTEM', `Pipeline failure: ${e.message}`, 'error');
-    } finally {
-      setIsDrafting(false);
-    }
-  };
-
-  const reDraft = async () => {
-    if (!topic.trim() || !context.trim()) return;
-    
-    setError(null);
-    setIsDrafting(true);
-    // Stay in EDITORIAL_BOARD
-    addLog('THE EDITOR', `Re-commissioned piece on: "${topic}" with NEW lens: "${editorialLens}"`, 'info');
-    
-    try {
-      addLog('THE COLUMNIST', `Re-drafting prose (${wordCount})...`, 'action');
-      const article = await agentColumnist(topic, context, editorialLens, wordCount, globalDirective);
-      
-      // Update draft in Convex (create new version)
-      const newDraftId = await saveDraftMutation({
-        headline: article.headline,
-        deck: article.deck,
-        body: article.body,
-        blocks: article.blocks,
-        tags: article.tags,
-        suggested_visual_prompt: article.suggested_visual_prompt,
-        status: 'draft'
-      });
-      setDraftId(newDraftId);
-      
-      addLog('THE COLUMNIST', 'Re-draft completed and submitted to The Bullpen.', 'success');
-      
-      // Automatically run KI-Linter
-      addLog('THE EDITOR', 'Running KI-Linter on new draft...', 'action');
-      setIsLinting(true);
-      try {
-        const newAnnotations = await agentEditor(article.blocks, context, editorialLens, globalDirective);
-        setAnnotations(newAnnotations);
-        if (newAnnotations.length === 0) {
-          addLog('THE EDITOR', 'KI-Linter found no issues. Draft is clean.', 'success');
-        } else {
-          addLog('THE EDITOR', `KI-Linter flagged ${newAnnotations.length} blocks for review.`, 'warning');
-        }
-      } catch (linterError: any) {
-        addLog('THE EDITOR', `KI-Linter failed: ${linterError.message}`, 'error');
-      } finally {
-        setIsLinting(false);
-      }
-      
-      // Stay in EDITORIAL_BOARD
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Re-draft failure');
-      addLog('SYSTEM', `Re-draft failure: ${e.message}`, 'error');
-    } finally {
-      setIsDrafting(false);
-    }
-  };
-
-  const reShoot = async () => {
-    if (!draft) return;
-    
-    setError(null);
-    setStep('DARKROOM');
-    setIsGeneratingImage(true);
-    addLog('THE PHOTOGRAPHER', `Re-entering darkroom with NEW Style: ${visualStyle}, Ratio: ${aspectRatio}.`, 'action');
-    
-    try {
-      const imgUrlBase64 = await agentPhotographer(draft.suggested_visual_prompt || '', visualStyle, aspectRatio, globalDirective);
-      
-      addLog('THE PHOTOGRAPHER', 'Image generated. Optimizing for web (JPEG 70%)...', 'info');
-      
-      // Convert base64 to compressed JPEG blob
-      const blob = await compressImage(imgUrlBase64, 0.7);
-
-      // Get upload URL
-      const postUrl = await getUploadUrlMutation();
-
-      // Upload to Convex storage
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": blob.type },
-        body: blob,
-      });
-      const { storageId } = await result.json();
-
-      // Save image to Convex
-      const newImageId = await saveImageMutation({
-        prompt: draft.suggested_visual_prompt || '',
-        storageId: storageId
-      });
-      setImageId(newImageId);
-      
-      addLog('THE PHOTOGRAPHER', 'New visual assets developed and attached.', 'success');
-      
-      setStep('PRINTING_PRESS');
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || 'Re-shoot failure');
-      addLog('SYSTEM', `Re-shoot failure: ${e.message}`, 'error');
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
-
-  const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
-    if (!draft || !draft.blocks) return;
-    const blockToRewrite = draft.blocks.find(b => b.id === blockId);
-    if (!blockToRewrite) return;
-
-    setIsRewriting(blockId);
-    addLog('THE COLUMNIST', `Rewriting ${sentenceId ? 'sentence' : 'block'} ${sentenceId || blockId} per Editor instruction...`, 'action');
-    try {
-      let rewrittenBlock;
-      if (sentenceId) {
-        rewrittenBlock = await agentRewriteSentence(blockToRewrite, sentenceId, instruction, context, editorialLens, globalDirective);
-      } else {
-        rewrittenBlock = await agentRewriteBlock(blockToRewrite, instruction, context, editorialLens, globalDirective);
-      }
-      
-      // Update blocks locally
-      const newBlocks = draft.blocks.map(b => b.id === blockId ? rewrittenBlock : b);
-      
-      // Reconstruct body from blocks
-      const newBody = newBlocks.map(b => b.sentences.map(s => s.text).join(' ')).join('\n\n');
-
-      // Save to Convex
-      const newDraftId = await saveDraftMutation({
-        headline: draft.headline,
-        deck: draft.deck,
-        body: newBody,
-        blocks: newBlocks,
-        tags: draft.tags,
-        suggested_visual_prompt: draft.suggested_visual_prompt,
-        status: (draft as any).status
-      });
-      setDraftId(newDraftId);
-      
-      addLog('THE COLUMNIST', `${sentenceId ? 'Sentence' : 'Block'} rewritten successfully.`, 'success');
-    } catch (e: any) {
-      addLog('THE COLUMNIST', `Rewrite failed: ${e.message}`, 'error');
-    } finally {
-      setIsRewriting(null);
-    }
-  };
-
-  const enhancePrompt = async () => {
-    if (!draft) return;
-    setIsEnhancing(true);
-    addLog('THE PHOTOGRAPHER', 'Applying Magic Enhance to visual prompt...', 'action');
-    try {
-      const enhanced = await agentPromptEnhancer(draft.suggested_visual_prompt || '', visualStyle, globalDirective);
-      
-      // Update draft in Convex
-      const newDraftId = await saveDraftMutation({
-        headline: draft.headline,
-        deck: draft.deck,
-        body: draft.body,
-        blocks: draft.blocks,
-        tags: draft.tags,
-        suggested_visual_prompt: enhanced,
-        status: 'draft'
-      });
-      setDraftId(newDraftId);
-      
-      addLog('THE PHOTOGRAPHER', 'Visual prompt enhanced with high-fidelity details.', 'success');
-    } catch (e: any) {
-      addLog('THE PHOTOGRAPHER', `Enhancement failed: ${e.message}`, 'error');
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
-  const runFinalPolish = async () => {
-    if (!draft) return;
-    setIsPolishing(true);
-    addLog('THE PRESS', 'Performing final surgical polish...', 'action');
-    
-    try {
-      const polished = await agentPolisher(draft);
-      
-      const newDraftId = await saveDraftMutation({
-        headline: polished.headline,
-        deck: polished.deck,
-        body: polished.body,
-        blocks: polished.blocks,
-        tags: polished.tags,
-        suggested_visual_prompt: draft.suggested_visual_prompt,
-        status: (draft as any).status
-      });
-      setDraftId(newDraftId);
-
-      addLog('THE PRESS', 'Final polish complete. Artifact optimized.', 'success');
-    } catch (e: any) {
-      addLog('THE PRESS', `Polish failed: ${e.message}`, 'error');
-    } finally {
-      setIsPolishing(false);
-    }
-  };
-
-  const publish = async () => {
-    if (!draft || !image) return;
-    
-    const newItem: MagazineItem = {
-      id: Math.random().toString(36).substring(7),
-      title: draft.headline,
-      dek: draft.deck,
-      published_at: new Date().toISOString(),
-      tags: draft.tags || [],
-      media_type: 'image',
-      hero_image_url: image,
-      status: 'published',
-      featured_level: 'none',
-      score: { final: 8, recency: 10, trust: 8, novelty: 8, visual_fit: 9 },
-      body: draft.body,
-      blocks: draft.blocks
-    };
-
-    addLog('SYSTEM', 'Publishing artifact and designing layout...', 'action');
-    
-    try {
-      let newLayout = [...layout];
-      const manuallyPlacedItemIndex = newLayout.findIndex(l => l.i === 'current_draft');
-      
-      if (manuallyPlacedItemIndex !== -1) {
-        // User manually placed the item, just update it
-        newLayout[manuallyPlacedItemIndex] = {
-          ...newLayout[manuallyPlacedItemIndex],
-          i: newItem.id,
-          headline: newItem.title,
-          data: newItem
-        };
-        addLog('SYSTEM', 'Using manually placed layout position.', 'info');
-      } else {
-        // Agent decides placement
-        try {
-          newLayout = await agentLayoutDesigner(newItem, layout);
-        } catch (e: any) {
-          addLog('SYSTEM', `Layout design failed, falling back to default placement: ${e.message}`, 'warning');
-          // Fallback: append to the end of the layout
-          const maxY = Math.max(...layout.map(l => l.y + l.h), 0);
-          newLayout.push({
-            i: newItem.id,
-            x: 0,
-            y: maxY,
-            w: 4,
-            h: 4,
-            headline: newItem.title,
-            blockType: 'SmallArticle',
-            data: newItem
-          });
-        }
-      }
-
-      setLayout(newLayout);
-      onPublish(newItem, newLayout);
-      setStep('PUBLISHED');
-      addLog('SYSTEM', 'Artifact successfully published to the grid.', 'success');
-    } catch (e: any) {
-      addLog('SYSTEM', `Publishing failed: ${e.message}`, 'error');
-    }
-  };
-
+  // 6. WRAPPER ACTIONS
   const reset = async () => {
-    setStep('IDLE');
-    setTopic('');
-    setContext('');
-    setError(null);
-    setScoutedTopics([]);
-    setAngles([]);
-    setAnnotations([]);
-    setDebateTranscript([]);
-    
-    // Clear DB
-    await resetNewsroomMutation({});
-    
-    addLog('SYSTEM', 'Pipeline reset. Awaiting new signal.', 'info');
+    ui.setStep('IDLE');
+    ui.setTopic('');
+    ui.setContext('');
+    ui.setError(null);
+    await data.mutations.resetNewsroom({});
+    addLog('SYSTEM', 'Pipeline reset.', 'info');
   };
 
   const clearLogs = async () => {
-    await clearLogsMutation({});
+    await data.mutations.clearLogs({});
   };
 
-  // --- ATELIER ACTIONS ---
-
-  const runArtDirector = async () => {
-    if (!draft) return;
-    
-    setIsGeneratingImage(true);
-    addLog('THE ART DIRECTOR', 'Analyzing draft for visual identity...', 'action');
-    
-    try {
-      const output = await agentArtDirector(draft);
-      
-      setAtelierState(prev => ({
-        ...prev,
-        concepts: output.concepts,
-        suggestedPalettes: output.palettes,
-        activeConceptId: output.concepts[0].id,
-        activePalette: output.palettes[0],
-        customPrompt: output.concepts[0].prompt,
-        modifiers: []
-      }));
-      
-      addLog('THE ART DIRECTOR', `Visual concepts generated: ${output.metaMeaning}`, 'success');
-    } catch (e: any) {
-      addLog('THE ART DIRECTOR', `Analysis failed: ${e.message}`, 'error');
-    } finally {
-      setIsGeneratingImage(false);
-    }
-  };
-
-  const generateAtelierImage = async (prompt: string, isEdit: boolean = false) => {
-    setIsGeneratingImage(true);
-    addLog('THE ATELIER', isEdit ? 'Refining existing asset...' : 'Developing high-fidelity asset...', 'action');
-    
-    try {
-      // Construct final prompt with modifiers and palette
-      const modifiers = atelierState.modifiers.join(', ');
-      const palette = atelierState.activePalette ? `Color Palette: ${atelierState.activePalette.name} (${atelierState.activePalette.vibe})` : '';
-      const layoutDirective = `Layout Optimization: ${atelierState.layout} (Ensure composition fits this format)`;
-      
-      const finalPrompt = `${prompt}. ${modifiers}. ${palette}. ${layoutDirective}. High resolution, masterpiece. No text, no typography, no words, no letters.`;
-      
-      // Determine Aspect Ratio based on Layout
-      let ratio: AspectRatio = '16:9';
-      if (atelierState.layout === 'COVER') ratio = '3:4';
-      if (atelierState.layout === 'COLUMN') ratio = '1:1';
-      if (atelierState.layout === 'SOCIAL') ratio = '1:1';
-
-      // If isEdit is true and we have a current image, pass it for image-to-image
-      const base64Ref = (isEdit && atelierState.currentImageBase64) ? atelierState.currentImageBase64 : undefined;
-
-      const imgUrlBase64 = await agentPhotographer(finalPrompt, 'Editorial Photography', ratio, globalDirective, base64Ref);
-      
-      // Compress
-      const blob = await compressImage(imgUrlBase64, 0.7);
-      
-      // Upload
-      const postUrl = await getUploadUrlMutation();
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": blob.type },
-        body: blob,
-      });
-      const { storageId } = await result.json();
-      
-      // Save
-      const newImageId = await saveImageMutation({
-        prompt: finalPrompt,
-        storageId: storageId
-      });
-      
-      setImageId(newImageId);
-      
-      // Update Local State for Preview & History
-      const blobUrl = URL.createObjectURL(blob);
-      const historyItem = {
-        id: Math.random().toString(36).substring(7),
-        url: blobUrl,
-        base64: imgUrlBase64,
-        imageId: newImageId, // Persist ID
-        prompt: finalPrompt,
-        timestamp: Date.now(),
-        layout: atelierState.layout,
-        palette: atelierState.activePalette?.name
-      };
-
-      setAtelierState(prev => ({
-        ...prev,
-        currentImageId: blobUrl,
-        currentImageBase64: imgUrlBase64,
-        history: [historyItem, ...(prev.history || [])].slice(0, 10) // Keep last 10
-      }));
-
-      addLog('THE ATELIER', isEdit ? 'Asset refined and updated.' : 'Asset developed and fixed.', 'success');
-    } catch (e: any) {
-      addLog('THE ATELIER', `Development failed: ${e.message}`, 'error');
-    } finally {
-      setIsGeneratingImage(false);
-    }
+  const publish = async () => {
+    await press.publish();
   };
 
   return {
-    step, setStep, topic, setTopic, globalDirective, setGlobalDirective, activeConsensus,
-    debateTranscript, draft, image, error, logs, tickerItems, newsClusters, scoutedTopics,
-    angles, annotations, isLinting, isRewriting, isEnhancing, isFetchingTicker, isGeneratingImage, isScouting, isDebating, isDrafting, fetchTickerData, synthesizeCluster,
-    context, setContext, isResearching, researchTopic, scoutTopic, runDebate,
-    runPipeline, reDraft, reShoot, rewriteBlock, enhancePrompt, runFinalPolish, publish, reset, clearLogs,
-    sources, setSources, noiseFilter, setNoiseFilter, editorialLens, setEditorialLens,
-    wordCount, setWordCount, visualStyle, setVisualStyle, aspectRatio, setAspectRatio,
-    isPolishing,
-    // Atelier Exports
-    atelierState, setAtelierState, runArtDirector, generateAtelierImage,
-    // Layout
-    layout, setLayout
+    ...ui,
+    ...data,
+    ...editorial,
+    ...visual,
+    ...press,
+    reset,
+    publish,
+    clearLogs,
+    runIntegrityDrill: useCallback(() => new ArchitectureDrill().runIntegrityDrill(), [])
   };
 };

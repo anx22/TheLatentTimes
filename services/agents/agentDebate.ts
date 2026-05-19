@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { EditorialAngle } from '../../types';
 import { callJsonAgent } from '../gemini';
 
-export const agentDebate = async (topic: string, context: string, globalDirective?: string, transcript?: { persona: string, message: string }[]): Promise<{ transcript: { persona: string, message: string }[], angles: EditorialAngle[] }> => {
+export const agentDebate = async (topic: string, context: string, globalDirective?: string, transcript?: { persona: string, message: string }[], missionId?: string): Promise<{ transcript: { persona: string, message: string }[], angles: EditorialAngle[] }> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
   const transcriptSection = transcript ? `
@@ -95,5 +95,5 @@ export const agentDebate = async (topic: string, context: string, globalDirectiv
       }
     },
     required: ['transcript', 'angles']
-  }, { transcript: [], angles: [] });
+  }, { transcript: [], angles: [] }, missionId);
 };

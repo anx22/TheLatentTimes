@@ -33,12 +33,12 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-64 text-neutral-400 gap-4">
+            <div className="flex flex-col items-center justify-center h-64 text-neutral-600 gap-4">
               <div className="w-8 h-8 border-2 border-black/20 border-t-black rounded-full animate-spin" />
               <p className="font-mono text-sm uppercase tracking-widest">Retrieving Records...</p>
             </div>
           ) : (issues || []).length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-neutral-400 gap-2">
+            <div className="flex flex-col items-center justify-center h-64 text-neutral-600 gap-2">
               <BookOpen className="w-12 h-12 opacity-20 mb-2" />
               <p className="font-serif text-xl">The archive is empty.</p>
               <p className="font-mono text-xs uppercase tracking-widest">No issues found in database.</p>
@@ -67,7 +67,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({ onClose, onSelectIss
                     </h3>
                   </div>
                   <div className="p-4 bg-white text-black group-hover:bg-neutral-50 transition-colors flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-700">
                       ID: {issue._id.slice(0, 8)}...
                     </span>
                     <span className="font-mono text-xs font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">

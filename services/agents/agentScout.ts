@@ -14,6 +14,7 @@ export const agentScout = async (sources: Source[], noiseFilter: number, globalD
   }
 
   const strictness = noiseFilter > 70 ? "EXTREMELY STRICT: Only return highly credible, groundbreaking, and verified technical breakthroughs." : "BROAD: You can include speculative, emerging, or niche technical trends.";
+  const vision = "AVANT-GARDE: We are the spearhead of the tech-cultural AI Revolution. We want to reveal thoughts and philosophies that others miss. Give weight to 'small voices'—proper technical thoughts that may be poorly written but contain high-signal innovation. We want to elevate them to the big stage with professional research and staging.";
 
   const searchResult = await searchTrend(query);
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
@@ -22,6 +23,8 @@ export const agentScout = async (sources: Source[], noiseFilter: number, globalD
     ${directivePrefix}
     You are THE SCOUT for The Latent Times. Your job is to find 3 distinct, highly specific hard-tech topics for our next article based on current real-world signals.
     
+    ${vision}
+
     CRITICAL RULE: Focus ONLY on technology (AI models, code, workflows, hardware). Ignore fashion, culture, and social issues entirely at this stage. We need the raw technical foundation.
     
     FILTERING DIRECTIVE: ${strictness}

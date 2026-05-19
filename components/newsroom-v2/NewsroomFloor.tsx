@@ -1,215 +1,173 @@
-import React, { useState } from 'react';
-import { useNewsroom } from '../../hooks/useNewsroom';
-import { X, Radio, Users, Type, PenTool, Camera, Check, ArrowRight, Loader2, RotateCcw } from 'lucide-react';
-import { NewsTerminal } from './news-terminal/NewsTerminal';
-import { EditorialBoard } from './editorial-board/EditorialBoard';
-import { Atelier } from './atelier/Atelier';
+import React, { useContext } from 'react';
+import { X, Radio, MessageSquare, Image, Printer, Layout, Terminal } from 'lucide-react';
+import { NewsroomContext } from '../../contexts/NewsroomContext';
+import { TheWire } from './TheWire';
+import { TheBullpen } from './TheBullpen';
+import { TheDarkroom } from './TheDarkroom';
 import { PrintingPress } from './printing-press/PrintingPress';
-import { SystemLog } from './SystemLog';
 
 interface NewsroomFloorProps {
   onClose: () => void;
 }
 
-type Department = 'NEWS TERMINAL' | 'EDITORIAL BOARD' | 'ATELIER' | 'PRINTING PRESS';
-
 export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
-  const { 
-    step, setStep, draft, image, error, reset, tickerItems, isGeneratingImage, isScouting, isDebating, isDrafting,
-    topic, runDebate, publish, atelierState
-  } = useNewsroom();
-  
-  const [activeDept, setActiveDept] = useState<Department>('NEWS TERMINAL');
+  const context = useContext(NewsroomContext);
+  if (!context) return null;
 
-  // Auto-switch tabs based on pipeline step and activity
-  React.useEffect(() => {
-    if (isScouting) setActiveDept('NEWS TERMINAL');
-    else if (isDebating || isDrafting) setActiveDept('EDITORIAL BOARD');
-    else if (isGeneratingImage) setActiveDept('ATELIER');
-    else if (step === 'NEWS_TERMINAL') setActiveDept('NEWS TERMINAL');
-    else if (step === 'EDITORIAL_BOARD') setActiveDept('EDITORIAL BOARD');
-    else if (step === 'DARKROOM') setActiveDept('ATELIER');
-    else if (step === 'PRINTING_PRESS') setActiveDept('PRINTING PRESS');
-    else if (step === 'PUBLISHED') setActiveDept('PRINTING PRESS'); 
-  }, [step, isScouting, isDebating, isDrafting, isGeneratingImage]);
+  const { step, setStep, logs } = context;
 
-  // Derive department status
-  const getDeptStatus = (dept: Department) => {
-    switch (dept) {
-      case 'NEWS TERMINAL':
-        return isScouting ? { label: 'SCANNING', color: 'text-purple-400', items: 0 } : { label: 'LISTENING', color: 'text-emerald-500', items: tickerItems.length };
-      case 'EDITORIAL BOARD':
-        if (isDebating || isDrafting) return { label: 'IN SESSION', color: 'text-purple-400', items: 0 };
-        return draft ? { label: 'DRAFT READY', color: 'text-emerald-500', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
-      case 'ATELIER':
-        return isGeneratingImage ? { label: 'DEVELOPING', color: 'text-amber-400', items: 1 } : { label: image ? 'DONE' : 'IDLE', color: image ? 'text-emerald-500' : 'text-zinc-600', items: image ? 1 : 0 };
-      case 'PRINTING PRESS':
-        return step === 'PRINTING_PRESS' ? { label: 'FINAL REVIEW', color: 'text-red-400', items: 1 } : { label: 'IDLE', color: 'text-zinc-600', items: 0 };
-    }
-  };
+  const departments = [
+    { id: 'NEWS_TERMINAL', name: 'The Wire', icon: Radio },
+    { id: 'EDITORIAL_BOARD', name: 'The Bullpen', icon: MessageSquare },
+    { id: 'DARKROOM', name: 'The Darkroom', icon: Image },
+    { id: 'PRINTING_PRESS', name: 'The Press', icon: Printer },
+  ];
 
-  // Define agents per room
-  const getRoomAgents = (dept: Department) => {
-    switch (dept) {
-      case 'NEWS TERMINAL':
-        return [{ name: 'Scout', icon: Radio }];
-      case 'EDITORIAL BOARD':
-        return [
-          { name: 'Board', icon: Users },
-          { name: 'Columnist', icon: Type },
-          { name: 'Editor', icon: PenTool }
-        ];
-      case 'ATELIER':
-        return [{ name: 'Art Director', icon: Camera }];
-      case 'PRINTING PRESS':
-        return [{ name: 'Publisher', icon: Check }];
-    }
-  };
-
-  // Get Action Button for Room
-  const getRoomAction = (dept: Department) => {
-    switch (dept) {
-      case 'NEWS TERMINAL':
-        if (isScouting) return { label: 'SCOUTING...', disabled: true, loading: true };
-        if (topic) return { label: 'CONVENE BOARD', onClick: runDebate, disabled: false, icon: ArrowRight };
-        return { label: 'AWAITING SIGNAL', disabled: true };
-      
-      case 'EDITORIAL BOARD':
-        if (isDebating) return { label: 'DEBATING...', disabled: true, loading: true };
-        if (isDrafting) return { label: 'DRAFTING...', disabled: true, loading: true };
-        if (draft) return { label: 'SEND TO ATELIER', onClick: () => setStep('DARKROOM'), disabled: false, icon: ArrowRight };
-        return { label: 'AWAITING DRAFT', disabled: true };
-
-      case 'ATELIER':
-        if (isGeneratingImage) return { label: 'DEVELOPING...', disabled: true, loading: true };
-        if (atelierState?.currentImageId) return { label: 'SEND TO PRESS', onClick: () => setStep('PRINTING_PRESS'), disabled: false, icon: ArrowRight };
-        return { label: 'AWAITING ASSET', disabled: true };
-
-      case 'PRINTING PRESS':
-        if (step === 'PUBLISHED') return { label: 'START NEW CYCLE', onClick: reset, disabled: false, icon: RotateCcw };
-        if (step === 'PRINTING_PRESS') return { label: 'PUBLISH EDITION', onClick: publish, disabled: false, icon: Check };
-        return { label: 'AWAITING LAYOUT', disabled: true };
+  const renderActiveDepartment = () => {
+    switch (step) {
+      case 'NEWS_TERMINAL':
+        return <TheWire />;
+      case 'EDITORIAL_BOARD':
+        return <TheBullpen />;
+      case 'DARKROOM':
+        return <TheDarkroom />;
+      case 'PRINTING_PRESS':
+      case 'PUBLISHED':
+        return <PrintingPress />;
+      default:
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#111] text-zinc-500 border-zinc-800 border-l">
+            <Terminal className="w-12 h-12 mb-4 opacity-20" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.3em]">System Standby</h2>
+            <p className="font-mono text-[10px] mt-2 opacity-50">Awaiting operational signal</p>
+            <button 
+                onClick={() => setStep('NEWS_TERMINAL')}
+                className="mt-8 border border-zinc-800 px-6 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all"
+            >
+                Initialize Terminal
+            </button>
+          </div>
+        );
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 text-zinc-50 z-50 flex flex-col font-mono text-sm">
-      {/* HEADER */}
-      <header className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 bg-zinc-950 shrink-0">
+    <div className="fixed inset-0 z-[150] bg-black flex flex-col animate-fade-in text-white font-sans selection:bg-emerald-500 selection:text-white">
+      {/* Top Bar */}
+      <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 shrink-0 bg-[#0a0a0a]">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="font-bold tracking-widest text-xs">THE LATENT TIMES OPERATIONS FLOOR</span>
-          </div>
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.4em] font-bold">
+            Newsroom Floor <span className="text-zinc-600">v2.0</span>
+          </span>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Global Reset */}
-          {step !== 'IDLE' && (
-             <button 
-               onClick={() => {
-                 if (window.confirm('ABORT CURRENT CYCLE? This will clear all progress.')) {
-                   reset();
-                 }
-               }}
-               className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded border border-red-500/20 transition-colors text-[10px] font-bold tracking-widest uppercase mr-4"
-             >
-               <RotateCcw className="w-3 h-3" />
-               <span>ABORT</span>
-             </button>
-          )}
-          <div className="w-px h-4 bg-zinc-800" />
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
+        
+        <div className="flex items-center gap-8">
+           <div className="hidden md:flex items-center gap-6">
+              {departments.map((dept) => (
+                <button
+                  key={dept.id}
+                  onClick={() => setStep(dept.id as any)}
+                  className={`flex items-center gap-2 text-[10px] uppercase tracking-widest transition-all ${
+                    step === dept.id ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  <dept.icon className={`w-3.5 h-3.5 ${step === dept.id ? 'text-emerald-400' : 'text-zinc-600'}`} />
+                  {dept.name}
+                </button>
+              ))}
+           </div>
+           
+           <div className="h-4 w-px bg-zinc-800"></div>
+
+           <button 
+             onClick={onClose}
+             className="text-zinc-500 hover:text-white transition-colors p-2"
+           >
+             <X className="w-5 h-5" />
+           </button>
         </div>
-      </header>
-
-      {/* THE EDITORIAL CHAIN (TABS) */}
-      <div className="flex border-b border-zinc-800 bg-zinc-900/50 shrink-0">
-        {(['NEWS TERMINAL', 'EDITORIAL BOARD', 'ATELIER', 'PRINTING PRESS'] as Department[]).map((dept) => {
-          const status = getDeptStatus(dept);
-          const isActive = activeDept === dept;
-          const agents = getRoomAgents(dept);
-          const action = getRoomAction(dept);
-          
-          return (
-            <div
-              key={dept}
-              className={`flex-1 flex flex-col border-r border-zinc-800 transition-all relative group ${isActive ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}
-            >
-              {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />}
-              
-              {/* Tab Click Area */}
-              <button 
-                onClick={() => setActiveDept(dept)}
-                className="flex-1 p-4 text-left w-full"
-              >
-                {/* Room Name & Status */}
-                <div className="flex justify-between items-start mb-3">
-                  <span className={`font-bold tracking-widest text-xs ${isActive ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-300'}`}>{dept}</span>
-                  <span className={`text-[10px] font-bold tracking-wider ${status.color}`}>
-                    {status.label}
-                  </span>
-                </div>
-
-                {/* Docked Agents */}
-                <div className="flex items-center gap-3">
-                  {agents.map((agent, i) => (
-                    <div key={i} className={`flex items-center gap-1.5 ${isActive ? 'text-zinc-300' : 'text-zinc-600'} transition-colors`}>
-                      <agent.icon className="w-3 h-3" />
-                      <span className="text-[10px] font-medium uppercase tracking-wide">{agent.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </button>
-
-              {/* Room Action Button (Only visible if active) */}
-              {isActive && (
-                <div className="px-4 pb-4">
-                  <button
-                    onClick={action.onClick}
-                    disabled={action.disabled || action.loading}
-                    className={`
-                      w-full py-2 flex items-center justify-center gap-2 rounded font-bold tracking-widest text-[10px] uppercase transition-all
-                      ${action.disabled 
-                        ? 'bg-zinc-900/50 text-zinc-600 cursor-not-allowed border border-zinc-700/50' 
-                        : 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                      }
-                    `}
-                  >
-                    {action.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : (action.icon && <action.icon className="w-3 h-3" />)}
-                    <span>{action.label}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
 
-      {/* WORKSPACE (MAIN AREA) */}
-      <main className="flex-1 overflow-hidden flex relative bg-zinc-900/20">
-        
-        {/* LEFT: MAIN CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto flex flex-col relative w-full">
-          {activeDept === 'NEWS TERMINAL' && <NewsTerminal />}
-          {activeDept === 'EDITORIAL BOARD' && <EditorialBoard />}
-          {activeDept === 'ATELIER' && <Atelier />}
-          {activeDept === 'PRINTING PRESS' && <PrintingPress />}
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar: Operational Chain */}
+        <div className="w-16 md:w-20 border-r border-zinc-800 flex flex-col items-center py-8 gap-10 bg-[#0a0a0a] shrink-0">
+            {departments.map((dept) => (
+                <div key={dept.id} className="relative group">
+                    <button
+                        onClick={() => setStep(dept.id as any)}
+                        className={`w-10 h-10 rounded-sm flex items-center justify-center transition-all border ${
+                            step === dept.id 
+                            ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' 
+                            : 'border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:bg-zinc-900'
+                        }`}
+                    >
+                        <dept.icon className="w-5 h-5" />
+                    </button>
+                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 bg-black border border-zinc-800 px-2 py-1 rounded text-[8px] font-mono uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                        {dept.name}
+                    </div>
+                </div>
+            ))}
         </div>
 
-      </main>
-
-      <SystemLog />
-
-      {/* ERROR OVERLAY */}
-      {error && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded shadow-2xl flex items-center gap-4 z-50">
-          <span className="font-bold text-sm">SYSTEM FAILURE:</span>
-          <span className="text-sm">{error}</span>
-          <button onClick={reset} className="ml-4 bg-black/20 px-3 py-1 rounded text-xs hover:bg-black/40">DISMISS</button>
+        {/* Center: Department Content */}
+        <div className="flex-1 flex overflow-hidden bg-[#0a0a0a]">
+          {renderActiveDepartment()}
         </div>
-      )}
+
+        {/* Right Sidebar: Logs/System Monitor */}
+        <div className="hidden lg:flex w-80 border-l border-zinc-800 flex-col bg-[#0a0a0a] shrink-0">
+          <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-black/40">
+            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">System Logs</span>
+            <div className="flex gap-1">
+              <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
+              <span className="w-1 h-1 bg-emerald-500 rounded-full opacity-50"></span>
+              <span className="w-1 h-1 bg-emerald-500 rounded-full opacity-20"></span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 font-mono">
+            {logs.slice().reverse().map((log, i) => (
+              <div key={log._id || i} className="space-y-1.5 animate-in slide-in-from-right-2 duration-300">
+                <div className="flex justify-between items-center text-[8px]">
+                  <span className={`uppercase tracking-widest font-bold ${
+                    log.agentName === 'SYSTEM' ? 'text-red-400' : 'text-emerald-400'
+                  }`}>
+                    [{log.agentName}]
+                  </span>
+                  <span className="text-zinc-600">
+                    {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                </div>
+                <div className="text-[10px] leading-relaxed text-zinc-300 break-words border-l border-zinc-800 pl-3 py-0.5">
+                  {log.message}
+                </div>
+              </div>
+            ))}
+            {logs.length === 0 && (
+                <div className="h-full flex items-center justify-center">
+                    <p className="text-[10px] text-zinc-700 uppercase tracking-widest">No active traffic</p>
+                </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom Status Bar */}
+      <div className="h-10 border-t border-zinc-800 bg-[#0a0a0a] text-zinc-500 flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-6 text-[8px] font-mono uppercase tracking-[0.2em]">
+              <span className="flex items-center gap-2">
+                <span className="w-1 h-1 bg-emerald-500"></span>
+                Status: Operational
+              </span>
+              <span className="text-zinc-800">|</span>
+              <span>Agents: Active</span>
+          </div>
+          <div className="flex items-center gap-4 text-[8px] font-mono uppercase tracking-widest">
+              <span className="text-emerald-500/50">LNT.OS_v2.1</span>
+          </div>
+      </div>
     </div>
   );
 };

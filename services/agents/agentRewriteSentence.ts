@@ -8,7 +8,9 @@ export const agentRewriteSentence = async (
   instruction: string, 
   context: string, 
   lens: string, 
-  globalDirective?: string
+  fullArticleContext: string,
+  globalDirective?: string,
+  missionId?: string
 ): Promise<DraftBlock> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
@@ -19,10 +21,15 @@ export const agentRewriteSentence = async (
     ${directivePrefix}
     You are THE COLUMNIST for The Latent Times. The Editorial Board has requested a specific rewrite for a single sentence within a paragraph.
     
+    NARRATIVE SKELETON (Full Article Context):
+    """
+    ${fullArticleContext}
+    """
+
     Context: "${context}"
     Lens: "${lens}"
     
-    Full Paragraph Context:
+    Target Paragraph Context:
     "${block.sentences.map(s => s.text).join(' ')}"
     
     Target Sentence to Rewrite:
@@ -31,7 +38,8 @@ export const agentRewriteSentence = async (
     Editor's Instruction:
     "${instruction}"
     
-    Rewrite ONLY the target sentence to satisfy the Editor's instruction while maintaining the intellectual, haughty, "Vogue meets Wired" tone. Ensure it still flows naturally within the surrounding paragraph.
+    Rewrite ONLY the target sentence. 
+    MANDATE: Ensure the rewritten sentence fits perfectly into the overall flow of the NARRATIVE SKELETON above. Maintain the intellectual, haughty, "Vogue meets Wired" tone. 
     
     Output JSON only:
     {
@@ -45,7 +53,7 @@ export const agentRewriteSentence = async (
       rewritten_sentence: { type: Type.STRING }
     },
     required: ['rewritten_sentence']
-  }, { rewritten_sentence: targetSentence.text });
+  }, { rewritten_sentence: targetSentence.text }, missionId);
 
   return {
     ...block,

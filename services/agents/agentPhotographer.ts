@@ -6,7 +6,8 @@ export const agentPhotographer = async (
   visualStyle: string, 
   aspectRatio: AspectRatio, 
   globalDirective?: string,
-  base64Image?: string
+  base64Image?: string,
+  missionId?: string
 ): Promise<string> => {
   const styleMap: Record<string, string> = {
     'Editorial Photography': 'high-end editorial fashion photography, 35mm film, studio lighting, clean composition',
@@ -20,8 +21,8 @@ export const agentPhotographer = async (
   const enhancedPrompt = `${directivePrefix}${stylePrompt}, ${prompt}, 8k resolution, masterpiece. No text, no typography, no words, no letters.`;
   
   if (base64Image) {
-    return await editImage(base64Image, enhancedPrompt);
+    return await editImage(base64Image, enhancedPrompt, missionId);
   }
   
-  return await generateImage(enhancedPrompt, aspectRatio);
+  return await generateImage(enhancedPrompt, aspectRatio, missionId);
 };

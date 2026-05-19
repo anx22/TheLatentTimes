@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { AspectRatio, SearchResult } from "../types";
+import { UsageTracker } from "./mission";
 
 // The API Key is managed via process.env.API_KEY
 export { Type };
@@ -34,14 +35,15 @@ export const cleanAndParseJSON = (text: string | undefined): any => {
 };
 
 // --- HELPER: JSON AGENT CALLER ---
-export const callJsonAgent = async <T>(prompt: string, schema: any, fallback: T): Promise<T> => {
+export const callJsonAgent = async <T>(prompt: string, schema: any, fallback: T, missionId?: string): Promise<T> => {
     const response = await safeGenerateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
             responseSchema: schema
-        }
+        },
+        missionId
     });
     return cleanAndParseJSON(response.text) || fallback;
 };
@@ -68,7 +70,7 @@ const getApiKey = (): string => {
 
 // --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s & Transient Errors) ---
 export const safeGenerateContent = async (
-  params: { model: string; contents: any; config?: any }
+  params: { model: string; contents: any; config?: any; missionId?: string }
 ): Promise<GenerateContentResponse> => {
     
     // MODEL FALLBACK LADDER (Strict adherence to v3/v2.5)
@@ -106,12 +108,15 @@ export const safeGenerateContent = async (
                 delete currentConfig.tools;
             }
 
+            const { missionId, ...rest } = params;
             const result = await client.models.generateContent({
-                ...params,
+                ...rest,
                 model: model,
                 config: currentConfig
             });
             
+            UsageTracker.record(missionId, result.usageMetadata);
+
             const duration = Math.round(performance.now() - start);
             console.debug(`[NET] ${model} OK in ${duration}ms`);
             return result;
@@ -138,7 +143,7 @@ export const safeGenerateContent = async (
 };
 
 // Image Generation using Gemini 2.5 Flash Image (Nanobana)
-export const generateImage = async (prompt: string, aspectRatio: AspectRatio): Promise<string> => {
+export const generateImage = async (prompt: string, aspectRatio: AspectRatio, missionId?: string): Promise<string> => {
   if (typeof window !== 'undefined' && window.aistudio && await window.aistudio.hasSelectedApiKey()) {
      // Key is injected
   }
@@ -153,6 +158,7 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
         config: { imageConfig: { aspectRatio: aspectRatio } },
       });
     
+      UsageTracker.record(missionId, response.usageMetadata);
       console.debug(`[NET] Image Gen (${Math.round(performance.now() - start)}ms)`);
 
       for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -166,7 +172,7 @@ export const generateImage = async (prompt: string, aspectRatio: AspectRatio): P
 };
 
 // Image Editing using Gemini 2.5 Flash Image
-export const editImage = async (base64Image: string, prompt: string): Promise<string> => {
+export const editImage = async (base64Image: string, prompt: string, missionId?: string): Promise<string> => {
   const apiKey = getApiKey();
   const currentAi = new GoogleGenAI({ apiKey: apiKey });
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
@@ -180,6 +186,8 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
       ],
     },
   });
+
+  UsageTracker.record(missionId, response.usageMetadata);
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
     if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;

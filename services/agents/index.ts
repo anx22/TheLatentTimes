@@ -14,4 +14,7 @@ export * from './agentArtDirector';
 export * from './agentPolisher';
 export * from './agentSynthesis';
 export * from './agentLayoutDesigner';
+export * from './agentConverseWithCritic';
+export * from './agentCulturalGrounding';
+export * from './agentCriticsCorner';
 

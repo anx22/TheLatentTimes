@@ -1,94 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --font-serif: 'Playfair Display', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    background-color: #ffffff;
+    color: #000000;
+    -webkit-font-smoothing: antialiased;
+  }
 
-/* Grid Layout Hover Effects */
-.react-grid-layout {
-  background-image: linear-gradient(to right, #f0f0f0 1px, transparent 1px),
-    linear-gradient(to bottom, #f0f0f0 1px, transparent 1px);
-  background-size: calc(100% / 12) 30px;
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
 }
 
-/* Default: Magenta border with 30% opacity when hovering over the grid */
-.react-grid-layout:hover .react-grid-item {
-  outline: 2px solid rgba(255, 0, 255, 0.3);
-}
-
-/* Specific item hover: Magenta border 100% opacity */
-.react-grid-item:hover {
-  outline: 2px solid rgba(255, 0, 255, 1) !important;
-}
-
-/* Global Styles extracted from index.html */
-body {
-  background-color: #ffffff;
-  color: #000000;
-  -webkit-font-smoothing: antialiased;
-  font-size: 16px;
-}
-
-/* Typography Utilities */
-.drop-cap {
-  float: left;
-  font-family: "Didot", "Playfair Display", serif;
-  font-size: 96px;
-  line-height: 0.75;
-  margin-right: 20px;
-  margin-top: 10px;
-  font-weight: 700;
-  color: #000000;
-}
-
-/* Scrollbar Utilities */
-.hide-scrollbar::-webkit-scrollbar {
+/* Basic Typography */
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-.hide-scrollbar {
+.scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* Animations */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
-}
-
-/* Editorial Reveals */
-@keyframes reveal-up {
-  0% { transform: translateY(100%); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-
-.mask-text {
-  overflow: hidden;
-  display: block;
-  line-height: 1; /* Critical for mask calculation */
-}
-
-.animate-reveal {
-  animation: reveal-up 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-
-/* Ticker Animation */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-marquee {
-  animation: marquee 300s linear infinite;
 }

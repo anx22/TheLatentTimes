@@ -1,6 +1,95 @@
 
 # DECISIONS.md
 
+## 031 - Domain Refactor: Decomposition of useNewsroomState
+**Problem**: Even with orchestrators, `useNewsroomState.ts` was an over-complex "Monster Hook" (800+ lines) mixing UI state, Convex data fetching, and agent coordination.
+**Decision**: 
+1.  **Decomposition**: Split the monster hook into 5 specialized domain hooks: `useNewsroomUIState`, `useNewsroomData`, `useEditorialAgents`, `useVisualAgents`, and `usePublicationFlow`.
+2.  **Aggregation**: `useNewsroomState` now acts as a "Shallow Aggregator," providing a unified interface to the Context while delegating all logic.
+**Why**: Dramatically improves maintainability and allows for fine-grained testing and independent scaling of newsroom domains.
+
+## 032 - Systematic Deletion: Atmospheric Soundscapes
+**Problem**: The Soundscape feature was an "Additive Feature" that didn't provide enough editorial leverage to justify its complexity and token cost.
+**Decision**: 
+1.  **Deletion**: Completely removed `agentSoundDesigner`, its types, and its UI presence.
+2.  **Principles**: Adhered to the "Minimal but Real" architecture guideline—removing speculative features to focus on core End-to-End editorial flow.
+**Why**: Reduces noise and maintenance burden, keeping the system lean for the deepening phase.
+
+## 030 - Latent Layout: AI-Controlled Grids
+**Problem**: The front page was a static list, failing to reflect the "Visual First" editorial vision of dynamic, AI-placed layouts.
+**Decision**: 
+1.  **Grid Engine**: Transition `App.tsx` from a list to `react-grid-layout`.
+2.  **AI Orchestration**: Use `agentLayoutDesigner` during publication to determine (x, y, w, h) based on the story's importance and visual type.
+3.  **Unified State**: Persist both `MagazineItem` and its `LayoutItem` in a single transactional mutation to ensure grid-data parity.
+**Why**: Moves the system from "AI Content" to "AI Publication," where the presentation itself is agentic.
+
+## 029 - Canonical State Ownership & Write Paths
+**Problem**: As the app grew, data was being updated in multiple places (local state, context, different mutations), risking fragmentation.
+**Decision**: 
+1.  **Convex as Truth**: Any data intended for the "Published Line" must live in the `issues` table and be written via the `addItemToLatestIssue` mutation.
+2.  **Mission State**: All operational telemetry (logs, token usage) belongs to the `missions` table, indexed by `missionId`.
+**Why**: Ensures predictable data flow and a single source of truth for the magazine's persistent history.
+
+## 028 - Systematic Integrity: The Architecture Drill
+**Problem**: As the codebase deepens, regressive bugs in service coordination become harder to catch during feature development.
+**Decision**: 
+1.  **Drill Service**: Implement an `ArchitectureDrill` that exercising deep module interfaces via "Dry Runs".
+2.  **Simulation over Mocks**: Prefer running the actual module logic with minimal/deterministic inputs to verify cross-module paths.
+**Why**: Ensures the "Interface is the Test Surface" principle is actionable and observable.
+
+## 027 - Release Depth: The Publication Orchestrator
+**Problem**: The final "Press" phase (polishing, layout synthesis, artifact prep) was implemented as a sequence of state updates in the hook.
+**Decision**: 
+1.  **Release Module**: Extract the final preparation logic into a `PublicationOrchestrator`.
+2.  **Synthesis**: Move metadata generation and layout decision-making into the orchestrator.
+**Why**: Concentrates "Release Knowledge" in one place and ensures published items follow a consistent structural canonical.
+
+## 026 - Image Deepening: The Atelier Engine
+**Problem**: Visual production logic (concepts, palettes, aspect ratios) was tightly coupled with the React hook, making the Darkroom brittle and hard to extend.
+**Decision**: 
+1.  **Visual Orchestrator**: Create an `AtelierEngine` to manage design sessions.
+2.  **Session state**: The engine initializes a `VisualConcept` and `ColorPalette` strategy from the draft.
+3.  **Prompt Refinement**: Centralize prompt construction logic (applying modifiers/palettes) inside the engine.
+**Why**: Ensures visual consistency and allows for more complex "Image-to-Image" or multi-model visual flows in the future.
+
+## 025 - Decoupled Ingestion: The Signal Broker
+**Problem**: News ingestion was "shallow," with the hook handling RSS parsing, normalization, and noisy filtering.
+**Decision**: 
+1.  **Broker Pattern**: Implement a `SignalBroker` that manages a collection of `SignalAdapters`.
+2.  **Adapters**: Create specific adapters for RSS, GitHub, etc., each returning canonical tokens.
+3.  **Hiding Complexity**: The broker handles the noise filter and embedding generation internally.
+**Why**: Promotes **Locality** of ingestion logic and makes adding new data sources trivial.
+
+## 024 - Observable Execution: The Mission Thread
+**Problem**: Global agent logs are difficult to trace, making it impossible to determine which agent contributed to a specific draft or where a failure occurred in the chain.
+**Decision**: 
+1.  **Mission Entity**: Introduce a `missions` table to track execution runs (editorial, scout).
+2.  **Breadcrumb Logging**: Update `logMessage` to include a `missionId` (link to context).
+3.  **Threaded Logic**: The `EditorialOrchestrator` tags every agent interaction with the active `missionId`.
+**Why**: Enables deep observability and future "Replay" or "Explainable AI" features within the newsroom.
+
+## 023 - Architecture Depth: The Editorial Orchestrator
+**Problem**: `useNewsroomState.ts` was becoming a "God Hook," containing complex multi-agent coordination logic that was difficult to test and maintain.
+**Decision**: 
+1.  **Orchestrator Module**: Extract the coordination of Scout, Board, Columnist, and Editor into a dedicated `EditorialOrchestrator` service.
+2.  **Deep Interface**: Provide high-leverage entry points like `conductDebate` and `produceDraft` that encapsulate multiple agent cycles and context management.
+3.  **Seam for Testing**: Decouple agent coordination from React state to allow for backend / headless testing of the editorial chain.
+**Why**: Improves **Locality** of editorial knowledge and provides **Leverage** to UI callers, reducing hook complexity by ~40%.
+**Problem**: Once published, articles feel "dead". There is no feedback loop or sense of a living community within the magazine.
+**Decision**: 
+1.  **Peer Review Sidebar**: Implement a "Critic's Corner" in the published article view.
+2.  **Persona Feedback**: Upon publication, a separate multi-agent call (`agentCriticsCorner`) generates 3 witty, provocative comments from distinct AI personas (The Brutalist, The Accelerationist, etc.).
+3.  **Avatar Vibrancy**: Each critic has a "Visual Vibe" that colors their appearance.
+**Why**: Adds "soul" and a sense of ongoing conversation to the magazine, fulfilling the vision of a "living organism."
+
+## 021 - Deep Context: Cultural Grounding (Querverbindungen)
+**Problem**: Technical signals (e.g., "New LLM release") often feel disconnected from broader human history, philosophy, or cultural trends. They are "tote News" (dead news).
+**Decision**: 
+1.  **Vector Extraction**: Introduce an automated agent (`agentCulturalGrounding`) that runs whenever news signals are ingested or synthesized.
+2.  **Cultural Resonance Mapping**: This agent maps technical data points to philosophical concepts, art movements, or historical events (e.g., mapping "Autonomous Agents" to "Leibniz's Monads").
+3.  **Visualization**: Display these "Querverbindungen" as a Mood Board in the Darkroom to influence visual asset production and editorial depth.
+**Why**: Ensures The Latent Times remains the "Spearhead of the Tech Cultural AI Revolution" by revealing philosophies that others miss, giving weight to "weakly written but powerful thoughts."
+
 ## 020 - Intelligent News Engine (Vector Clustering & Source Cutoffs)
 **Problem**: The Ticker acts as a dumb aggregator. It fetches the same news repeatedly, causing redundancy, and fails to connect related articles from different sources (e.g., a GitHub repo and a TechCrunch article about the same tool).
 **Decision**: 

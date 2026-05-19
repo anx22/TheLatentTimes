@@ -159,3 +159,10 @@ export const getNewsClusters = query({
       .take(limit);
   },
 });
+
+export const getTickerItem = query({
+  args: { id: v.id("ticker_items") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});

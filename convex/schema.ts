@@ -32,6 +32,7 @@ export default defineSchema({
     keyEntities: v.array(v.string()), // e.g., ["OpenAI", "Sam Altman"]
     lastUpdatedAt: v.number(),
     status: v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived")),
+    cultural_context: v.optional(v.string()), // Broad philosophical/cultural link
   }).index("by_lastUpdatedAt", ["lastUpdatedAt"]),
 
   // 3. TICKER ITEMS (Raw Signals)
@@ -45,6 +46,12 @@ export default defineSchema({
     status: v.union(v.literal("new"), v.literal("processing"), v.literal("archived")),
     storyId: v.optional(v.id("stories")), // The cluster it belongs to
     embedding: v.optional(v.array(v.float64())), // The vector representation
+    innovation_score: v.optional(v.number()),
+    cultural_vectors: v.optional(v.array(v.object({
+      trend: v.string(),
+      resonance: v.number(), // 0-100
+      connection: v.string() // Explanation
+    }))),
   })
   .index("by_timestamp", ["timestamp"])
   .index("by_url", ["url"]) // For hard deduplication
@@ -56,6 +63,7 @@ export default defineSchema({
 
   // 2. DRAFTS (The Article)
   drafts: defineTable({
+    storyId: v.optional(v.string()),
     headline: v.string(),
     deck: v.string(),
     body: v.string(),
@@ -73,10 +81,29 @@ export default defineSchema({
     message: v.string(),
     step: v.string(), // Context: "NEWS_TERMINAL", "EDITORIAL_BOARD", etc.
     level: v.optional(v.string()), // "info", "action", "success", "error", "warning"
+    missionId: v.optional(v.id("missions")), // Grouping logs by execution thread
     timestamp: v.number(),
-  }).index("by_timestamp", ["timestamp"]),
+  }).index("by_timestamp", ["timestamp"])
+    .index("by_mission", ["missionId"]),
 
-  // 4. IMAGES (Visual Assets)
+  // 4. MISSIONS (Execution Threads)
+  missions: defineTable({
+    topic: v.string(),
+    type: v.union(v.literal("editorial"), v.literal("scout")),
+    status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    durationMs: v.optional(v.number()),
+    tokenUsage: v.optional(v.object({
+      promptTokens: v.number(),
+      completionTokens: v.number(),
+      totalTokens: v.number(),
+    })),
+    error: v.optional(v.string()),
+    resultId: v.optional(v.string()), // e.g. draftId or storyId
+  }).index("by_startedAt", ["startedAt"]),
+
+  // 5. IMAGES (Visual Assets)
   images: defineTable({
     prompt: v.string(),
     storageId: v.id("_storage"),

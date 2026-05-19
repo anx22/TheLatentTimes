@@ -1,5 +1,5 @@
 import React, { createContext } from 'react';
-import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, ScoutedSignal, LayoutItem } from '../types';
+import { MagazineItem, AspectRatio, NewsroomStep, SystemLog, GeneratedArticle, TickerItem, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, ScoutedSignal } from '../types';
 import { useNewsroomState } from '../hooks/useNewsroomState';
 
 interface NewsroomContextType {
@@ -20,7 +20,6 @@ interface NewsroomContextType {
   scoutedTopics: ScoutedSignal[];
   angles: EditorialAngle[];
   annotations: BlockAnnotation[];
-  isLinting: boolean;
   isRewriting: string | null;
   isEnhancing: boolean;
   isFetchingTicker: boolean;
@@ -46,6 +45,8 @@ interface NewsroomContextType {
   reset: () => void;
   clearLogs: () => Promise<void>;
   isPolishing: boolean;
+  selectedStoryId: string | null;
+  setSelectedStoryId: (id: string | null) => void;
   // Parameters
   sources: { github: boolean; arxiv: boolean; techcrunch: boolean };
   setSources: (s: { github: boolean; arxiv: boolean; techcrunch: boolean }) => void;
@@ -65,17 +66,23 @@ interface NewsroomContextType {
   setAtelierState: React.Dispatch<React.SetStateAction<AtelierState>>;
   runArtDirector: () => Promise<void>;
   generateAtelierImage: (prompt: string, isEdit?: boolean) => Promise<void>;
-
-  // Layout
-  layout: LayoutItem[];
-  setLayout: (l: LayoutItem[]) => void;
+  runIntegrityDrill: () => Promise<Array<{ module: string; status: 'passed' | 'failed'; message: string; latency: number }>>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const NewsroomContext = createContext<NewsroomContextType | undefined>(undefined);
 
-export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout: LayoutItem[]) => void, initialLayout?: LayoutItem[] }> = ({ children, onPublish, initialLayout }) => {
-  const state = useNewsroomState(onPublish, initialLayout);
+// eslint-disable-next-line react-refresh/only-export-components
+export const useNewsroom = () => {
+  const context = React.useContext(NewsroomContext);
+  if (context === undefined) {
+    throw new Error('useNewsroom must be used within a NewsroomProvider');
+  }
+  return context;
+};
+
+export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void }> = ({ children, onPublish }) => {
+  const state = useNewsroomState(onPublish);
 
   return (
     <NewsroomContext.Provider value={state}>

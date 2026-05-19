@@ -3,7 +3,8 @@ import { callJsonAgent, Type } from '../gemini';
 
 export const agentLayoutDesigner = async (
   newItem: MagazineItem,
-  currentLayout: LayoutItem[]
+  currentLayout: LayoutItem[],
+  missionId?: string
 ): Promise<LayoutItem[]> => {
   const prompt = `
     You are the ART DIRECTOR and LAYOUT DESIGNER for a high-end avant-garde tech/culture magazine.
@@ -49,7 +50,7 @@ export const agentLayoutDesigner = async (
 
   const fallback = currentLayout;
 
-  const rawLayout = await callJsonAgent<any[]>(prompt, schema, fallback);
+  const rawLayout = await callJsonAgent<any[]>(prompt, schema, fallback, missionId);
   
   // Re-inject the full data objects
   return rawLayout.map(item => {

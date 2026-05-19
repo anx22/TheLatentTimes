@@ -20,6 +20,12 @@ export const addTickerItem = mutation({
     status: v.string(),
     storyId: v.optional(v.id("stories")),
     embedding: v.optional(v.array(v.float64())),
+    innovation_score: v.optional(v.number()),
+    cultural_vectors: v.optional(v.array(v.object({
+      trend: v.string(),
+      resonance: v.number(),
+      connection: v.string()
+    }))),
   },
   handler: async (ctx, args) => {
     // Hard Deduplication: Check if URL already exists
@@ -83,6 +89,7 @@ export const addNewsCluster = mutation({
     title: v.string(),
     summary: v.string(),
     keyEntities: v.array(v.string()),
+    cultural_context: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("stories", {
@@ -127,6 +134,7 @@ export const updateTickerItemStory = mutation({
 // Used by the Editorial Board to save the article.
 export const saveDraft = mutation({
   args: {
+    storyId: v.optional(v.string()),
     headline: v.string(),
     deck: v.string(),
     body: v.string(),
@@ -156,6 +164,7 @@ export const logMessage = mutation({
     message: v.string(),
     step: v.string(),
     level: v.optional(v.string()),
+    missionId: v.optional(v.id("missions")),
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("agent_logs", {
@@ -165,7 +174,60 @@ export const logMessage = mutation({
   },
 });
 
-// 4. SAVE IMAGE
+// 4. MISSION COORDINATION
+export const startMission = mutation({
+  args: {
+    topic: v.string(),
+    type: v.union(v.literal("editorial"), v.literal("scout")),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("missions", {
+      ...args,
+      status: "running",
+      startedAt: Date.now(),
+    });
+  },
+});
+
+export const completeMission = mutation({
+  args: {
+    missionId: v.id("missions"),
+    resultId: v.optional(v.string()),
+    tokenUsage: v.optional(v.object({
+      promptTokens: v.number(),
+      completionTokens: v.number(),
+      totalTokens: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const mission = await ctx.db.get(args.missionId);
+    const durationMs = mission ? Date.now() - mission.startedAt : undefined;
+
+    await ctx.db.patch(args.missionId, {
+      status: "completed",
+      completedAt: Date.now(),
+      resultId: args.resultId,
+      tokenUsage: args.tokenUsage,
+      durationMs,
+    });
+  },
+});
+
+export const failMission = mutation({
+  args: {
+    missionId: v.id("missions"),
+    error: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.missionId, {
+      status: "failed",
+      completedAt: Date.now(),
+      error: args.error,
+    });
+  },
+});
+
+// 5. SAVE IMAGE
 // Used by the Darkroom to store generated images.
 export const saveImage = mutation({
   args: {
@@ -334,8 +396,11 @@ export const seedSources = mutation({
     const initialSources = [
       { name: "Hacker News", url: "https://hnrss.org/frontpage", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
       { name: "TechCrunch", url: "https://techcrunch.com/feed/", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
-      { name: "GitHub Trending", url: "https://github.com", type: "github" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
-      { name: "ArXiv CS", url: "http://export.arxiv.org/rss/cs", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 }
+      { name: "ArXiv CS", url: "http://export.arxiv.org/rss/cs", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "OpenAI Blog", url: "https://openai.com/news/rss.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 120 },
+      { name: "Anthropic News", url: "https://www.anthropic.com/index.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 120 },
+      { name: "Niche Tech Blog", url: "https://simonwillison.net/atom/entries/", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "AI Research", url: "https://distill.pub/rss.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 240 }
     ];
 
     for (const source of initialSources) {

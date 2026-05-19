@@ -1,96 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNewsroom } from '../contexts/NewsroomContext';
+import { Activity, ShieldCheck, Cpu } from 'lucide-react';
 
 export const DebugStatus: React.FC = () => {
-  const [apiKeyStatus, setApiKeyStatus] = useState<{ present: boolean; length: number; source: string }>({ present: false, length: 0, source: 'unknown' });
-  const [isVisible, setIsVisible] = useState(false);
+  const { step, topic, logs, runIntegrityDrill } = useNewsroom();
+  const [drillResults, setDrillResults] = useState<any[] | null>(null);
+  const [isDrilling, setIsDrilling] = useState(false);
 
-  useEffect(() => {
-    let key = '';
-    let source = 'none';
-
-    // Check all possible sources
-    if (process.env.GEMINI_API_KEY) {
-      key = process.env.GEMINI_API_KEY;
-      source = 'process.env.GEMINI_API_KEY';
-    } else if (process.env.API_KEY) {
-      key = process.env.API_KEY;
-      source = 'process.env.API_KEY';
-    } 
-    else if (import.meta.env?.VITE_GEMINI_API_KEY) {
-      key = import.meta.env.VITE_GEMINI_API_KEY;
-      source = 'import.meta.env.VITE_GEMINI_API_KEY';
+  const startDrill = async () => {
+    setIsDrilling(true);
+    try {
+      const results = await runIntegrityDrill();
+      setDrillResults(results);
+      setTimeout(() => setDrillResults(null), 10000); // Clear after 10s
+    } catch (e) {
+      console.error("Drill failed", e);
+    } finally {
+      setIsDrilling(false);
     }
-    else if (import.meta.env?.VITE_API_KEY) {
-      key = import.meta.env.VITE_API_KEY;
-      source = 'import.meta.env.VITE_API_KEY';
-    }
-
-    setApiKeyStatus({
-      present: !!key && key.length > 0,
-      length: key ? key.length : 0,
-      source
-    });
-
-    // Auto-show if missing
-    if (!key || key.length === 0) {
-      setIsVisible(true);
-    }
-  }, []);
-
-  if (!isVisible) {
-    return (
-      <button 
-        onClick={() => setIsVisible(true)}
-        className="fixed bottom-2 right-2 p-2 bg-zinc-900/50 text-zinc-500 hover:text-white rounded-full text-xs z-50"
-      >
-        DEBUG
-      </button>
-    );
-  }
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-4 z-50 font-mono text-xs">
-      <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
-        <h3 className="font-bold text-white uppercase tracking-widest">System Diagnostics</h3>
-        <button onClick={() => setIsVisible(false)} className="text-zinc-500 hover:text-white">✕</button>
-      </div>
+    <div className="fixed bottom-6 left-6 z-[200] flex flex-col gap-3 pointer-events-auto">
+      {drillResults && (
+        <div className="bg-white border border-black p-4 shadow-xl animate-in slide-in-from-left-4 duration-300">
+           <div className="text-[10px] font-mono font-bold uppercase mb-3 flex items-center gap-2">
+             <ShieldCheck className="w-3 h-3" /> System Integrity Report
+           </div>
+           <div className="space-y-2">
+             {drillResults.map((r, i) => (
+               <div key={i} className="flex flex-col gap-1 border-l-2 border-black pl-3 py-1">
+                 <div className="flex items-center justify-between gap-4">
+                   <span className="text-[9px] font-mono font-bold uppercase">{r.module}</span>
+                   <span className={`text-[8px] font-mono uppercase ${r.status === 'passed' ? 'text-emerald-600' : 'text-red-500'}`}>
+                     [{r.status}]
+                   </span>
+                 </div>
+                 <div className="text-[8px] font-mono text-zinc-500 leading-tight truncate max-w-[200px]">
+                   {r.message}
+                 </div>
+                 <div className="text-[7px] font-mono text-zinc-300 uppercase">Latency: {r.latency}ms</div>
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-zinc-500">API Key Status</span>
-            {apiKeyStatus.present ? (
-              <span className="text-emerald-500 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> DETECTED
-              </span>
-            ) : (
-              <span className="text-red-500 flex items-center gap-1">
-                <XCircle className="w-3 h-3" /> MISSING
-              </span>
-            )}
+      <div className="bg-black/90 backdrop-blur-md border border-zinc-800 p-4 rounded-sm shadow-2xl space-y-4 min-w-[240px]">
+        <div className="flex items-center justify-between gap-4">
+           <div className="flex items-center gap-2">
+             <Cpu className="w-3 h-3 text-zinc-500" />
+             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Sys.Status.V2</span>
+           </div>
+           <div className="flex items-center gap-1.5">
+             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
+             <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest">Online</span>
+           </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <div className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Active Step</div>
+            <div className="text-[10px] font-mono text-zinc-200 uppercase tracking-widest truncate">{step}</div>
           </div>
-          
-          <div className="p-2 bg-zinc-900 rounded border border-zinc-800 space-y-1">
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Length:</span>
-              <span className="text-zinc-300">{apiKeyStatus.length} chars</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-zinc-600">Source:</span>
-              <span className="text-zinc-300">{apiKeyStatus.source}</span>
-            </div>
+
+          <div className="space-y-1">
+            <div className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Logic Drill</div>
+            <button 
+              onClick={startDrill}
+              disabled={isDrilling}
+              className="flex items-center gap-2 text-[9px] font-mono text-zinc-400 hover:text-white uppercase transition-colors disabled:opacity-50"
+            >
+              {isDrilling ? <Activity className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+              {isDrilling ? 'Running...' : 'Run Drill'}
+            </button>
           </div>
         </div>
 
-        {!apiKeyStatus.present && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 flex gap-2 items-start">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p>
-              CRITICAL: The application cannot find the Gemini API Key. 
-              The build environment may be missing the `API_KEY` variable.
-            </p>
-          </div>
+        <div className="space-y-1">
+          <div className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Current Vector</div>
+          <div className="text-[10px] font-mono text-zinc-200 uppercase tracking-widest truncate">{topic || 'Idle'}</div>
+        </div>
+
+        {logs.length > 0 && (
+            <div className="space-y-1 pt-2 border-t border-zinc-800">
+                <div className="text-[8px] font-mono text-zinc-600 uppercase tracking-widest">Last Pulse</div>
+                <div className="text-[9px] font-mono text-emerald-500/70 truncate">{logs[logs.length-1].message}</div>
+            </div>
         )}
       </div>
     </div>
