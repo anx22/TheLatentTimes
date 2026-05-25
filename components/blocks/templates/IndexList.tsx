@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const IndexListBlock: React.FC = () => (
+export const IndexListBlock: React.FC = () => (
   <div className="flex flex-col h-full border-t border-l border-black bg-white text-black">
     {[
       { num: '01', title: 'NANO BANANA: THE TINY GIANT MODEL' },
@@ -18,11 +17,3 @@ const IndexListBlock: React.FC = () => (
     ))}
   </div>
 );
-
-export const IndexListTemplate: BlockTemplate = {
-  id: 'IndexList',
-  title: 'Index List',
-  description: 'Vertical list block for table of contents or features.',
-  config: { w: 4, h: 4, minW: 2, minH: 1 },
-  component: IndexListBlock
-};

@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { searchTrend, callJsonAgent } from '../gemini';
 import { ScoutedSignal, Source } from '../../types';
 
-export const agentScout = async (sources: Source[], noiseFilter: number, globalDirective?: string): Promise<ScoutedSignal[]> => {
+export const agentScout = async (sources: Source[], noiseFilter: number, globalDirective?: string, missionId?: string): Promise<ScoutedSignal[]> => {
   let query = "latest developments in AI models, open-source code repositories, machine learning workflows, and bleeding-edge technology";
   
   const activeSources = sources.filter(s => s.isActive).map(s => {
@@ -13,10 +13,12 @@ export const agentScout = async (sources: Source[], noiseFilter: number, globalD
     query += ` site:${activeSources.join(' OR site:')}`;
   }
 
-  const strictness = noiseFilter > 70 ? "EXTREMELY STRICT: Only return highly credible, groundbreaking, and verified technical breakthroughs." : "BROAD: You can include speculative, emerging, or niche technical trends.";
-  const vision = "AVANT-GARDE: We are the spearhead of the tech-cultural AI Revolution. We want to reveal thoughts and philosophies that others miss. Give weight to 'small voices'—proper technical thoughts that may be poorly written but contain high-signal innovation. We want to elevate them to the big stage with professional research and staging.";
+  const strictness = noiseFilter > 70 ? "EXTREMELY STRICT: Only return high-impact, mainstream-ready technical breakthroughs with massive disruption potential." : "BROAD: Include emerging trends, but always weight them by their potential to scale into the mainstream.";
+  const vision = "MAINSTREAM POWERHOUSE: We are the authority on the AI Revolution. We reveal the big movements and massive disruptions before they hit the headlines. High-signal signals from niche sources are Lead Indicators—early warnings of what will soon dominate. We prioritize scale, impact, and technical disruption that changes entire industries.";
 
-  const searchResult = await searchTrend(query);
+  const mission = missionId ? { log: (s: string, m: string, t: any) => Promise.resolve() } : null; // Fallback mock if needed
+  
+  const searchResult = await searchTrend(query, missionId);
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
   const prompt = `
@@ -44,7 +46,7 @@ export const agentScout = async (sources: Source[], noiseFilter: number, globalD
     Output as a JSON array of objects.
   `;
 
-  return callJsonAgent<ScoutedSignal[]>(prompt, {
+    const results = await callJsonAgent<ScoutedSignal[]>(prompt, {
     type: Type.ARRAY,
     items: { 
       type: Type.OBJECT,
@@ -59,8 +61,10 @@ export const agentScout = async (sources: Source[], noiseFilter: number, globalD
       },
       required: ["headline", "context", "score"]
     }
-  }, [
-    { id: "1", headline: "Local LLM Orchestration", context: "New frameworks allow running complex agent swarms on consumer hardware.", url: "https://github.com/example", source: "GitHub", date: "Oct 24, 2025", score: 95 },
-    { id: "2", headline: "Synthetic Data Pipelines", context: "Major shift towards using AI-generated data to train smaller, more efficient models.", url: "", source: "ArXiv", date: "Recent", score: 88 }
-  ]);
+  }, [], missionId);
+
+  return results.map(r => ({
+    ...r,
+    id: r.id || Math.random().toString(36).substring(7)
+  }));
 };

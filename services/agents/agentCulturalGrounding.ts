@@ -9,7 +9,8 @@ export interface CulturalVector {
 export const agentCulturalGrounding = async (
   title: string, 
   content: string, 
-  globalDirective?: string
+  globalDirective?: string,
+  missionId?: string
 ): Promise<CulturalVector[]> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   
@@ -53,5 +54,5 @@ export const agentCulturalGrounding = async (
       },
       required: ['trend', 'resonance', 'connection']
     }
-  }, []);
+  }, [], missionId);
 };

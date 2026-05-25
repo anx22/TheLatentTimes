@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const HouseViewBlock: React.FC = () => (
+export const HouseViewBlock: React.FC = () => (
   <div className="flex flex-col h-full p-10 bg-[#111111] text-white">
     <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 mb-8">The House View</div>
     <div className="text-white text-6xl font-serif leading-none mb-4">"</div>
@@ -14,11 +13,3 @@ const HouseViewBlock: React.FC = () => (
     </div>
   </div>
 );
-
-export const HouseViewTemplate: BlockTemplate = {
-  id: 'HouseView',
-  title: 'House View',
-  description: 'Dark quote block for editorial opinions.',
-  config: { w: 6, h: 3, minW: 4, minH: 1 },
-  component: HouseViewBlock
-};

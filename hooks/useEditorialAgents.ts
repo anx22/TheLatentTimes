@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { Id } from "../convex/_generated/dataModel";
-import { EditorialAngle, GeneratedArticle, ScoutedSignal, NewsCluster } from '../types';
-import { agentScout, agentTargetedSearch, agentTicker, agentConsensus, agentCulturalGrounding, agentSynthesis } from '../services/agents';
-import { SignalBroker, RSSAdapter, GitHubAdapter } from '../services/signals';
-import { UsageTracker } from '../services/mission';
+import { NewsCluster, EditorialAngle, EditorialDepartment } from '../types';
+import { EDITORIAL_LENSES } from '../constants';
+import { agentScout, agentTargetedSearch, agentConsensus, agentCulturalGrounding, agentSynthesis } from '../services/agents';
+import { SignalBroker, RSSAdapter, GitHubAdapter, SearchAdapter } from '../services/signals';
 
 export const useEditorialAgents = (
   data: any, 
@@ -12,21 +12,29 @@ export const useEditorialAgents = (
   missionRegistry: any,
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
-  const { mutations, actions, dbSources, tickerItems } = data;
-  const { noiseFilter, globalDirective, setContext, setScoutedTopics, setIsScouting, setIsResearching, setAngles, setDebateTranscript, setDraftId, setActiveMissionId, setIsDebating, setError, setIsDrafting, editorialLens, wordCount, setEditorialLens, setAnnotations, setSelectedStoryId, newsClusters } = ui;
+  const { mutations, actions, dbSources, signals } = data;
+  const { noiseFilter, globalDirective, newsClusters } = ui;
 
-  const fetchTickerData = useCallback(async () => {
-    if (ui.isFetchingTicker) return;
-    ui.setIsFetchingTicker(true);
-    addLog('THE WIRE', 'Polling active sources for new signals via SignalBroker...', 'info');
+  const ingestSignals = useCallback(async () => {
+    if (ui.isIngesting) return;
+    ui.setIsIngesting(true);
     
-    // fetchTickerData can also be a mission
+    // Start Mission
     const mission = await missionRegistry.start('scout', 'Wire Ingestion');
     ui.setActiveMissionId(mission.id);
+    await mission.log('THE WIRE', 'Initializing Neural Ingestion Pipeline...', 'action');
 
     try {
-      const adapters = (dbSources as any[] || [])
-        .filter(s => s.isActive)
+      if (!dbSources || dbSources.length === 0) {
+        await mission.log('THE WIRE', 'No sources found in database. Running emergency seed...', 'warning');
+        await mutations.seedSources();
+        // We'd ideally re-query here, but for now we'll rely on the query to update state
+      }
+
+      const activeSources = (dbSources as any[] || []).filter(s => s.isActive);
+      await mission.log('SYSTEM', `Neural Intake: ${activeSources.length} active boundaries identified.`, 'info');
+
+      const adapters = activeSources
         .map(s => {
           if (s.type === 'rss') return new RSSAdapter(s._id, s.name, s.url, s.lastFetchedAt, actions.fetchRss);
           if (s.type === 'github') return new GitHubAdapter(s._id, s.name, s.lastFetchedAt);
@@ -35,81 +43,114 @@ export const useEditorialAgents = (
         .filter(Boolean) as any[];
 
       const broker = new SignalBroker(adapters);
-      let items = await broker.broadcastIngestion(10, noiseFilter);
+      
+      await mission.log('BROKER', 'Dispatching specialized workers to diverse technical feeds...', 'action');
+      
+      let items = await broker.broadcastIngestion(10, noiseFilter, mission.id, (s, m, t) => mission.log(s, m, t));
       
       if (items.length === 0) {
-        await mission.log('THE WIRE', 'No active sources returned signals. Running search-fallback...', 'info');
-        items = await agentTicker([], noiseFilter, globalDirective, actions.fetchRss);
+        await mission.log('BROKER', 'Passive intake returned zero signals. Triggering Active Deep Scout...', 'warning');
+        const searchAdapter = new SearchAdapter(globalDirective || "latest technical breakthroughs", globalDirective);
+        items = await searchAdapter.fetch(5, (s, m, t) => mission.log(s, m, t));
       }
 
-      let ingestedCount = 0;
-      for (const item of items) {
-        let assignedStoryId: Id<"stories"> | undefined = undefined;
-        let culturalVectors: any[] = [];
-        
-        try {
-          culturalVectors = await agentCulturalGrounding(item.title, item.content || item.title, globalDirective);
-        } catch (e) {
-          console.warn("Grounding fail", e);
-        }
+      await mission.log('SYSTEM', `Pool Stabilized: ${items.length} raw signals ingested. Initializing semantic synthesis...`, 'info');
 
+      let ingestedCount = 0;
+      let duplicateCount = 0;
+
+      for (const item of items) {
+        await mission.log('THE WIRE', `Inhaling signal: ${item.title.slice(0, 40)}...`, 'action');
+        
+        let assignedStoryId: Id<"stories"> | undefined = undefined;
+        
         if (item.embedding && item.embedding.length > 0) {
-          const { storyId, similarId } = await actions.checkSemanticSimilarity({
+          const simResult = await actions.checkSemanticSimilarity({
             embedding: item.embedding,
             title: item.title
           });
 
-          if (storyId) {
-            assignedStoryId = storyId as Id<"stories">;
-          } else if (similarId) {
-            assignedStoryId = await mutations.addNewsCluster({
-              title: item.title,
-              summary: "Emerging cluster of related signals.",
-              keyEntities: []
-            });
-            await mutations.updateTickerItemStory({
-              id: similarId as Id<"ticker_items">,
-              storyId: assignedStoryId
-            });
+          if (simResult.isDuplicate) {
+            duplicateCount++;
+            continue; 
+          }
+
+          if (simResult.storyId) {
+            assignedStoryId = simResult.storyId as Id<"stories">;
+            await mission.log('THE WIRE', `Resonance: Signal absorbed into Pillar ${assignedStoryId.slice(-4)}`, 'success');
+          } else if (simResult.similarId) {
+            // Check if it's a different source from the similar item
+            const similarItem: any = await data.queries.getSignal({ id: simResult.similarId });
+            const isCrossSource = similarItem && similarItem.source !== item.source;
+
+            if (isCrossSource) {
+              assignedStoryId = await mutations.addNewsCluster({
+                title: item.title,
+                summary: "Source Inception: Multi-dimensional resonance detected across independent channels.",
+                keyEntities: [],
+                missionId: mission.id
+              });
+              await mutations.updateSignalStory({
+                id: simResult.similarId as Id<"signals">,
+                storyId: assignedStoryId
+              });
+              await mission.log('THE WIRE', `SOURCE INCEPTION: Narrative Pillar Crystallized from ${item.source} + ${similarItem.source}`, 'success');
+            }
           }
         }
 
-        await mutations.addTickerItem({
+        // Robust check for sourceId validity
+        let finalSourceId: Id<"sources"> | undefined = undefined;
+        let finalSourceType = 'api';
+        
+        if (item.sourceId && typeof item.sourceId === 'string') {
+          const dbSource = (dbSources as any[] || []).find(s => s._id === item.sourceId);
+          if (dbSource) {
+            finalSourceId = dbSource._id;
+            finalSourceType = dbSource.type;
+          } else if (item.sourceId === 'search_fallback') {
+            finalSourceType = 'api';
+          }
+        }
+
+        await mutations.addSignal({
           title: item.title,
           source: item.source,
-          sourceId: item.sourceId as Id<"sources">,
-          url: item.url,
+          sourceType: finalSourceType,
+          sourceId: finalSourceId,
+          url: item.url || "",
           content: item.content,
-          embedding: item.embedding,
+          embedding: item.embedding && item.embedding.length > 0 ? item.embedding : undefined,
           storyId: assignedStoryId,
-          innovation_score: (item as any).innovation_score,
-          cultural_vectors: culturalVectors,
-          status: 'new'
+          innovation_score: (item as any).innovation_score || 50,
+          status: 'new',
+          missionId: mission.id
         });
         ingestedCount++;
       }
       
-      for (const source of dbSources as any[]) {
-        if (source.isActive) {
-          await mutations.updateSourceFetchTime({ sourceId: source._id, timestamp: Date.now() });
-        }
-      }
+      // Update fetch times
+      await Promise.all(activeSources.map(s => 
+        mutations.updateSourceFetchTime({ sourceId: s._id, timestamp: Date.now() })
+      ));
       
-      const successMsg = ingestedCount > 0 ? `Intercepted ${ingestedCount} new signals.` : `No new signals found.`;
-      await mission.log('THE WIRE', successMsg, ingestedCount > 0 ? 'success' : 'info');
+      const summary = `Ingestion Finished. New: ${ingestedCount} | Duplicates: ${duplicateCount}`;
+      await mission.log('THE WIRE', summary, ingestedCount > 0 ? 'success' : 'info');
 
       if (ingestedCount > 0) {
-        const consensus = await agentConsensus(items, globalDirective);
+        await mission.log('THE WIRE', 'Synthesizing global consensus from new signals...', 'action');
+        const consensus = await agentConsensus(items, globalDirective, mission.id);
         ui.setActiveConsensus(consensus);
       }
+      
       await mission.complete();
     } catch (e: any) {
-      addLog('THE WIRE', `Ingestion failure: ${e.message}`, 'error');
+      addLog('THE WIRE', `CRITICAL INGESTION ERROR: ${e.message}`, 'error');
       await mission.fail(e.message);
     } finally {
-      ui.setIsFetchingTicker(false);
+      ui.setIsIngesting(false);
     }
-  }, [dbSources, noiseFilter, ui.isFetchingTicker, addLog, globalDirective, mutations, actions, ui, missionRegistry]);
+  }, [dbSources, noiseFilter, addLog, globalDirective, mutations, actions, ui, missionRegistry]);
 
   const scoutTopic = async () => {
     ui.setError(null);
@@ -119,7 +160,7 @@ export const useEditorialAgents = (
     ui.setActiveMissionId(mission.id);
     await mission.log('THE SCOUT', 'Initiating global hard-tech signal sweep...', 'action');
     try {
-      const topics = await agentScout(dbSources as any[], noiseFilter, globalDirective);
+      const topics = await agentScout(dbSources as any[], noiseFilter, globalDirective, mission.id);
       ui.setScoutedTopics(topics);
       await mission.log('THE SCOUT', `Signal sweep complete. Found ${topics.length} potential vectors.`, 'success');
       await mission.complete();
@@ -139,7 +180,7 @@ export const useEditorialAgents = (
     ui.setActiveMissionId(mission.id);
     await mission.log('THE SCOUT', `Conducting deep-dive research on: "${t}"...`, 'action');
     try {
-      const result = await agentTargetedSearch(t, globalDirective);
+      const result = await agentTargetedSearch(t, globalDirective, mission.id);
       ui.setContext(result.context);
       await mission.log('THE SCOUT', result.grounded ? 'Deep-dive briefing compiled.' : 'Briefing compiled (speculative).', 'success');
       await mission.complete();
@@ -183,10 +224,10 @@ export const useEditorialAgents = (
     ui.setError(null);
     ui.setIsDrafting(true);
     
-    let currentLens = ui.editorialLens;
+    let currentLens = EDITORIAL_LENSES[ui.editorialDepartment as EditorialDepartment];
     if (angle) {
       currentLens = `${angle.persona}: ${angle.angle}${selectedHeadline ? `\n\nMANDATORY HEADLINE: "${selectedHeadline}"` : ''}`;
-      ui.setEditorialLens(currentLens);
+      // ui.setEditorialLens(currentLens); // No longer exists or needed
     }
 
     const mission = await missionRegistry.start('editorial', topic);
@@ -196,6 +237,7 @@ export const useEditorialAgents = (
       const result = await orchestrator.produceDraft(topic, context, currentLens, ui.wordCount, mission.id);
       const newDraftId = await mutations.saveDraft({
         storyId: ui.selectedStoryId || undefined,
+        missionId: mission.id,
         headline: result.article.headline,
         deck: result.article.deck,
         body: result.article.body,
@@ -219,16 +261,31 @@ export const useEditorialAgents = (
     const cluster = (newsClusters as NewsCluster[]).find(c => c._id === clusterId);
     if (!cluster) return;
 
-    const items = tickerItems.filter((i: any) => i.storyId === clusterId);
+    const items = signals.filter((i: any) => i.storyId === clusterId);
     if (items.length === 0) return;
 
-    addLog('THE WIRE', `Synthesizing story cluster: ${cluster.title}`, 'info');
+    const mission = await missionRegistry.start('scout', `Synthesis: ${cluster.title}`);
+    await mission.log('THE WIRE', `Synthesizing story cluster: ${cluster.title}`, 'info');
     try {
-      const { summary, keyEntities } = await agentSynthesis(cluster.title, items);
+      const { summary, keyEntities } = await agentSynthesis(cluster.title, items, mission.id);
       await mutations.updateNewsCluster({ clusterId, summary, keyEntities, status: items.length > 2 ? 'trending' : 'emerging' });
-      addLog('THE WIRE', `Synthesis complete for: ${cluster.title}`, 'success');
+      await mission.log('THE WIRE', `Synthesis complete for: ${cluster.title}`, 'success');
+      await mission.complete();
     } catch (e: any) {
-      addLog('THE WIRE', `Synthesis failed: ${e.message}`, 'error');
+      await mission.fail(e.message || 'Synthesis failure');
+    }
+  };
+
+  const runDeepDiscovery = async () => {
+    const mission = await missionRegistry.start('scout', 'Signal Synthesis');
+    ui.setActiveMissionId(mission.id);
+    await mission.log('THE WIRE', 'Initializing Neural Intake Synthesis: Scanning latent signal pool for unmapped resonance...', 'action');
+    try {
+      const { processed, newStories } = await actions.discoverStories({ missionId: mission.id });
+      await mission.log('THE WIRE', `Synthesis finished. Processed: ${processed} | New Pillars: ${newStories}`, processed > 0 ? 'success' : 'info');
+      await mission.complete();
+    } catch (e: any) {
+      await mission.fail(e.message || 'Synthesis failure');
     }
   };
 
@@ -237,11 +294,15 @@ export const useEditorialAgents = (
     if (!topic.trim() || !context.trim()) return;
     ui.setError(null);
     ui.setIsDrafting(true);
-    const mId = await mutations.startMission({ topic, type: 'editorial' });
-    ui.setActiveMissionId(mId);
+    
+    const mission = await missionRegistry.start('editorial', topic);
+    ui.setActiveMissionId(mission.id);
+    
     try {
-      const result = await orchestrator.produceDraft(topic, context, ui.editorialLens, ui.wordCount);
+      const result = await orchestrator.produceDraft(topic, context, EDITORIAL_LENSES[ui.editorialDepartment as EditorialDepartment], ui.wordCount, mission.id);
       const newDraftId = await mutations.saveDraft({
+        storyId: ui.selectedStoryId || undefined,
+        missionId: mission.id,
         headline: result.article.headline,
         deck: result.article.deck,
         body: result.article.body,
@@ -252,23 +313,23 @@ export const useEditorialAgents = (
       });
       ui.setDraftId(newDraftId);
       ui.setAnnotations(result.annotations);
-      await mutations.completeMission({ missionId: mId, resultId: newDraftId, tokenUsage: UsageTracker.get(mId) ?? undefined });
-      UsageTracker.clear(mId);
+      await mission.complete(newDraftId);
     } catch (e: any) {
       ui.setError(e.message || 'Re-draft failure');
-      await mutations.failMission({ missionId: mId, error: e.message || 'Re-draft failure' });
+      await mission.fail(e.message || 'Re-draft failure');
     } finally {
       ui.setIsDrafting(false);
     }
   };
 
   return {
-    fetchTickerData,
+    ingestSignals,
     scoutTopic,
     researchTopic,
     runDebate,
     runPipeline,
     synthesizeCluster,
+    runDeepDiscovery,
     reDraft
   };
 };

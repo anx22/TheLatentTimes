@@ -1,6 +1,6 @@
 import { safeGenerateContent } from '../gemini';
 
-export async function agentSynthesis(clusterTitle: string, items: { title: string; content?: string }[]): Promise<{ summary: string; keyEntities: string[] }> {
+export async function agentSynthesis(clusterTitle: string, items: { title: string; content?: string }[], missionId?: string): Promise<{ summary: string; keyEntities: string[] }> {
   const prompt = `
 You are the Synthesis Agent for an intelligent news engine.
 Your task is to analyze a cluster of related news signals and generate a concise meta-summary and extract key entities.
@@ -24,7 +24,8 @@ Provide your analysis in the following JSON format:
       config: {
         responseMimeType: "application/json",
         systemInstruction: "You are a precise, analytical journalist synthesizing raw signals into coherent narratives.",
-      }
+      },
+      missionId
     });
     
     const data = JSON.parse(response.text || "{}");

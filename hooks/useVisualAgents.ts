@@ -53,7 +53,7 @@ export const useVisualAgents = (
       const result = await fetch(postUrl, { method: "POST", body: blob, headers: { "Content-Type": blob.type } });
       const { storageId } = await result.json();
       
-      const newImageId = await mutations.saveImage({ prompt: finalPrompt, storageId: storageId });
+      const newImageId = await mutations.saveImage({ prompt: finalPrompt, storageId: storageId, missionId: mission.id });
       setImageId(newImageId);
       
       const blobUrl = URL.createObjectURL(blob);
@@ -101,7 +101,7 @@ export const useVisualAgents = (
       const result = await fetch(postUrl, { method: "POST", body: blob });
       const { storageId } = await result.json();
 
-      const newImageId = await mutations.saveImage({ prompt: draft.suggested_visual_prompt || '', storageId: storageId });
+      const newImageId = await mutations.saveImage({ prompt: draft.suggested_visual_prompt || '', storageId: storageId, missionId: mission.id });
       setImageId(newImageId);
       await mission.log('THE PHOTOGRAPHER', 'New visual assets developed.', 'success');
       setStep('PRINTING_PRESS');

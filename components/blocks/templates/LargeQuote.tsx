@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const LargeQuoteBlock: React.FC = () => (
+export const LargeQuoteBlock: React.FC = () => (
   <div className="flex items-center justify-center h-full p-12 border-t border-b border-black bg-white text-black">
     <div className="flex items-center gap-8">
       <div className="w-32 h-32 rounded-full overflow-hidden border border-black shrink-0">
@@ -18,11 +17,3 @@ const LargeQuoteBlock: React.FC = () => (
     </div>
   </div>
 );
-
-export const LargeQuoteTemplate: BlockTemplate = {
-  id: 'LargeQuote',
-  title: 'Large Quote',
-  description: 'Full-width quote block with a circular image.',
-  config: { w: 12, h: 4, minW: 8, minH: 1 },
-  component: LargeQuoteBlock
-};

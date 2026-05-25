@@ -1,7 +1,7 @@
-import { TickerItem } from '../../types';
+import { Signal } from '../../types';
 import { safeGenerateContent } from '../gemini';
 
-export const agentConsensus = async (items: TickerItem[], globalDirective?: string): Promise<string> => {
+export const agentConsensus = async (items: Signal[], globalDirective?: string, missionId?: string): Promise<string> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   const prompt = `
     ${directivePrefix}
@@ -15,7 +15,8 @@ export const agentConsensus = async (items: TickerItem[], globalDirective?: stri
   `;
   const response = await safeGenerateContent({
     model: 'gemini-3-flash-preview',
-    contents: prompt
+    contents: prompt,
+    missionId
   });
   return response.text?.trim() || "The wire is quiet; no consensus reached.";
 };

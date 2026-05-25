@@ -32,7 +32,43 @@ export class ArchitectureDrill {
     // 3. Atelier Engine Drill
     results.push(await this.drillAtelierEngine());
 
+    // 4. Mission Registry Drill
+    results.push(await this.drillMissionRegistry());
+
     return results;
+  }
+
+  private async drillMissionRegistry(): Promise<DrillResult> {
+    const start = Date.now();
+    try {
+      // Mock mutations for the drill
+      const mockMutations = {
+        startMission: async () => "mock-id",
+        logMessage: async () => {},
+        completeMission: async () => {},
+        failMission: async () => {}
+      };
+      
+      const { MissionRegistry, UsageTracker } = await import('../mission');
+      const registry = new MissionRegistry(mockMutations);
+      
+      const mission = await registry.start('system', 'Drill Topic');
+      await mission.log('DRILL', 'Testing log message');
+      
+      // Simulate usage recording
+      UsageTracker.record("mock-id", { totalTokenCount: 100, promptTokenCount: 50, candidatesTokenCount: 50 });
+      
+      await mission.complete();
+      
+      return { 
+        module: 'MissionRegistry', 
+        status: 'passed', 
+        message: 'Mission lifecycle (start -> log -> complete) is logically sound.',
+        latency: Date.now() - start
+      };
+    } catch (e: any) {
+      return { module: 'MissionRegistry', status: 'failed', message: e.message, latency: Date.now() - start };
+    }
   }
 
   private async drillSignalBroker(): Promise<DrillResult> {

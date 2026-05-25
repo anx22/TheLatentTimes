@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const MassiveHeadlineBlock: React.FC = () => (
+export const MassiveHeadlineBlock: React.FC = () => (
   <div className="flex h-full border-b border-black bg-[#faf9f6] text-black">
     <div className="flex-1 p-12 border-r border-black flex items-center justify-center">
       <h1 className="font-serif text-8xl leading-[0.85] tracking-tighter">
@@ -20,11 +19,3 @@ const MassiveHeadlineBlock: React.FC = () => (
     </div>
   </div>
 );
-
-export const MassiveHeadlineTemplate: BlockTemplate = {
-  id: 'MassiveHeadline',
-  title: 'Massive Headline',
-  description: 'Full-width split block with enormous typography.',
-  config: { w: 12, h: 4, minW: 12, maxW: 12, minH: 1 },
-  component: MassiveHeadlineBlock
-};

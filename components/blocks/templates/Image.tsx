@@ -1,8 +1,7 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 import { MagazineItem } from '../../../types';
 
-const ImageBlock: React.FC<{ imageUrl?: string, caption?: string, data?: MagazineItem }> = ({ imageUrl, caption, data }) => (
+export const ImageBlock: React.FC<{ imageUrl?: string, caption?: string, data?: MagazineItem }> = ({ imageUrl, caption, data }) => (
   <div className="w-full h-full relative bg-[#e5e5e5]">
     <img src={data?.hero_image_url || imageUrl || "https://picsum.photos/seed/image/800/800"} alt="Editorial" className="w-full h-full object-cover grayscale contrast-125" />
     {(data?.dek || caption) && (
@@ -13,11 +12,3 @@ const ImageBlock: React.FC<{ imageUrl?: string, caption?: string, data?: Magazin
     )}
   </div>
 );
-
-export const ImageTemplate: BlockTemplate = {
-  id: 'Image',
-  title: 'Image Block',
-  description: 'Full-bleed image block with optional caption.',
-  config: { w: 4, h: 4, minW: 2, minH: 1 },
-  component: ImageBlock
-};

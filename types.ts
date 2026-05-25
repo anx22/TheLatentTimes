@@ -1,6 +1,8 @@
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
+export type EditorialDepartment = 'Fashion' | 'Cyber' | 'Academic';
+
 // --- NEWSROOM TYPES ---
 export type NewsroomStep = 'IDLE' | 'NEWS_TERMINAL' | 'EDITORIAL_BOARD' | 'DARKROOM' | 'PRINTING_PRESS' | 'PUBLISHED';
 
@@ -34,6 +36,9 @@ export interface SystemLog {
   message: string;
   step: string;
   level?: string;
+  type?: 'info' | 'warning' | 'error' | 'action' | 'success';
+  source?: string;
+  missionId?: string;
 }
 
 export interface Source {
@@ -62,9 +67,11 @@ export interface NewsCluster {
   lastUpdatedAt: number;
   status: 'emerging' | 'trending' | 'archived';
   cultural_context?: string;
+  missionId?: string;
+  articleCount?: number;
 }
 
-export interface TickerItem {
+export interface Signal {
   _id: string;
   _creationTime: number;
   title: string;
@@ -77,7 +84,9 @@ export interface TickerItem {
   storyId?: string;
   embedding?: number[];
   innovation_score?: number;
+  sourceType?: string;
   cultural_vectors?: CulturalVector[];
+  missionId?: string;
 }
 
 export interface DraftSentence {
@@ -103,6 +112,8 @@ export interface BlockAnnotation {
 }
 
 export interface GeneratedArticle {
+  _id?: string;
+  _creationTime?: number;
   storyId?: string;
   headline: string;
   deck: string;

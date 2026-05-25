@@ -5,7 +5,6 @@ import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
-import { DebugStatus } from './components/DebugStatus';
 import { ArticleDetail } from './components/ArticleDetail';
 import { MagazineGrid } from './components/MagazineGrid';
 import { useQuery, useMutation } from "convex/react";
@@ -246,8 +245,6 @@ const App: React.FC = () => {
               onClose={() => setSelectedItem(null)}
             />
           )}
-         
-         <DebugStatus />
          
          {/* Floating Toggle (Backup access) */}
          {!showNewsroom && session && (

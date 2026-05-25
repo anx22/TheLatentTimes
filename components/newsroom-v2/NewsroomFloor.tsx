@@ -1,10 +1,13 @@
 import React, { useContext } from 'react';
-import { X, Radio, MessageSquare, Image, Printer, Layout, Terminal } from 'lucide-react';
+import { X, Radio, MessageSquare, Image, Printer, Terminal, Activity } from 'lucide-react';
 import { NewsroomContext } from '../../contexts/NewsroomContext';
 import { TheWire } from './TheWire';
 import { TheBullpen } from './TheBullpen';
 import { TheDarkroom } from './TheDarkroom';
 import { PrintingPress } from './printing-press/PrintingPress';
+import { NewsroomButton, NewsroomLabel, NewsroomPanel, ClusterCard } from './NewsroomUI';
+import { motion } from 'motion/react';
+import { cn } from '../../lib/utils';
 
 interface NewsroomFloorProps {
   onClose: () => void;
@@ -16,13 +19,6 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
 
   const { step, setStep, logs } = context;
 
-  const departments = [
-    { id: 'NEWS_TERMINAL', name: 'The Wire', icon: Radio },
-    { id: 'EDITORIAL_BOARD', name: 'The Bullpen', icon: MessageSquare },
-    { id: 'DARKROOM', name: 'The Darkroom', icon: Image },
-    { id: 'PRINTING_PRESS', name: 'The Press', icon: Printer },
-  ];
-
   const renderActiveDepartment = () => {
     switch (step) {
       case 'NEWS_TERMINAL':
@@ -33,19 +29,19 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
         return <TheDarkroom />;
       case 'PRINTING_PRESS':
       case 'PUBLISHED':
-        return <PrintingPress />;
+        return <PrintingPress onClose={onClose} />;
       default:
         return (
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#111] text-zinc-500 border-zinc-800 border-l">
-            <Terminal className="w-12 h-12 mb-4 opacity-20" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.3em]">System Standby</h2>
-            <p className="font-mono text-[10px] mt-2 opacity-50">Awaiting operational signal</p>
-            <button 
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#060606] text-zinc-500">
+            <Terminal className="w-12 h-12 mb-6 opacity-10" />
+            <h2 className="font-mono text-xs uppercase tracking-[0.4em] text-emerald-500/50">System Standby</h2>
+            <NewsroomButton 
+                variant="tactical"
                 onClick={() => setStep('NEWS_TERMINAL')}
-                className="mt-8 border border-zinc-800 px-6 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all"
+                className="mt-8"
             >
                 Initialize Terminal
-            </button>
+            </NewsroomButton>
           </div>
         );
     }
@@ -53,121 +49,137 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[150] bg-black flex flex-col animate-fade-in text-white font-sans selection:bg-emerald-500 selection:text-white">
-      {/* Top Bar */}
-      <div className="h-14 border-b border-zinc-800 flex items-center justify-between px-6 shrink-0 bg-[#0a0a0a]">
-        <div className="flex items-center gap-4">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-          <span className="font-mono text-[10px] uppercase tracking-[0.4em] font-bold">
-            Newsroom Floor <span className="text-zinc-600">v2.0</span>
-          </span>
+      {/* Top Bar - Tactical Command Header */}
+      <div className="h-14 border-b border-zinc-800/80 flex items-center justify-between px-8 shrink-0 bg-[#080808] z-50">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+            <span className="font-mono text-[14px] uppercase tracking-[0.4em] font-black">
+              LNT.Newsroom <span className="text-zinc-700 ml-1">v2.5</span>
+            </span>
+          </div>
         </div>
         
-        <div className="flex items-center gap-8">
-           <div className="hidden md:flex items-center gap-6">
-              {departments.map((dept) => (
-                <button
-                  key={dept.id}
-                  onClick={() => setStep(dept.id as any)}
-                  className={`flex items-center gap-2 text-[10px] uppercase tracking-widest transition-all ${
-                    step === dept.id ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'
-                  }`}
-                >
-                  <dept.icon className={`w-3.5 h-3.5 ${step === dept.id ? 'text-emerald-400' : 'text-zinc-600'}`} />
-                  {dept.name}
-                </button>
-              ))}
-           </div>
-           
-           <div className="h-4 w-px bg-zinc-800"></div>
+        <div className="flex items-center gap-2 overflow-hidden px-4">
+           {[
+             { id: 'NEWS_TERMINAL', name: 'TERMINAL', icon: Radio },
+             { id: 'EDITORIAL_BOARD', name: 'EDITORIAL', icon: MessageSquare },
+             { id: 'DARKROOM', name: 'VISUAL', icon: Image },
+             { id: 'PRINTING_PRESS', name: 'PUBLISH', icon: Printer },
+           ].map((dept) => (
+             <button
+               key={dept.id}
+               onClick={() => setStep(dept.id as any)}
+               className={cn(
+                 "flex items-center gap-2.5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] transition-all relative group shrink-0",
+                 step === dept.id ? 'text-[#ccff00]' : 'text-zinc-600 hover:text-zinc-400'
+               )}
+             >
+               <dept.icon className={cn("w-3.5 h-3.5", step === dept.id ? 'text-[#ccff00]' : 'text-zinc-900 group-hover:text-zinc-600')} />
+               <span className="hidden xl:inline">{dept.name}</span>
+               
+               {step === dept.id && (
+                 <motion.div 
+                    layoutId="activeTabIndicator"
+                    className="absolute -bottom-[19px] left-0 right-0 h-0.5 bg-[#ccff00] shadow-[0_0_10px_rgba(204,255,0,0.5)]" 
+                 />
+               )}
+             </button>
+           ))}
+        </div>
 
            <button 
              onClick={onClose}
-             className="text-zinc-500 hover:text-white transition-colors p-2"
+             className="text-zinc-600 hover:text-white transition-all p-1.5 hover:rotate-90 duration-300 ml-4"
            >
              <X className="w-5 h-5" />
            </button>
-        </div>
       </div>
 
       {/* Main Workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar: Operational Chain */}
-        <div className="w-16 md:w-20 border-r border-zinc-800 flex flex-col items-center py-8 gap-10 bg-[#0a0a0a] shrink-0">
-            {departments.map((dept) => (
-                <div key={dept.id} className="relative group">
-                    <button
-                        onClick={() => setStep(dept.id as any)}
-                        className={`w-10 h-10 rounded-sm flex items-center justify-center transition-all border ${
-                            step === dept.id 
-                            ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' 
-                            : 'border-zinc-800 text-zinc-600 hover:border-zinc-600 hover:bg-zinc-900'
-                        }`}
-                    >
-                        <dept.icon className="w-5 h-5" />
-                    </button>
-                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 bg-black border border-zinc-800 px-2 py-1 rounded text-[8px] font-mono uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                        {dept.name}
-                    </div>
-                </div>
-            ))}
-        </div>
-
         {/* Center: Department Content */}
-        <div className="flex-1 flex overflow-hidden bg-[#0a0a0a]">
+        <NewsroomPanel className="flex-1">
           {renderActiveDepartment()}
-        </div>
+        </NewsroomPanel>
 
-        {/* Right Sidebar: Logs/System Monitor */}
-        <div className="hidden lg:flex w-80 border-l border-zinc-800 flex-col bg-[#0a0a0a] shrink-0">
-          <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-black/40">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">System Logs</span>
-            <div className="flex gap-1">
-              <span className="w-1 h-1 bg-emerald-500 rounded-full"></span>
-              <span className="w-1 h-1 bg-emerald-500 rounded-full opacity-50"></span>
-              <span className="w-1 h-1 bg-emerald-500 rounded-full opacity-20"></span>
+        {/* Right Sidebar: Operational Terminal */}
+        <NewsroomPanel side="right" width="w-80" className="hidden lg:flex">
+          {step === 'NEWS_TERMINAL' && (
+            <div className="border-b border-zinc-900 shrink-0">
+                <div className="p-4 bg-emerald-500/5">
+                  <NewsroomLabel type="header" className="text-[14px] mb-3 block">Related Topics</NewsroomLabel>
+                  <div className="space-y-2">
+                    {context.newsClusters.slice(0, 2).map((cluster) => (
+                       <ClusterCard 
+                         key={cluster._id} 
+                         cluster={cluster} 
+                         onSelect={(t) => context.setTopic(t)}
+                         className="p-3 bg-black/40 border-zinc-800/50"
+                       />
+                    ))}
+                 </div>
+               </div>
+               <div className="p-4 border-t border-zinc-900">
+                  <NewsroomLabel type="header" className="text-[14px] mb-3 block">Director's Directive</NewsroomLabel>
+                  <textarea 
+                    className="w-full bg-black border border-zinc-800 p-3 text-[12px] font-mono focus:outline-none focus:border-emerald-500/30 h-24 resize-none text-emerald-500/80 transition-all placeholder:text-zinc-700 leading-relaxed"
+                    placeholder="Enter an overarching narrative bias or strategic focus (e.g., 'Focus heavily on the geopolitical consequences'). This directive influences all agents in the pipeline."
+                    value={context.globalDirective}
+                    onChange={(e) => context.setGlobalDirective(e.target.value)}
+                  />
+               </div>
             </div>
+          )}
+
+          <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-black/40 shrink-0">
+            <NewsroomLabel type="header" className="flex items-center gap-2 text-[14px]">
+              <Activity className="w-3.5 h-3.5 text-emerald-500" />
+              Operational Log [Newest First]
+            </NewsroomLabel>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 font-mono">
-            {logs.slice().reverse().map((log, i) => (
-              <div key={log._id || i} className="space-y-1.5 animate-in slide-in-from-right-2 duration-300">
-                <div className="flex justify-between items-center text-[8px]">
-                  <span className={`uppercase tracking-widest font-bold ${
-                    log.agentName === 'SYSTEM' ? 'text-red-400' : 'text-emerald-400'
-                  }`}>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 font-mono scrollbar-hide">
+            {logs.slice().sort((a,b) => b.timestamp - a.timestamp).map((log, i) => (
+              <div key={log._id || i} className="group space-y-2 animate-in slide-in-from-right-2 duration-300">
+                <div className="flex justify-between items-center text-[14px]">
+                  <span className={cn(
+                    "font-bold uppercase tracking-widest",
+                    log.agentName === 'SYSTEM' ? 'text-red-500/70' : 'text-emerald-500/70'
+                  )}>
                     [{log.agentName}]
                   </span>
-                  <span className="text-zinc-600">
+                  <span className="text-zinc-800">
                     {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>
-                <div className="text-[10px] leading-relaxed text-zinc-300 break-words border-l border-zinc-800 pl-3 py-0.5">
+                <div className="text-[14px] leading-relaxed text-zinc-500 group-hover:text-zinc-300 transition-colors border-l border-zinc-900 pl-4 py-1">
                   {log.message}
                 </div>
               </div>
             ))}
             {logs.length === 0 && (
-                <div className="h-full flex items-center justify-center">
-                    <p className="text-[10px] text-zinc-700 uppercase tracking-widest">No active traffic</p>
+                <div className="h-full flex flex-col items-center justify-center pt-20">
+                    <NewsroomLabel type="key">Terminal Idle</NewsroomLabel>
                 </div>
             )}
           </div>
-        </div>
+        </NewsroomPanel>
       </div>
       
-      {/* Bottom Status Bar */}
-      <div className="h-10 border-t border-zinc-800 bg-[#0a0a0a] text-zinc-500 flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-6 text-[8px] font-mono uppercase tracking-[0.2em]">
+      {/* Bottom Status Bar - Minimal */}
+      <div className="h-8 border-t border-zinc-800/20 bg-black text-zinc-800 flex items-center justify-between px-8 shrink-0">
+          <div className="flex items-center gap-6 text-[12px] font-mono uppercase tracking-[0.2em] font-medium">
               <span className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-emerald-500"></span>
+                <span className="w-1 h-1 bg-emerald-500/50 rounded-full"></span>
                 Status: Operational
               </span>
-              <span className="text-zinc-800">|</span>
-              <span>Agents: Active</span>
           </div>
-          <div className="flex items-center gap-4 text-[8px] font-mono uppercase tracking-widest">
-              <span className="text-emerald-500/50">LNT.OS_v2.1</span>
+          <div className="text-[12px] font-mono uppercase tracking-[0.3em] font-medium italic opacity-30">
+              LNT.OS_MESH
           </div>
       </div>
     </div>
   );
 };
+

@@ -196,12 +196,13 @@ export const editImage = async (base64Image: string, prompt: string, missionId?:
 };
 
 // Search Grounding using Gemini 3 Flash Preview
-export const searchTrend = async (query: string): Promise<SearchResult & { isFallback?: boolean }> => {
+export const searchTrend = async (query: string, missionId?: string): Promise<SearchResult & { isFallback?: boolean }> => {
   try {
     const response = await safeGenerateContent({
       model: 'gemini-3-flash-preview',
       contents: query,
       config: { tools: [{ googleSearch: {} }] },
+      missionId,
     });
 
     const text = response.text || "No results found.";
@@ -222,6 +223,7 @@ export const searchTrend = async (query: string): Promise<SearchResult & { isFal
       contents: `You are acting as a search engine. The user queried: "${query}". 
       Since live search is unavailable, provide a detailed summary of what you know about this topic from your training data. 
       Be specific and technical.`,
+      missionId,
     });
 
     return { 
@@ -246,35 +248,43 @@ export const listModels = async () => {
     console.error(e);
   }
 };
-export const generateEmbedding = async (text: string): Promise<number[]> => {
+export const generateEmbedding = async (text: string, missionId?: string): Promise<number[]> => {
   const apiKey = getApiKey();
   const client = new GoogleGenAI({ apiKey: apiKey });
+  const start = performance.now();
   
   try {
     const response = await client.models.embedContent({
-      model: 'text-embedding-004',
+      model: 'gemini-embedding-2',
       contents: text,
     });
     
     if (response.embeddings && response.embeddings.length > 0) {
       const values = response.embeddings[0].values;
-      if (values) return values;
+      if (values) {
+        console.debug(`[NET] Embedding Gen (gemini-embedding-2, ${Math.round(performance.now() - start)}ms)`);
+        return values;
+      }
     }
     throw new Error("No embedding returned");
   } catch (e: any) {
-    console.warn("[NET] text-embedding-004 failed, trying embedding-001", e.message);
+    console.warn("[NET] gemini-embedding-2 failed, trying gemini-embedding-001", e.message);
     try {
       const response = await client.models.embedContent({
-        model: 'embedding-001',
+        model: 'gemini-embedding-001',
         contents: text,
       });
+      
       if (response.embeddings && response.embeddings.length > 0) {
         const values = response.embeddings[0].values;
-        if (values) return values;
+        if (values) {
+           console.debug(`[NET] Embedding Gen (embedding-001, ${Math.round(performance.now() - start)}ms)`);
+           return values;
+        }
       }
       throw new Error("No embedding returned from fallback");
-    } catch (fallbackError) {
-      console.error("[NET] Embedding Generation FAILED", fallbackError);
+    } catch (fallbackError: any) {
+      console.error("[NET] Embedding Generation FAILED", fallbackError.message, fallbackError);
       throw fallbackError;
     }
   }

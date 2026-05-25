@@ -22,11 +22,22 @@ export const agentLayoutDesigner = async (
     
     TASK:
     1. Decide where to place the new article in the layout.
-    2. You can replace an existing mockup block (e.g., one with a generic headline) or create a new block.
-    3. If replacing, keep the x, y, w, h but update the 'i' (id) to "${newItem.id}", 'headline' to the new article's headline, and 'blockType' to an appropriate block type (MUST BE ONE OF: 'CoverStory', 'Glamour', 'SmallArticle', 'Image', 'Quote').
-    4. If creating a new block, ensure it fits the 12-column grid.
-    5. DO NOT change the 'i' (id) of any other blocks.
-    6. Return the FULL updated layout array.
+    2. You are FORBIDDEN from making the magazine look like a list. Use VARYING widths and heights.
+    3. You MUST pick a diverse 'blockType' from the list below. Do NOT default to 'SmallArticle' unless the article is low-signal.
+    4. TEMPLATE REGISTRY: 
+       - 'CoverStory': Large, hero image focus. Use for high-impact stories. (w: 8-12, h: 6-8)
+       - 'Glamour': High-fashion, elegant type (w: 6-8, h: 4-6)
+       - 'MassiveHeadline': Experimental, huge typography (w: 8-12, h: 3-5)
+       - 'SyntheticEra': Tech-heavy, glitchy visuals (w: 4-6, h: 4-6)
+       - 'NewCanon': Philosophical, academic vibe (w: 4-8, h: 6-8)
+       - 'HouseView': Strong editorial opinion (w: 4-6, h: 3-5)
+       - 'LargeQuote': Pull-quote focus (w: 12, h: 2-3)
+       - 'HookFactory': Aggressive, clicky news (w: 4, h: 3)
+       - 'LatentSpace': Dreamy, synthetic aesthetics (w: 6, h: 6)
+       - 'IdentitySystems': Corporate/Systemic critique (w: 6, h: 4)
+       - 'Image': Visual asset only focus (w: 4-12, h: 4-8)
+       - 'SmallArticle': Standard small slot (w: 3-4, h: 2-3)
+    5. Return the FULL updated layout array. Ensure NO overlaps on the 12-column grid.
     
     The layout must be a valid JSON array of LayoutItem objects.
   `;

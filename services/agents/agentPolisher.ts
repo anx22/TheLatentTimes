@@ -2,7 +2,7 @@ import { Type } from "@google/genai";
 import { GeneratedArticle } from "../../types";
 import { callJsonAgent } from "../gemini";
 
-export const agentPolisher = async (draft: GeneratedArticle): Promise<GeneratedArticle> => {
+export const agentPolisher = async (draft: GeneratedArticle, missionId?: string): Promise<GeneratedArticle> => {
   const prompt = `
     You are the Final Polish Editor for a high-end tech/culture magazine.
     Your job is to perform a final review of the following article and make minor surgical improvements to ensure:
@@ -64,7 +64,7 @@ export const agentPolisher = async (draft: GeneratedArticle): Promise<GeneratedA
       tags: { type: Type.ARRAY, items: { type: Type.STRING } }
     },
     required: ['headline', 'deck', 'blocks', 'tags']
-  }, null);
+  }, null, missionId);
 
   if (parsed) {
     parsed.body = parsed.blocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');

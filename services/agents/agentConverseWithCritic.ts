@@ -6,7 +6,8 @@ export const agentConverseWithCritic = async (
   articleBody: string,
   criticPersona: string,
   criticComment: string,
-  userMessage: string
+  userMessage: string,
+  missionId?: string
 ): Promise<{ persona: string, response: string }> => {
   const prompt = `
     You are ${criticPersona} from The Latent Times Editorial Board. 
@@ -40,5 +41,5 @@ export const agentConverseWithCritic = async (
       response: { type: Type.STRING }
     },
     required: ['persona', 'response']
-  }, { persona: criticPersona, response: "I have nothing further to add to this triviality." });
+  }, { persona: criticPersona, response: "I have nothing further to add to this triviality." }, missionId);
 };

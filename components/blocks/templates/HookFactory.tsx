@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const HookFactoryBlock: React.FC = () => (
+export const HookFactoryBlock: React.FC = () => (
   <div className="flex flex-col h-full p-8 border-t border-black bg-white text-black">
     <div className="text-[10px] font-mono uppercase tracking-widest text-black mb-2">Dispatch • Social Mechanics</div>
     <h2 className="font-serif text-4xl leading-none tracking-tight mb-8 uppercase">
@@ -18,11 +17,3 @@ const HookFactoryBlock: React.FC = () => (
     </p>
   </div>
 );
-
-export const HookFactoryTemplate: BlockTemplate = {
-  id: 'HookFactory',
-  title: 'Hook Factory',
-  description: 'Text-heavy block for analytical dispatches.',
-  config: { w: 6, h: 3, minW: 4, minH: 1 },
-  component: HookFactoryBlock
-};

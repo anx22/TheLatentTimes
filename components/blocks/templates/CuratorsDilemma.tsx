@@ -1,7 +1,6 @@
 import React from 'react';
-import { BlockTemplate } from '../types';
 
-const CuratorsDilemmaBlock: React.FC = () => (
+export const CuratorsDilemmaBlock: React.FC = () => (
   <div className="flex flex-col h-full p-10 bg-[#111111] text-white border-l border-zinc-800">
     <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-300 mb-6">Feature</div>
     <h2 className="font-serif text-6xl leading-none tracking-tight mb-8">
@@ -25,11 +24,3 @@ const CuratorsDilemmaBlock: React.FC = () => (
     </div>
   </div>
 );
-
-export const CuratorsDilemmaTemplate: BlockTemplate = {
-  id: 'CuratorsDilemma',
-  title: "Curator's Dilemma",
-  description: 'Full-width dark feature block with two columns of text.',
-  config: { w: 12, h: 6, minW: 8, minH: 1 },
-  component: CuratorsDilemmaBlock
-};

@@ -1,5 +1,5 @@
 import { SignalAdapter } from '../SignalBroker';
-import { TickerItem } from '../../../types';
+import { Signal } from '../../../types';
 import { fetchRSS } from '../../rss';
 
 export class RSSAdapter implements SignalAdapter {
@@ -17,16 +17,20 @@ export class RSSAdapter implements SignalAdapter {
     this.fetchRssAction = fetchRssAction;
   }
 
-  async fetch(limit: number): Promise<TickerItem[]> {
-    const items = await fetchRSS(this.url, this.fetchRssAction);
-    
-    return items
-      .filter(item => {
-        const pubDate = new Date(item.pubDate).getTime();
-        return pubDate > this.lastFetchedAt;
-      })
-      .slice(0, limit)
-      .map(item => ({
+  async fetch(limit: number, onLog?: (source: string, msg: string, type: any) => void): Promise<Signal[]> {
+    try {
+      const items = await fetchRSS(this.url, this.fetchRssAction);
+      
+      const newItems = items
+        .filter(item => {
+          const pubDate = new Date(item.pubDate).getTime();
+          return pubDate > this.lastFetchedAt;
+        })
+        .slice(0, limit);
+
+      onLog?.(this.name, `Parsed ${items.length} total signals. ${newItems.length} are new since last sync.`, 'info');
+
+      return newItems.map(item => ({
         _id: Math.random().toString(36).substring(7),
         _creationTime: Date.now(),
         title: item.title,
@@ -35,7 +39,12 @@ export class RSSAdapter implements SignalAdapter {
         url: item.link,
         content: item.description,
         timestamp: new Date(item.pubDate).getTime() || Date.now(),
+        sourceType: 'rss',
         status: 'new'
-      })) as TickerItem[];
+      })) as Signal[];
+    } catch (e: any) {
+      onLog?.(this.name, `Ingestion failed: ${e.message}`, 'error');
+      return [];
+    }
   }
 }

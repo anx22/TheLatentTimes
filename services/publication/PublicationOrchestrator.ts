@@ -20,18 +20,18 @@ export class PublicationOrchestrator {
     this.config = config;
   }
 
-  private log(source: string, message: string, type: 'info' | 'action' | 'success' | 'warning' | 'error' = 'info') {
-    this.config.onLog?.(source, message, type, this.config.missionId);
+  private log(source: string, message: string, type: 'info' | 'action' | 'success' | 'warning' | 'error' = 'info', missionId?: string) {
+    this.config.onLog?.(source, message, type, missionId || this.config.missionId);
   }
 
   /**
    * Performs a final multi-agent polish of the draft.
    */
-  async runFinalPolish(article: GeneratedArticle): Promise<GeneratedArticle> {
-    this.log('THE POLISHER', 'Applying narrative varnish and cross-checking facts...', 'action');
+  async runFinalPolish(article: GeneratedArticle, missionId?: string): Promise<GeneratedArticle> {
+    this.log('THE POLISHER', 'Applying narrative varnish and cross-checking facts...', 'action', missionId);
     
-    // agentPolisher takes only (article)
-    const polished = await agentPolisher(article);
+    // agentPolisher now takes (article, missionId)
+    const polished = await agentPolisher(article, missionId || this.config.missionId);
     
     this.log('THE POLISHER', 'Draft polished. Narrative friction minimized.', 'success');
     return polished;
@@ -46,11 +46,12 @@ export class PublicationOrchestrator {
     body: string,
     blocks: any[],
     image: { url: string; aspectRatio: AspectRatio } | null,
+    missionId?: string,
     author: string = "The Newsroom"
   ): Promise<Partial<MagazineItem>> {
-    this.log('THE PRESS', 'Assigning layout and synthesizing final artifact metadata...', 'action');
+    this.log('THE PRESS', 'Assigning layout and synthesizing final artifact metadata...', 'action', missionId);
     
-    this.log('THE PRESS', 'Publication artifact ready for distribution.', 'success');
+    this.log('THE PRESS', 'Publication artifact ready for distribution.', 'success', missionId);
 
     return {
       title: headline,

@@ -1,5 +1,6 @@
 {
   "name": "The Latent Times",
   "description": "An AI-Native Magazine for the Latent Space, featuring AI-powered tools for image generation, editing, and trend research.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,13 +1,12 @@
 import React, { useMemo } from 'react';
-import RGL from 'react-grid-layout';
 import { LayoutItem, MagazineItem } from '../types';
 import { BLOCK_REGISTRY } from './blocks/templates';
 
-import '/node_modules/react-grid-layout/css/styles.css';
-import '/node_modules/react-resizable/css/styles.css';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
-const { Responsive, WidthProvider } = RGL as any;
-const ResponsiveGridLayout = WidthProvider(Responsive);
+import { Responsive } from 'react-grid-layout';
+import WidthProvider from 'react-grid-layout';
 
 interface MagazineGridProps {
   layout: LayoutItem[];
@@ -20,6 +19,8 @@ export const MagazineGrid: React.FC<MagazineGridProps> = ({
   onLayoutChange, 
   onItemClick 
 }) => {
+  const ResponsiveGridLayout = useMemo(() => (WidthProvider as any)(Responsive), []);
+
   // Convert LayoutItem[] to react-grid-layout format
   const rglLayout = useMemo(() => layout.map(item => ({
     i: item.i,

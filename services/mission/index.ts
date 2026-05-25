@@ -71,8 +71,13 @@ export class MissionInstance {
 export class MissionRegistry {
   constructor(private mutations: any) {}
 
-  async start(type: 'editorial' | 'scout', topic: string): Promise<MissionInstance> {
-    const mId = await this.mutations.startMission({ type, topic });
+  async start(type: 'editorial' | 'scout' | 'system', topic: string, parentMissionId?: Id<"missions">, metadata?: any): Promise<MissionInstance> {
+    const mId = await this.mutations.startMission({ type, topic, parentMissionId, metadata });
     return new MissionInstance(mId, this.mutations);
+  }
+
+  // Helper for effortless sub-missions
+  async sub(parent: MissionInstance, type: 'editorial' | 'scout' | 'system', topic: string, metadata?: any): Promise<MissionInstance> {
+    return this.start(type, topic, parent.id, metadata);
   }
 }

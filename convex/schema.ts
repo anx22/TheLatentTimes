@@ -8,7 +8,7 @@ import { v } from "convex/values";
  * Convex uses a TypeScript-based schema definition that ensures end-to-end type safety.
  * 
  * Tables:
- * - ticker_items: Stores raw news signals (RSS, Scout results).
+ * - signals: Stores raw news signals (RSS, Scout results).
  * - drafts: Stores the evolving article content (headline, deck, body).
  * - agent_logs: Stores the chat history for the "Agent Chatter" stream.
  * - images: Stores generated image URLs and prompts.
@@ -33,10 +33,13 @@ export default defineSchema({
     lastUpdatedAt: v.number(),
     status: v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived")),
     cultural_context: v.optional(v.string()), // Broad philosophical/cultural link
-  }).index("by_lastUpdatedAt", ["lastUpdatedAt"]),
+    missionId: v.optional(v.id("missions")), // The execution thread that produced this story
+    centroid_embedding: v.optional(v.array(v.float64())), // The representative vector of the pillar
+  }).index("by_lastUpdatedAt", ["lastUpdatedAt"])
+    .index("by_mission", ["missionId"]),
 
   // 3. TICKER ITEMS (Raw Signals)
-  ticker_items: defineTable({
+  signals: defineTable({
     title: v.string(),
     source: v.string(),
     sourceId: v.optional(v.id("sources")), // Link to the source
@@ -44,8 +47,10 @@ export default defineSchema({
     content: v.optional(v.string()), // Snippet or full text for embedding
     timestamp: v.number(), // Unix timestamp
     status: v.union(v.literal("new"), v.literal("processing"), v.literal("archived")),
+    sourceType: v.optional(v.string()), // e.g., 'rss', 'github', 'api'
     storyId: v.optional(v.id("stories")), // The cluster it belongs to
     embedding: v.optional(v.array(v.float64())), // The vector representation
+    missionId: v.optional(v.id("missions")), // The mission that ingested this item
     innovation_score: v.optional(v.number()),
     cultural_vectors: v.optional(v.array(v.object({
       trend: v.string(),
@@ -55,15 +60,17 @@ export default defineSchema({
   })
   .index("by_timestamp", ["timestamp"])
   .index("by_url", ["url"]) // For hard deduplication
+  .index("by_mission", ["missionId"])
   .vectorIndex("by_embedding", {
     vectorField: "embedding",
-    dimensions: 768, // Gemini text-embedding-004 dimensions
+    dimensions: 3072, // gemini-embedding-2 dimensions
     filterFields: ["storyId"],
   }),
 
   // 2. DRAFTS (The Article)
   drafts: defineTable({
     storyId: v.optional(v.string()),
+    missionId: v.optional(v.id("missions")), // The research/editorial mission
     headline: v.string(),
     deck: v.string(),
     body: v.string(),
@@ -73,7 +80,7 @@ export default defineSchema({
     status: v.union(v.literal("draft"), v.literal("review"), v.literal("published")),
     created_at: v.number(),
     updated_at: v.number(),
-  }),
+  }).index("by_mission", ["missionId"]),
 
   // 3. AGENT LOGS (Chatter Stream)
   agent_logs: defineTable({
@@ -89,8 +96,10 @@ export default defineSchema({
   // 4. MISSIONS (Execution Threads)
   missions: defineTable({
     topic: v.string(),
-    type: v.union(v.literal("editorial"), v.literal("scout")),
+    type: v.union(v.literal("editorial"), v.literal("scout"), v.literal("system")),
     status: v.union(v.literal("running"), v.literal("completed"), v.literal("failed")),
+    parentMissionId: v.optional(v.id("missions")), // Chaining for sub-missions
+    metadata: v.optional(v.any()), // Extended diagnostic data
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     durationMs: v.optional(v.number()),
@@ -107,8 +116,9 @@ export default defineSchema({
   images: defineTable({
     prompt: v.string(),
     storageId: v.id("_storage"),
+    missionId: v.optional(v.id("missions")), // The mission that triggered the visual generation
     created_at: v.number(),
-  }),
+  }).index("by_mission", ["missionId"]),
 
   // 5. NEWSROOM WORKING STATE (UI Persistence)
   newsroom_state: defineTable({

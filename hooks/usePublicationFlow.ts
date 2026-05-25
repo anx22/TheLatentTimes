@@ -33,6 +33,8 @@ export const usePublicationFlow = (
       const newBody = newBlocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');
 
       const newDraftId = await mutations.saveDraft({
+        storyId: draft.storyId,
+        missionId: mission.id,
         headline: draft.headline,
         deck: draft.deck,
         body: newBody,
@@ -61,6 +63,7 @@ export const usePublicationFlow = (
       const enhanced = await agentPromptEnhancer(draft.suggested_visual_prompt || '', visualStyle, globalDirective, mission.id);
       const newDraftId = await mutations.saveDraft({
         ...draft,
+        missionId: mission.id,
         suggested_visual_prompt: enhanced,
         status: 'draft'
       });
@@ -84,6 +87,7 @@ export const usePublicationFlow = (
       const newDraftId = await mutations.saveDraft({
         ...draft,
         ...polished,
+        missionId: mission.id,
         status: (draft as any).status
       });
       setDraftId(newDraftId);

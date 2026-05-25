@@ -13,6 +13,8 @@ import { useNewsroomData } from './useNewsroomData';
 import { useEditorialAgents } from './useEditorialAgents';
 import { useVisualAgents } from './useVisualAgents';
 import { usePublicationFlow } from './usePublicationFlow';
+import { useAtelier } from '../contexts/AtelierContext';
+import { useParameters } from '../contexts/ParameterContext';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
   useEffect(() => {
@@ -22,6 +24,15 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   // 1. DOMAIN STATE
   const ui = useNewsroomUIState();
   const data = useNewsroomData();
+  const { atelierState, setAtelierState } = useAtelier();
+  const params = useParameters();
+
+  // 1.5 AUTO-SEED SOURCES
+  useEffect(() => {
+    if (data.dbSourcesResult !== undefined && data.dbSources.length === 0) {
+      data.mutations.seedSources({});
+    }
+  }, [data.dbSourcesResult, data.dbSources, data.mutations]);
 
   // 2. MISSION REGISTRY
   const missionRegistry = useMemo(() => new MissionRegistry(data.mutations), [data.mutations]);
@@ -33,27 +44,27 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
       message,
       level,
       step: ui.step,
-      missionId: (ui as any).activeMissionId
+      missionId: (ui.activeMissionId || undefined) as any
     });
-  }, [data.mutations, ui.step, (ui as any).activeMissionId]);
+  }, [data.mutations, ui]);
 
   // 4. ENGINES
   const orchestrator = useMemo(() => new EditorialOrchestrator({
     globalDirective: ui.globalDirective,
-    missionId: (ui as any).activeMissionId,
-    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'EDITORIAL', missionId: mId as any })
-  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
+    missionId: ui.activeMissionId || undefined,
+    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'EDITORIAL', missionId: (mId || ui.activeMissionId || undefined) as any })
+  }), [ui, data.mutations]);
 
   const atelier = useMemo(() => new AtelierEngine({
     globalDirective: ui.globalDirective,
-    onLog: (source, msg, type) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'DARKROOM', missionId: (ui as any).activeMissionId as any })
-  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
+    onLog: (source, msg, type) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'DARKROOM', missionId: (ui.activeMissionId || undefined) as any })
+  }), [ui, data.mutations]);
 
   const publication = useMemo(() => new PublicationOrchestrator({
     globalDirective: ui.globalDirective,
-    missionId: (ui as any).activeMissionId,
-    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'PRESS', missionId: mId as any })
-  }), [ui.globalDirective, data.mutations, (ui as any).activeMissionId]);
+    missionId: ui.activeMissionId || undefined,
+    onLog: (source, msg, type, mId) => data.mutations.logMessage({ agentName: source, message: msg, level: type, step: 'PRESS', missionId: (mId || ui.activeMissionId || undefined) as any })
+  }), [ui, data.mutations]);
 
   // 5. ACTION HOOKS
   const editorial = useEditorialAgents(data, ui, orchestrator, missionRegistry, addLog);
@@ -71,9 +82,16 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
         ui.setContext(state.context || '');
         ui.setScoutedTopics(state.scoutedTopics || []);
         ui.setAngles(state.angles || []);
+        ui.setSelectedStoryId(state.selectedStoryId || null);
         data.setDraftId(state.draftId || null);
         data.setImageId(state.imageId || null);
-        ui.setAtelierState(state.atelierState || ui.atelierState);
+        setAtelierState(state.atelierState || atelierState);
+        
+        if (state.editorialDepartment) params.setEditorialDepartment(state.editorialDepartment);
+        if (state.wordCount) params.setWordCount(state.wordCount);
+        if (state.visualStyle) params.setVisualStyle(state.visualStyle);
+        if (state.aspectRatio) params.setAspectRatio(state.aspectRatio);
+
         // Reset all loading
         ui.setIsResearching(false);
         ui.setIsScouting(false);
@@ -82,7 +100,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
       }
       ui.setIsHydrating(false);
     }
-  }, [data.persistedState, ui]);
+  }, [data.persistedState, ui, data]);
 
   useEffect(() => {
     if (ui.isHydrating) return;
@@ -90,10 +108,20 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
       data: {
         step: ui.step, topic: ui.topic, globalDirective: ui.globalDirective,
         context: ui.context, scoutedTopics: ui.scoutedTopics, angles: ui.angles,
-        draftId: data.draftId, imageId: data.imageId, atelierState: ui.atelierState
+        draftId: data.draftId, imageId: data.imageId, atelierState: atelierState,
+        editorialDepartment: params.editorialDepartment,
+        wordCount: params.wordCount,
+        visualStyle: params.visualStyle,
+        aspectRatio: params.aspectRatio,
+        selectedStoryId: ui.selectedStoryId
       }
     });
-  }, [ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles, data.draftId, data.imageId, ui.atelierState, ui.isHydrating, data.mutations]);
+  }, [
+    ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles, 
+    data.draftId, data.imageId, atelierState, ui.isHydrating, data.mutations, data, 
+    params.editorialDepartment, params.wordCount, params.visualStyle, params.aspectRatio,
+    ui.selectedStoryId
+  ]);
 
   // 6. WRAPPER ACTIONS
   const reset = async () => {
@@ -116,6 +144,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   return {
     ...ui,
     ...data,
+    ...params,
+    atelierState,
+    setAtelierState,
     ...editorial,
     ...visual,
     ...press,

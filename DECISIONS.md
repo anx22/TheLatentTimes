@@ -1,12 +1,94 @@
 
 # DECISIONS.md
 
-## 031 - Domain Refactor: Decomposition of useNewsroomState
-**Problem**: Even with orchestrators, `useNewsroomState.ts` was an over-complex "Monster Hook" (800+ lines) mixing UI state, Convex data fetching, and agent coordination.
-**Decision**: 
-1.  **Decomposition**: Split the monster hook into 5 specialized domain hooks: `useNewsroomUIState`, `useNewsroomData`, `useEditorialAgents`, `useVisualAgents`, and `usePublicationFlow`.
-2.  **Aggregation**: `useNewsroomState` now acts as a "Shallow Aggregator," providing a unified interface to the Context while delegating all logic.
-**Why**: Dramatically improves maintainability and allows for fine-grained testing and independent scaling of newsroom domains.
+## [2026-05-25] The Great Ticker De-complication (Signal Convergence)
+**Problem**: The "Ticker" concept had become bloated. Originally conceived as a raw visual feed, its logic leaked into the core backend. Normalizing `TickerItems` into the pipeline felt superfluous and confused the data model, making the system architecture harder to reason about and scaling efforts brittle.
+**Choice**: Systematically eradicated the "Ticker" concept from the core backend. Renamed `TickerItems` back to their canonical truth: `Signals`. Refactored all `agentTicker` logic into the more precise `SignalBroker` ingestion flow. Replaced overloaded UI methods like `fetchTickerData` or `isFetchingTicker` with literal actions: `ingestSignals` and `isIngesting`.
+**Reason**: Strict adherence to the [HARD] principle of Architectural Honesty. Removes semantic conflation between a UI layout concept (a scrolling ticker) and the fundamental backend data pipeline (Signal ingestion).
+
+## [2026-05-25] UI Integration of Deep Discovery
+**Problem**: The "Cluster Related Topics" trigger in the UI was broken silently due to a Convex query (`getOrphanSignals`) remaining undeployed after refactoring to the new `Signal` schema, resulting in an unresponsive UI button.
+**Choice**: Verified vector embeddings search and fully deployed the updated Convex schema. 
+**Reason**: Restores correct functionality to the manual semantic clustering feature, allowing deep exploration without blocking workflow.
+
+## [2026-05-25] TheBullpen Functional Refactor
+**Problem**: TheBullpen only displayed the generated draft headline and provided a misleading "Review & Handover" button that simply changed the tab to DARKROOM. It did not display the actual draft content, breaking the editorial feedback loop.
+**Choice**: Refactored `TheBullpen` to display the actual editorial draft (`headline`, `deck`, `body`), removed the misleading forwarding buttons, and added inline actions to revise or assemble the draft directly.
+**Reason**: Empowers the user to read and review the agent's work locally before deciding to navigate to the visual department via the top rail.
+
+## [2026-05-25] Magazine Card Interactivity
+**Problem**: The "Draft Story" action on the Magazine signal card triggered a room transition, and users lacked a way to manually command the Scout agent to deeply research a specific signal from the grid.
+**Choice**: Added an explicit "Analyze" capability to the Magazine Signal Cards, allowing users to trigger deep topological research on a signal without leaving the Wire.
+**Reason**: Increases the tool's interaction density and allows users to treat the Wire as a living research surface.
+
+## [2026-05-25] Global System Directive
+**Problem**: The tactical input box in the Intelligence Ops rail was labeled "Search Focus," which was functionally misleading as it acts as an overarching `globalDirective` (a system instruction injected into all downstream agents).
+**Choice**: Renamed the field to "Director's Directive" and updated its placeholder to accurately reflect its systemic impact on narrative bias and agent tone.
+**Reason**: Restores architectural honesty and clarifies a powerful structural lever that was previously hidden behind generic UI copy.
+
+## [2026-05-25] Contextual Reading & Interactive Clarification
+**Problem**: Users felt stuck with "Focus Topic" as the only action on cards, misinterpreting it as merely a room forwarding without interaction value. They couldn't read the stories on the Wire grid.
+**Choice**: Injected real signal summaries (`item.content`) into the Magazine Grid so they can be read in place. Renamed "Focus Topic" to "Draft Story" to clarify it triggers the creative narrative engine. Cleaned up redundant sidebars.
+**Reason**: Empowers the user to consume the news directly on the Wire and makes the next pipeline action explicitly clear.
+
+## [2026-05-25] De-marketing & Literal Naming (Anti-Junior Refactor)
+**Problem**: The application used "marketing" terms like "Deep Discovery" and "Neural Health" which didn't literally explain their function, leading to UX friction and a sense of "junior bullshit."
+**Choice**: Systematically purged marketing labels in favor of literal functional names: "Deep Discovery" -> "Synthesize Clusters", "Interrogate" -> "Analyze", "Deploy Mission" -> "Research/Select".
+**Reason**: To adhere to the [HARD] principle of ARCHITECTURAL HONESTY and provide a professional editorial tool that explains its own logic through clear labeling.
+
+## [2026-05-25] The Tactical Progress Rail
+**Problem**: Users felt "hijacked" by room transitions (Handovers) and lacked situational awareness of where they were in the editorial process.
+**Choice**: Implemented a persistent "Tactical Progress Rail" at the top of the Newsroom workspace. Removed automatic room jumps; all transitions are now intentional user actions.
+**Reason**: Restores agency to the user ("Director's Overview") and ensures logic continuity across the mission lifecycle.
+
+## [2026-05-25] Briefing Vault Isolation
+**Problem**: Briefings (historical drafts) were treated as a view-mode of the Wire, cluttering the primary signal stream and confusing the object hierarchy.
+**Choice**: Decoupled "Briefings" from the `TheWire` view modes. Moved them to a dedicated "Vault" utility in the Intelligence Ops rail.
+**Reason**: Clarifies the structural hierarchy where the Wire is for *discovery* and the Vault is for *records*.
+
+## [2026-05-25] Signal Pipeline Disambiguation
+**Problem**: Technical conflation of "Neural Search" (Retrieval) with "Clustering" (Processing) in UI/Docs.
+**Choice**: Explicitly separated "Interrogation" (Retrieval) from "Synthesis" (Story Clustering). Updated `TheWire` UI and `ARCHITECTURE.md`.
+**Reason**: To maintain technical integrity and prevent "AI Slop" masking distinct engineering steps.
+
+## [2026-05-25] UX Flow Continuity & Convex Query Resilience
+**Problem**: "Dead Ends" in UI navigation and a critical server error in the `getAllDrafts` query.
+**Choice**: Implemented explicit navigation bridges (Back/Abort) in all depts. Deployed updated Convex schema/queries.
+**Reason**: Respects user intent for a "whole flow" and ensures technical stability across the mission lifecycle.
+
+## [2026-05-25] Mainstream Strategic Pivot
+**Problem**: System was biased toward "Niche Voices," missing high-impact mainstream movements.
+**Choice**: Re-centered vision on **Mainstream Disruption**. Categorized niche signals as "Lead Indicators".
+**Reason**: Ensures market relevance and intellectual authority as a publication on "Big Movements."
+
+## [2026-05-25] God Hook Decomposition
+**Problem**: `useNewsroomState.ts` was an 800+ line monster mixing UI, data, and agent logic.
+**Choice**: Decomposition into 5 specialized domain hooks. `useNewsroomState` is now a shallow aggregator.
+**Reason**: Dramatically improves maintainability and allows for fine-grained testing.
+
+## 037 - Newsroom Accessibility & Typography Scaling
+**Problem**: Technical debt accrued in UI text sizes (as small as 7px) created significant accessibility and legibility debt, inconsistent with professional publication standards.
+**Decision**:
+1.  **Hard Floor**: Established a [HARD] rule of 14px (Tailwind `text-sm`) as the minimum valid text size for any human-facing newsroom label.
+2.  **Proportional Scale**: Updated `NewsroomUI` tokens to a new relative scale: Status/Key (14px), Base (16px), Header (18px), Display (20px+).
+3.  **UI Refactor**: Systematically updated `TheWire`, `TheBullpen`, `TheDarkroom`, and `NewsroomFloor` to adhere to this new architectural constraint.
+**Why**: Ensures the "Atelier" quality promised in the vision is actually legible and professional. Prioritizes human readability over "cool-but-tiny" tactical aesthetics.
+
+## 038 - Formalizing Mission Telemetry State
+**Problem**: `activeMissionId` was implicitly accessed via type-casts, causing a rift between the domain logic and the UI state representation.
+**Decision**:
+1.  **State Promotion**: Promoted `activeMissionId` to a first-class property in `useNewsroomUIState`.
+2.  **Clean Interfaces**: Removed all `(ui as any)` casts in the domain hooks and orchestrator wiring.
+3.  **Telemetry Bedrock**: Reinforced the ARCHITECTURE [HARD] rule that every agent execution must be linked to a mission.
+**Why**: Fixes significant technical debt and ensures the Mission Registry can reliably link logs to user sessions without fragile code-path assumptions.
+
+## 039 - Domain Context Decomposition (Context Slashing)
+**Problem**: The `NewsroomContext` had become a monolithic "God Object" holding 50+ properties, making the internal engine logic difficult to reason about and scale.
+**Decision**:
+1.  **Domain Split**: Decoupled `AtelierState` (Visual Engine) and parameters (Department/Style/Ratio) into specialized providers: `AtelierContext` and `ParameterContext`.
+2.  **Component Unification**: Extracted repeat UI patterns (SignalCard, ClusterCard, EditorialCard, AssetPreviewCard) from dept modules into the `NewsroomUI` primitive library.
+3.  **Shallow Aggregation**: Maintained the flattened API at the `useNewsroom` level for consumer convenience while strictly isolating the underlying state logic.
+**Why**: Dramatically reduces "Context Bloat" (TD-003) and enforces DRY principles (TD-004), paving the way for easier domain-specific testing and future feature expansion.
 
 ## 032 - Systematic Deletion: Atmospheric Soundscapes
 **Problem**: The Soundscape feature was an "Additive Feature" that didn't provide enough editorial leverage to justify its complexity and token cost.
@@ -14,6 +96,28 @@
 1.  **Deletion**: Completely removed `agentSoundDesigner`, its types, and its UI presence.
 2.  **Principles**: Adhered to the "Minimal but Real" architecture guideline—removing speculative features to focus on core End-to-End editorial flow.
 **Why**: Reduces noise and maintenance burden, keeping the system lean for the deepening phase.
+
+## 035 - Broadened Layout Palette
+**Problem**: The `agentLayoutDesigner` was restricted to a tiny subset ('CoverStory', 'Glamour', 'SmallArticle', 'Image', 'Quote') of available block types, causing the magazine layout to appear uniform and list-like.
+**Decision**: Expanded the instructions passed to `agentLayoutDesigner` to include the full suite of available templates (16 types total) defined in `registry.ts`.
+**Why**: Ensures the Art Director can exercise true design flexibility and maintain the diverse, avant-garde layout promised in the product vision.
+
+## 033 - Mission Registry: Unified Execution Lifecycle
+**Problem**: Logging and telemetry were scattered across hooks and services, making it hard to track long-running agent threads ("Missions").
+**Decision**:
+1.  **Mission Entity**: Created `MissionInstance` and `MissionRegistry` classes to encapsulate start, log, complete, and fail states.
+2.  **Telemetry Integration**: Linked `UsageTracker` directly to the mission lifecycle to provide per-mission token auditing.
+3.  **Deep Signatures**: Refactored ALL agents to accept `missionId` as a standard (optional) param, ensuring every Gemini call is accountable.
+**Why**: Provides the bedrock for professional observability and future "Explainable AI" audit trails.
+
+## 042 - UX Logic Continuity & Convex Query Resilience
+**Problem**: The user experienced "Dead Ends"—states where the UI provided no clear navigation path forward or backward—and a critical "Server Error" when fetching historic briefings via the `getAllDrafts` query.
+**Decision**: 
+1.  **Contextual Reciprocity**: Implemented explicit "Back" and "Abort" navigation bridges in every department (Bullpen, Darkroom, Press), ensuring the user can always retreat to `The Wire` to pivot their mission topic.
+2.  **View Persistence**: Integrated an `onClose` callback from the `NewsroomFloor` into the `PrintingPress`, allowing the user to seamlessly transition from "Published" state to viewing the magazine.
+3.  **Schema Enforcement**: Deployed and verified the `getAllDrafts` Convex query to ensure historical research artifacts ("Briefings") are reliably accessible.
+4.  **Cta Recovery**: Added fallback CTAs in empty views (e.g., empty Briefing vault) to guide the user back to valid operational paths.
+**Why**: Respects the user's need for a "whole flow" representation and ensures technical stability across the deep-mission lifecycle.
 
 ## 030 - Latent Layout: AI-Controlled Grids
 **Problem**: The front page was a static list, failing to reflect the "Visual First" editorial vision of dynamic, AI-placed layouts.

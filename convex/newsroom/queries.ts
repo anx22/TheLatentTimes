@@ -11,12 +11,12 @@ import { v } from "convex/values";
 
 // 1. GET TICKER ITEMS
 // Fetches the latest 50 news signals, sorted by timestamp (newest first).
-export const getTickerItems = query({
+export const getSignals = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 50;
     return await (ctx.db as any)
-      .query("ticker_items")
+      .query("signals")
       .withIndex("by_timestamp")
       .order("desc")
       .take(limit);
@@ -36,6 +36,18 @@ export const getLatestDraft = query({
   },
 });
 
+// 2.2 GET ALL DRAFTS
+export const getAllDrafts = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    return await (ctx.db as any)
+      .query("drafts")
+      .order("desc")
+      .take(limit);
+  },
+});
+
 // 2.5 GET DRAFT BY ID
 // Fetches a specific draft by its ID.
 export const getDraftById = query({
@@ -51,7 +63,7 @@ export const getDraftById = query({
 export const getAgentLogs = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 100;
+    const limit = args.limit ?? 300;
     return await (ctx.db as any)
       .query("agent_logs")
       .withIndex("by_timestamp")
@@ -152,16 +164,75 @@ export const getNewsClusters = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
-    return await ctx.db
+    const stories = await ctx.db
       .query("stories")
       .withIndex("by_lastUpdatedAt")
+      .order("desc")
+      .take(limit);
+
+    // Compute density for each story
+    return await Promise.all(
+      stories.map(async (story) => {
+        const items = await ctx.db
+          .query("signals")
+          .filter((q) => q.eq(q.field("storyId"), story._id))
+          .collect();
+        return {
+          ...story,
+          articleCount: items.length,
+        };
+      })
+    );
+  },
+});
+
+// 20. DEEP INSIGHT (AI OBSERVABILITY)
+export const getDeepInsight = query({
+  args: {},
+  handler: async (ctx) => {
+    const activeMissions = await ctx.db.query("missions").filter(q => q.eq(q.field("status"), "running")).collect();
+    const tickerCount = (await ctx.db.query("signals").collect()).length;
+    const storiesCount = (await ctx.db.query("stories").collect()).length;
+    const sources = await ctx.db.query("sources").collect();
+    const lastLogs = await ctx.db.query("agent_logs").order("desc").take(50);
+    const recentDrafts = await ctx.db.query("drafts").order("desc").take(5);
+
+    return {
+      metrics: {
+        signals: tickerCount,
+        narrativePillars: storiesCount,
+        activeSources: sources.filter(s => s.isActive).length,
+        pendingMissions: activeMissions.length,
+      },
+      activeMissions: activeMissions.map(m => ({
+        id: m._id,
+        topic: m.topic,
+        type: m.type,
+        startedAt: m.startedAt,
+        parent: m.parentMissionId
+      })),
+      auditTrail: lastLogs.map(l => `[${l.agentName}] ${l.message}`),
+      anomalies: sources.filter(s => Date.now() - s.lastFetchedAt > (s.crawlFrequency * 60 * 1000 * 2)).map(s => `SOURCE_DELAY: ${s.name}`),
+      latestDrafts: recentDrafts.map(d => d.headline)
+    };
+  },
+});
+
+// 22. GET ORPHAN TICKER ITEMS
+export const getOrphanSignals = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 100;
+    return await ctx.db
+      .query("signals")
+      .filter((q) => q.eq(q.field("storyId"), undefined))
       .order("desc")
       .take(limit);
   },
 });
 
-export const getTickerItem = query({
-  args: { id: v.id("ticker_items") },
+export const getSignal = query({
+  args: { id: v.id("signals") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id);
   },

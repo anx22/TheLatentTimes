@@ -1,28 +1,32 @@
-# The Latent Times Status Log
+# The Latent Times: Current Sprint
 
-**Current Cycle:** v2.1.0-deepening // The Architecture Drill
-**Focus:** Refactor shallow coordination into deep services. Achieve locality and leverage.
+## Current Sprint
+- [x] **Signal Convergence**: Eradicated the superfluous frontend 'Ticker' concept, collapsing `TickerItems` natively into `Signals`. [HARD]
+- [x] **Clustering Repair**: Pushed and verified semantic resonance queries (`discoverStories`, `getOrphanSignals`) resolving UI breakage. [HARD]
+- [x] **Bullpen Unlocked**: Displayed the actual draft in the Bullpen and purged redundant faux-navigation buttons. [HARD]
+- [x] **Grid Interactivity**: Exposed an explicit 'Analyze' action on signals for deep topological research from the Wire. [HARD]
+- [x] **Architecture Honesty**: Renamed 'Search Focus' to 'Director's Directive' and documented its systemic impact. [HARD]
+- [x] **View Rationality**: Maintained the Briefing Vault as a clean overlay mode, collapsing redundant viewing tabs. [HARD]
+- [x] **Inline Reading**: Exposed signal summaries in the MagazineGrid so articles can be read in place. [HARD]
+- [x] **Action Honesty**: Renamed vague card actions to "Draft Story" and deduplicated Briefing Vault contents. [HARD]
+- [x] **UX Logic Continuity**: Implemented Tactical Progress Rail and removed automatic room "jumping". [HARD]
+- [x] **Naming Purge**: Systematically removed "Deep Discovery", "Neural Health", "Deploy", and other buzzwords for literal functional terms. [HARD]
+- [x] **Vault Positioning**: Moved Briefing Vault out of action queues and into the global view controls. [HARD]
+- [x] **Architecture Drill**: Deployed `convex/testing.ts` to validate signal synthesis. [DONE]
+- [x] **Signal Hierarchy**: Removed redundant "Signals" list view, prioritizing the high-fidelity Editorial Grid. [HARD]
 
-## Goals (Complete)
-- [x] **Refactored Domain Hooks**: Split `useNewsroomState` into dedicated domains (Data, UI, Editorial, Visual).
-- [x] **Editorial Orchestrator**: Extracted coordination logic into a deep service.
-- [x] **Signal Broker**: Replaced direct RSS fetching with an adapter-based broker pattern.
-- [x] **Atelier Engine**: Centralized visual strategy and production logic.
-- [x] **Mission Threads**: Implemented unified execution tracking (v1).
-- [x] **Publication Orchestrator**: Final polish and metadata synthesis logic.
-- [x] **Latent Grid**: Dynamic responsive layout driven by AI designers.
+## Tech Debt
+- **Typography scaling**: Ensure all UI elements follow the [HARD] 14px minimum rule. [DONE]
+- **State Formalization**: Move remaining implicit state into `useNewsroomUIState`. [DONE]
+- **Linter Accuracy**: Cleanup unused imports and conditional hook calls in `TheWire`.
+- **Pipeline Hardening**: Introduce integration tests for the full "Ingest-to-Press" lifecycle. [IN PROGRESS]
 
-## In Progress (Deepening Phase)
-- [ ] **Mission Module (Deepening)**: Consolidate mission lifecycle, telemetry, and logging into a single high-leverage service.
-- [ ] **Architecture Drills (v2)**: Automated state integrity and cross-module verification.
-- [ ] **Unified Type System**: Refactor `types.ts` into domain-specific modules.
+## Backlog
+- **Board Debate v2**: Real-time friction transcript between agents.
+- **Grid Peer-Review**: Layout designer pitching multiple variations.
+- **Art Direction Profiles**: 'Glitch Art', 'Brutalist', and 'Swiss Modernism' presets.
 
-## Next Steps (v2.2.0 - Scale & Distribution)
-- [ ] **Multi-User Newsroom**: Collaborative editing and real-time state sync.
-- [ ] **Impact Factor Ticker**: A live "Cultural Impact" score based on trending latent space signals.
-- [ ] **Department Modules**: Topic-specific biases for Culture, Tech, and Fashion departments.
-
-## Backlog (Visual Polish & Editorial Experience)
-
-## Known Issues
-1.  **Image Generation Latency**: Generating images via Gemini 2.5 Flash Image takes a few seconds.
+## Recently Completed
+- [2026-05-25] Deployed `getAllDrafts` Convex query and resolved mission sync errors.
+- [2026-05-25] Implemented explicit navigation bridges and `onClose` view persistence.
+- [2026-05-25] Refactored monolithic hooks into domain-specific orchestrator services.

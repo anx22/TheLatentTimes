@@ -1,184 +1,13 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 
-/**
- * CONVEX MUTATIONS (WRITE OPERATIONS)
- * 
- * These functions modify the database state.
- * They are transactional by default: if any part fails, the whole operation rolls back.
- */
-
-// 1. ADD TICKER ITEM
-// Used by the Scout Agent to add new signals to the feed.
-export const addTickerItem = mutation({
-  args: {
-    title: v.string(),
-    source: v.string(),
-    sourceId: v.optional(v.id("sources")),
-    url: v.string(),
-    content: v.optional(v.string()),
-    status: v.string(),
-    storyId: v.optional(v.id("stories")),
-    embedding: v.optional(v.array(v.float64())),
-    innovation_score: v.optional(v.number()),
-    cultural_vectors: v.optional(v.array(v.object({
-      trend: v.string(),
-      resonance: v.number(),
-      connection: v.string()
-    }))),
-  },
-  handler: async (ctx, args) => {
-    // Hard Deduplication: Check if URL already exists
-    const existing = await ctx.db
-      .query("ticker_items")
-      .withIndex("by_url", (q) => q.eq("url", args.url))
-      .first();
-
-    if (existing) {
-      return existing._id; // Return existing ID, don't insert duplicate
-    }
-
-    const id = await ctx.db.insert("ticker_items", {
-      ...args,
-      status: args.status as "new" | "processing" | "archived",
-      timestamp: Date.now(),
-    });
-    return id;
-  },
-});
-
-// 1.1 SOURCES MANAGEMENT
-export const addSource = mutation({
-  args: {
-    name: v.string(),
-    url: v.string(),
-    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github")),
-    crawlFrequency: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("sources")
-      .withIndex("by_url", (q) => q.eq("url", args.url))
-      .first();
-
-    if (existing) return existing._id;
-
-    return await ctx.db.insert("sources", {
-      ...args,
-      lastFetchedAt: 0,
-      isActive: true,
-    });
-  },
-});
-
-export const updateSourceFetchTime = mutation({
-  args: {
-    sourceId: v.id("sources"),
-    timestamp: v.number(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.sourceId, {
-      lastFetchedAt: args.timestamp,
-    });
-  },
-});
-
-// 1.2 CLUSTER MANAGEMENT
-export const addNewsCluster = mutation({
-  args: {
-    title: v.string(),
-    summary: v.string(),
-    keyEntities: v.array(v.string()),
-    cultural_context: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("stories", {
-      ...args,
-      status: "emerging",
-      lastUpdatedAt: Date.now(),
-    });
-  },
-});
-
-export const updateNewsCluster = mutation({
-  args: {
-    clusterId: v.id("stories"),
-    title: v.optional(v.string()),
-    summary: v.optional(v.string()),
-    keyEntities: v.optional(v.array(v.string())),
-    status: v.optional(v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived"))),
-  },
-  handler: async (ctx, args) => {
-    const { clusterId, ...updates } = args;
-    await ctx.db.patch(clusterId, {
-      ...updates,
-      lastUpdatedAt: Date.now(),
-    });
-  },
-});
-
-// 1.3 UPDATE TICKER ITEM STORY
-export const updateTickerItemStory = mutation({
-  args: {
-    id: v.id("ticker_items"),
-    storyId: v.id("stories"),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      storyId: args.storyId,
-    });
-  },
-});
-
-// 2. CREATE OR UPDATE DRAFT
-// Used by the Editorial Board to save the article.
-export const saveDraft = mutation({
-  args: {
-    storyId: v.optional(v.string()),
-    headline: v.string(),
-    deck: v.string(),
-    body: v.string(),
-    blocks: v.optional(v.any()),
-    tags: v.optional(v.array(v.string())),
-    suggested_visual_prompt: v.optional(v.string()),
-    status: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // For simplicity, we'll just create a new draft entry for now.
-    // In a real app, we might update an existing ID.
-    const draftId = await ctx.db.insert("drafts", {
-      ...args,
-      status: args.status as "draft" | "review" | "published",
-      created_at: Date.now(),
-      updated_at: Date.now(),
-    });
-    return draftId;
-  },
-});
-
-// 3. LOG AGENT MESSAGE
-// Used by all agents to post to the "Chatter" stream.
-export const logMessage = mutation({
-  args: {
-    agentName: v.string(),
-    message: v.string(),
-    step: v.string(),
-    level: v.optional(v.string()),
-    missionId: v.optional(v.id("missions")),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("agent_logs", {
-      ...args,
-      timestamp: Date.now(),
-    });
-  },
-});
-
-// 4. MISSION COORDINATION
+// 0. MISSION COORDINATION - RE-SYNC TRIGGER
 export const startMission = mutation({
   args: {
     topic: v.string(),
-    type: v.union(v.literal("editorial"), v.literal("scout")),
+    type: v.union(v.literal("editorial"), v.literal("scout"), v.literal("system")),
+    parentMissionId: v.optional(v.id("missions")),
+    metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("missions", {
@@ -227,12 +56,215 @@ export const failMission = mutation({
   },
 });
 
+/**
+ * CONVEX MUTATIONS (WRITE OPERATIONS)
+ * 
+ * These functions modify the database state.
+ * They are transactional by default: if any part fails, the whole operation rolls back.
+ */
+
+// 1. ADD TICKER ITEM
+// Used by the Scout Agent to add new signals to the feed.
+export const addSignal = mutation({
+  args: {
+    title: v.string(),
+    source: v.string(),
+    sourceType: v.optional(v.string()),
+    sourceId: v.optional(v.id("sources")),
+    url: v.string(),
+    content: v.optional(v.string()),
+    status: v.string(),
+    storyId: v.optional(v.id("stories")),
+    embedding: v.optional(v.array(v.float64())),
+    missionId: v.optional(v.id("missions")),
+    innovation_score: v.optional(v.number()),
+    cultural_vectors: v.optional(v.array(v.object({
+      trend: v.string(),
+      resonance: v.number(),
+      connection: v.string()
+    }))),
+  },
+  handler: async (ctx, args) => {
+    // Hard Deduplication: Check if URL already exists
+    const existing = await ctx.db
+      .query("signals")
+      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .first();
+
+    if (existing) {
+      return existing._id; // Return existing ID, don't insert duplicate
+    }
+
+    const { sourceType, ...rest } = args;
+
+    const id = await ctx.db.insert("signals", {
+      ...rest,
+      sourceType,
+      status: args.status as "new" | "processing" | "archived",
+      timestamp: Date.now(),
+    });
+    return id;
+  },
+});
+
+// 1.1 SOURCES MANAGEMENT
+export const clearAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query("signals").collect();
+    for (const item of items) await ctx.db.delete(item._id);
+    const clusters = await ctx.db.query("stories").collect();
+    for (const cluster of clusters) await ctx.db.delete(cluster._id);
+    const logz = await ctx.db.query("agent_logs").collect();
+    for (const l of logz) await ctx.db.delete(l._id);
+  }
+});
+
+export const addSource = mutation({
+  args: {
+    name: v.string(),
+    url: v.string(),
+    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github")),
+    crawlFrequency: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("sources")
+      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .first();
+
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("sources", {
+      ...args,
+      lastFetchedAt: 0,
+      isActive: true,
+    });
+  },
+});
+
+export const updateSourceFetchTime = mutation({
+  args: {
+    sourceId: v.id("sources"),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sourceId, {
+      lastFetchedAt: args.timestamp,
+    });
+  },
+});
+
+// 1.2 CLUSTER MANAGEMENT
+export const addNewsCluster = mutation({
+  args: {
+    title: v.string(),
+    summary: v.string(),
+    keyEntities: v.array(v.string()),
+    cultural_context: v.optional(v.string()),
+    missionId: v.optional(v.id("missions")),
+    centroid_embedding: v.optional(v.array(v.float64())),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("stories", {
+      ...args,
+      status: "emerging",
+      lastUpdatedAt: Date.now(),
+    });
+  },
+});
+
+export const updateNewsCluster = mutation({
+  args: {
+    clusterId: v.id("stories"),
+    title: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    keyEntities: v.optional(v.array(v.string())),
+    status: v.optional(v.union(v.literal("emerging"), v.literal("trending"), v.literal("archived"))),
+    centroid_embedding: v.optional(v.array(v.float64())),
+  },
+  handler: async (ctx, args) => {
+    const { clusterId, ...updates } = args;
+    await ctx.db.patch(clusterId, {
+      ...updates,
+      lastUpdatedAt: Date.now(),
+    });
+  },
+});
+
+// 1.3 UPDATE TICKER ITEM STORY
+export const updateSignalStory = mutation({
+  args: {
+    id: v.id("signals"),
+    storyId: v.id("stories"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      storyId: args.storyId,
+    });
+  },
+});
+
+// 2. CREATE OR UPDATE DRAFT
+// Used by the Editorial Board to save the article.
+export const saveDraft = mutation({
+  args: {
+    storyId: v.optional(v.string()),
+    missionId: v.optional(v.id("missions")),
+    headline: v.string(),
+    deck: v.string(),
+    body: v.string(),
+    blocks: v.optional(v.any()),
+    tags: v.optional(v.array(v.string())),
+    suggested_visual_prompt: v.optional(v.string()),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Optional: Check for exact same headline within 1 min (Prevent rapid-click duplicates)
+    const recent = await ctx.db.query("drafts")
+      .filter(q => q.eq(q.field("headline"), args.headline))
+      .order("desc").first();
+    if (recent && Date.now() - recent.created_at < 60 * 1000) {
+       return recent._id; 
+    }
+
+    const { storyId, ...rest } = args;
+    const draftId = await ctx.db.insert("drafts", {
+      ...rest,
+      storyId: storyId as any,
+      status: args.status as "draft" | "review" | "published",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    });
+    return draftId;
+  },
+});
+
+// 3. LOG AGENT MESSAGE
+// Used by all agents to post to the "Chatter" stream.
+export const logMessage = mutation({
+  args: {
+    agentName: v.string(),
+    message: v.string(),
+    step: v.string(),
+    level: v.optional(v.string()),
+    missionId: v.optional(v.id("missions")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("agent_logs", {
+      ...args,
+      timestamp: Date.now(),
+    });
+  },
+});
+
 // 5. SAVE IMAGE
 // Used by the Darkroom to store generated images.
 export const saveImage = mutation({
   args: {
     prompt: v.string(),
     storageId: v.id("_storage"),
+    missionId: v.optional(v.id("missions")),
   },
   handler: async (ctx, args) => {
     const imageId = await ctx.db.insert("images", {
@@ -396,10 +428,11 @@ export const seedSources = mutation({
     const initialSources = [
       { name: "Hacker News", url: "https://hnrss.org/frontpage", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
       { name: "TechCrunch", url: "https://techcrunch.com/feed/", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
-      { name: "ArXiv CS", url: "http://export.arxiv.org/rss/cs", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "ArXiv CS", url: "https://export.arxiv.org/rss/cs", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
       { name: "OpenAI Blog", url: "https://openai.com/news/rss.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 120 },
       { name: "Anthropic News", url: "https://www.anthropic.com/index.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 120 },
-      { name: "Niche Tech Blog", url: "https://simonwillison.net/atom/entries/", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 60 },
+      { name: "GitHub Trending", url: "https://github.com/trending", type: "github" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 180 },
+      { name: "Convex Repos", url: "https://github.com/get-convex", type: "github" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 240 },
       { name: "AI Research", url: "https://distill.pub/rss.xml", type: "rss" as const, isActive: true, lastFetchedAt: 0, crawlFrequency: 240 }
     ];
 
