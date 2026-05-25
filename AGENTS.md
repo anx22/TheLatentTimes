@@ -4,20 +4,61 @@
 This project is an AI-native editorial engine ("Vogue meets Wired").
 **Current Sprint**: [NOW.md](/NOW.md)
 
-## The Editorial Chain
+## The Editorial Chain (Conceptual Roles)
 - **The Scout**: Signal discovery and targeted research.
 - **The Board**: Agent debate and consensus logic.
-- **The Columnist**: Narrative/Copy generation.
+- **The Columnist**: Narrative / copy generation.
 - **The Editor**: Linter and structural peer.
 - **The Polisher**: Tone and consistency varnish.
 - **The Photographer**: Asset development (Atelier).
 - **The Designer**: Strategic layout and grid orchestration.
 
+## Implemented Agents (18 — `services/agents/`)
+Each file exports a single agent function. All run client-side and call
+Gemini through `services/gemini.ts`. Authoritative list — keep in sync
+with `services/agents/index.ts`.
+
+### Discovery & research
+- `agentScout` — broad signal sweep, identifies high-impact topics.
+- `agentTargetedSearch` — deep dive on a single topic with grounding.
+- `agentCulturalGrounding` — maps technical signals to philosophy / culture.
+
+### Editorial deliberation
+- `agentPersonaSpeak` — generates a single persona contribution to a debate.
+- `agentDebate` — synthesises a multi-persona debate into editorial angles.
+- `agentConsensus` — extracts a global consensus from a signal batch.
+- `agentSynthesis` — collapses a cluster of signals into a story summary.
+
+### Drafting & editing
+- `agentColumnist` — produces the structured `DraftBlock[]` article.
+- `agentEditor` — KI-Linter; flags blocks with `BlockAnnotation`s.
+- `agentRewriteBlock` — block-level rewrite with persona / instruction.
+- `agentRewriteSentence` — sentence-level surgical edit.
+- `agentPolisher` — final tone / consistency pass.
+
+### Visual atelier
+- `agentArtDirector` — visual concepts + colour palettes from a draft.
+- `agentPromptEnhancer` — refines an image prompt.
+- `agentPhotographer` — calls Gemini Image Gen with the final prompt.
+
+### Layout & afterlife
+- `agentLayoutDesigner` — assigns block templates and (x, y, w, h) on the grid.
+- `agentCriticsCorner` — generates witty post-publication critic comments.
+- `agentConverseWithCritic` — back-and-forth with a critic persona.
+
+## Status
+Several of the 18 agents are exploratory and may be merged or removed as
+the editorial chain settles. Treat this list as the current code surface,
+not a final taxonomy — see `DECISIONS.md` for the architectural intent.
+
 ## Service Map
-- `/services/agents`: Core LLM logic for specific personas.
-- `/services/editorial`: Orchestration of the draft/debate cycle.
-- `/services/visual`: Art direction and asset processing.
-- `/services/mission`: Lifecycle, telemetry, and observability.
+- `/services/agents`: Core LLM logic for specific personas (above).
+- `/services/editorial`: Orchestration of the draft / debate cycle (`EditorialOrchestrator`).
+- `/services/visual`: Art direction and asset processing (`AtelierEngine`).
+- `/services/publication`: Final release prep (`PublicationOrchestrator`).
+- `/services/signals`: Ingestion broker + adapters (RSS, GitHub, Search).
+- `/services/mission`: Lifecycle, telemetry, observability.
+- `/services/testing`: Architecture drills (smoke tests).
 
 ## Standardized Agent Skills (Installed)
 - **`convex-database`** (`/skills/custom_skills/convex-database/SKILL.md`): Hardened rules against silent Convex action failures and missing environment variables detection.

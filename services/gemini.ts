@@ -2,6 +2,7 @@
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { AspectRatio, SearchResult } from "../types";
 import { UsageTracker } from "./mission";
+import { assertEmbeddingDim } from "../lib/vector";
 
 // The API Key is managed via process.env.API_KEY
 export { Type };
@@ -357,6 +358,7 @@ export const generateEmbedding = async (text: string, missionId?: string): Promi
     if (response.embeddings && response.embeddings.length > 0) {
       const values = response.embeddings[0].values;
       if (values) {
+        assertEmbeddingDim(values);
         console.debug(`[NET] Embedding Gen (gemini-embedding-2, ${Math.round(performance.now() - start)}ms)`);
         return values;
       }
@@ -369,10 +371,11 @@ export const generateEmbedding = async (text: string, missionId?: string): Promi
         model: 'gemini-embedding-001',
         contents: text,
       });
-      
+
       if (response.embeddings && response.embeddings.length > 0) {
         const values = response.embeddings[0].values;
         if (values) {
+           assertEmbeddingDim(values);
            console.debug(`[NET] Embedding Gen (embedding-001, ${Math.round(performance.now() - start)}ms)`);
            return values;
         }

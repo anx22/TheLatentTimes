@@ -5,7 +5,7 @@ export const cleanupLogs = internalMutation({
   handler: async (ctx) => {
     const retentionPeriod = 24 * 60 * 60 * 1000; // 24 hours
     const cutoff = Date.now() - retentionPeriod;
-    
+
     // Fetch logs older than 24 hours
     // We use the index to efficiently find them
     const oldLogs = await ctx.db

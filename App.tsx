@@ -56,10 +56,19 @@ const MainNewspaper: React.FC<{ items: MagazineItem[], onItemClick: (item: Magaz
   );
 };
 
-const Ticker: React.FC<{ items: string[] }> = ({ items }) => (
+// Decorative band — strings are not data-driven; the Ticker concept was
+// retired from the core backend workflow (see DECISIONS, Signal Convergence).
+const TICKER_LINES = [
+  "THE LATENT TIMES",
+  "SIGNAL: HIGH",
+  "NOISE FILTER: ACTIVE",
+  "GRID LOCKED",
+];
+
+const Ticker: React.FC = () => (
   <div className="w-full bg-black text-white py-2 overflow-hidden border-b border-zinc-800">
     <div className="flex whitespace-nowrap animate-marquee">
-      {[...items, ...items, ...items].map((item, i) => (
+      {[...TICKER_LINES, ...TICKER_LINES, ...TICKER_LINES].map((item, i) => (
         <span key={i} className="mx-8 text-[10px] font-mono uppercase tracking-[0.3em] flex items-center gap-4">
           <span className="w-1.5 h-1.5 bg-zinc-800 rounded-full"></span>
           {item}
@@ -69,47 +78,7 @@ const Ticker: React.FC<{ items: string[] }> = ({ items }) => (
   </div>
 );
 
-// --- MOCK V3 CONTENT (The "MagazineItems") ---
-const MOCK_ITEMS: MagazineItem[] = [
-    {
-        id: 'item_1',
-        title: "The Architecture of Latent Space",
-        dek: "Why modern LLMs are developing a spatial understanding of concepts, and what it means for digital geography.",
-        published_at: new Date().toISOString(),
-        tags: ['Theory', 'Engineering'],
-        media_type: 'image',
-        hero_image_url: 'https://picsum.photos/800/600?random=1',
-        status: 'published',
-        featured_level: 'featured',
-        score: { final: 9, recency: 10, trust: 8, novelty: 9, visual_fit: 10 }
-    },
-    {
-        id: 'item_2',
-        title: "Glitch as Currency",
-        dek: "In a world of perfect generation, the artifact is the only proof of humanity left.",
-        published_at: new Date().toISOString(),
-        tags: ['Culture', 'Art'],
-        media_type: 'image',
-        hero_image_url: 'https://picsum.photos/800/600?random=2',
-        status: 'published',
-        featured_level: 'featured',
-        score: { final: 8, recency: 7, trust: 9, novelty: 8, visual_fit: 9 }
-    },
-    {
-        id: 'item_3',
-        title: "Recursive Self-Improvement",
-        dek: "Agents building agents. The loop is closing faster than we thought.",
-        published_at: new Date().toISOString(),
-        tags: ['Engineering', 'Future'],
-        media_type: 'text',
-        hero_image_url: 'https://picsum.photos/800/600?random=3',
-        status: 'published',
-        featured_level: 'none',
-        score: { final: 7, recency: 9, trust: 8, novelty: 7, visual_fit: 6 }
-    }
-];
-
-// Initial Data State
+// Initial Data State — empty shell. Real content arrives via Convex `getLatestIssue`.
 const SHELL_DATA: IssueContent = {
     meta: {
         run_id: 'shell_v1',
@@ -119,11 +88,10 @@ const SHELL_DATA: IssueContent = {
         date: 'OCT 2025',
         editor: 'SYSTEM',
         status: 'COLLECTING',
-        template_key: 'T1_CoverRail', // Default
-        metrics: { signals_ingested: 124, avg_confidence: 94, error_rate: 0 }
+        template_key: 'T1_CoverRail',
+        metrics: { signals_ingested: 0, avg_confidence: 0, error_rate: 0 }
     },
-    items: MOCK_ITEMS, 
-    ticker: ["THE LATENT TIMES V1.0", "GRID LOCKED", "NOISE FILTER: ACTIVE", "SIGNAL: HIGH"],
+    items: [],
     cover: {
         eyebrow: "ISSUE 01",
         title: "ZERO DAY", 
@@ -208,7 +176,7 @@ const App: React.FC = () => {
             session={session}
             meta={issue.meta}
          />
-         <Ticker items={issue.ticker || []} />
+         <Ticker />
 
          {/* 2. OPS LAYER (Newsroom Overlay) */}
          {showNewsroom && (

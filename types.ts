@@ -243,7 +243,6 @@ export interface SearchResult {
 
 export interface IssueContent {
   meta: IssueMeta;
-  ticker: string[];
   cover: {
     eyebrow: string;
     title: string;
