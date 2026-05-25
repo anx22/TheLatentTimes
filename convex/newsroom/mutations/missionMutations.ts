@@ -22,22 +22,47 @@ export const completeMission = mutation({
   args: {
     missionId: v.id("missions"),
     resultId: v.optional(v.string()),
-    tokenUsage: v.optional(v.object({
-      promptTokens: v.number(),
-      completionTokens: v.number(),
-      totalTokens: v.number(),
-    })),
   },
   handler: async (ctx, args) => {
     const mission = await ctx.db.get(args.missionId);
     const durationMs = mission ? Date.now() - mission.startedAt : undefined;
 
+    // Token usage is accumulated server-side via `recordTokenUsage` while
+    // the mission runs, so we deliberately do not patch it here (otherwise
+    // we'd clobber the running total with undefined).
     await ctx.db.patch(args.missionId, {
       status: "completed",
       completedAt: Date.now(),
       resultId: args.resultId,
-      tokenUsage: args.tokenUsage,
       durationMs,
+    });
+  },
+});
+
+// Token accounting — incremented by the server-side Gemini transport
+// (convex/gemini.ts) after every call. Keeps a running total on the
+// mission record so the UI can read it without coordinating client state.
+export const recordTokenUsage = mutation({
+  args: {
+    missionId: v.id("missions"),
+    prompt: v.number(),
+    completion: v.number(),
+    total: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const mission = await ctx.db.get(args.missionId);
+    if (!mission) return;
+    const prev = mission.tokenUsage || {
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    };
+    await ctx.db.patch(args.missionId, {
+      tokenUsage: {
+        promptTokens: prev.promptTokens + args.prompt,
+        completionTokens: prev.completionTokens + args.completion,
+        totalTokens: prev.totalTokens + args.total,
+      },
     });
   },
 });

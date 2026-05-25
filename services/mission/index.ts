@@ -1,5 +1,15 @@
-
 import { Id } from "../../convex/_generated/dataModel";
+
+/**
+ * Mission lifecycle helpers.
+ *
+ * Token usage used to be aggregated in-memory by `UsageTracker` and shipped
+ * with `completeMission`. Since the Gemini transport moved server-side
+ * (see `convex/gemini.ts`), the running total is patched onto the mission
+ * record by `recordTokenUsage` on every call. We no longer need a client
+ * tracker; the stub below is kept only so the architecture drill can call
+ * `record()` without crashing.
+ */
 
 export interface MissionTelemetry {
   promptTokens: number;
@@ -8,25 +18,15 @@ export interface MissionTelemetry {
 }
 
 export const UsageTracker = {
-    data: {} as Record<string, MissionTelemetry>,
-    
-    record(missionId: string | undefined, usage: any) {
-        if (!missionId || !usage) return;
-        if (!this.data[missionId]) {
-            this.data[missionId] = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-        }
-        this.data[missionId].promptTokens += usage.promptTokenCount || 0;
-        this.data[missionId].completionTokens += usage.candidatesTokenCount || 0;
-        this.data[missionId].totalTokens += usage.totalTokenCount || 0;
-    },
-    
-    get(missionId: string | undefined) {
-        return missionId ? this.data[missionId] : null;
-    },
-    
-    clear(missionId: string) {
-        delete this.data[missionId];
-    }
+  record(_missionId: string | undefined, _usage: any) {
+    // no-op: telemetry now lives in the mission record on Convex.
+  },
+  get(_missionId: string | undefined): MissionTelemetry | null {
+    return null;
+  },
+  clear(_missionId: string) {
+    // no-op
+  },
 };
 
 export class MissionInstance {
@@ -39,45 +39,60 @@ export class MissionInstance {
     }
   ) {}
 
-  async log(agent: string, message: string, level: string = 'info', step: string = 'MISSION') {
+  async log(
+    agent: string,
+    message: string,
+    level: string = "info",
+    step: string = "MISSION"
+  ) {
     await this.mutations.logMessage({
       agentName: agent,
       message,
       level,
       step,
-      missionId: this.id
+      missionId: this.id,
     });
   }
 
   async complete(resultId?: string) {
-    const telemetry = UsageTracker.get(this.id);
     await this.mutations.completeMission({
       missionId: this.id,
       resultId,
-      tokenUsage: telemetry ?? undefined
     });
-    UsageTracker.clear(this.id);
   }
 
   async fail(error: string) {
     await this.mutations.failMission({
       missionId: this.id,
-      error
+      error,
     });
-    UsageTracker.clear(this.id);
   }
 }
 
 export class MissionRegistry {
   constructor(private mutations: any) {}
 
-  async start(type: 'editorial' | 'scout' | 'system', topic: string, parentMissionId?: Id<"missions">, metadata?: any): Promise<MissionInstance> {
-    const mId = await this.mutations.startMission({ type, topic, parentMissionId, metadata });
+  async start(
+    type: "editorial" | "scout" | "system",
+    topic: string,
+    parentMissionId?: Id<"missions">,
+    metadata?: any
+  ): Promise<MissionInstance> {
+    const mId = await this.mutations.startMission({
+      type,
+      topic,
+      parentMissionId,
+      metadata,
+    });
     return new MissionInstance(mId, this.mutations);
   }
 
-  // Helper for effortless sub-missions
-  async sub(parent: MissionInstance, type: 'editorial' | 'scout' | 'system', topic: string, metadata?: any): Promise<MissionInstance> {
+  async sub(
+    parent: MissionInstance,
+    type: "editorial" | "scout" | "system",
+    topic: string,
+    metadata?: any
+  ): Promise<MissionInstance> {
     return this.start(type, topic, parent.id, metadata);
   }
 }

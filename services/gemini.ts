@@ -1,389 +1,240 @@
-
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+import { Type } from "@google/genai";
+import { ConvexReactClient } from "convex/react";
 import { AspectRatio, SearchResult } from "../types";
-import { UsageTracker } from "./mission";
+import { api } from "../convex/_generated/api";
 import { assertEmbeddingDim } from "../lib/vector";
 
-// The API Key is managed via process.env.API_KEY
+/**
+ * CLIENT-SIDE GEMINI TRANSPORT
+ *
+ * This file used to instantiate the Gemini SDK directly in the browser.
+ * It now only proxies to Convex actions in `convex/gemini.ts`, so the
+ * API key never reaches the bundle.
+ *
+ * The function signatures match the old API so the agent files do not
+ * need to change.
+ *
+ * NOTE: A subset of agents (introduced by the AI Studio refactor) still
+ * import `GoogleGenAI` directly with `process.env.GEMINI_API_KEY`. Those
+ * bypass this transport and re-leak the key into the bundle. They should
+ * be migrated to call the helpers here — tracked as Phase 2b.
+ */
+
+// Re-export Type so agents can keep building responseSchemas with
+// `Type.STRING`, `Type.OBJECT`, etc. (Type is a plain enum — safe on client.)
 export { Type };
 
-// --- CIRCUIT BREAKER STATE ---
-let proCooldownUntil = 0;
-const PRO_COOLDOWN_MS = 60000; // 1 Minute
+// --- TRANSPORT INJECTION (set once at boot from index.tsx) ---
+let convex: ConvexReactClient | null = null;
+export const setGeminiTransport = (client: ConvexReactClient) => {
+  convex = client;
+};
+
+const transport = (): ConvexReactClient => {
+  if (!convex) {
+    throw new Error(
+      "Gemini transport not initialised. Call setGeminiTransport(convexClient) at boot."
+    );
+  }
+  return convex;
+};
 
 // --- HELPER: ROBUST JSON PARSER ---
 export const cleanAndParseJSON = (text: string | undefined): any => {
-    if (!text) return {};
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
     try {
-        return JSON.parse(text);
+      const clean = text.replace(/```json\n?|```/g, "").trim();
+      return JSON.parse(clean);
     } catch {
-        try {
-            const clean = text.replace(/```json\n?|```/g, '').trim();
-            return JSON.parse(clean);
-        } catch {
-            try {
-                const firstOpen = text.search(/[{[]/);
-                const lastClose = text.search(/[}\]](?!.*[}\]])/);
-                if (firstOpen !== -1 && lastClose !== -1) {
-                    return JSON.parse(text.substring(firstOpen, lastClose + 1));
-                }
-            } catch {
-                console.warn("[Parser] JSON Parse Failed", text?.slice(0, 100));
-            }
-            return {};
+      try {
+        const firstOpen = text.search(/[{[]/);
+        const lastClose = text.search(/[}\]](?!.*[}\]])/);
+        if (firstOpen !== -1 && lastClose !== -1) {
+          return JSON.parse(text.substring(firstOpen, lastClose + 1));
         }
+      } catch {
+        console.warn("[Parser] JSON Parse Failed", text?.slice(0, 100));
+      }
+      return {};
     }
+  }
 };
 
-// --- HELPER: JSON AGENT CALLER ---
-export const callJsonAgent = async <T>(prompt: string, schema: any, fallback: T, missionId?: string): Promise<T> => {
-    const response = await safeGenerateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: schema
-        },
-        missionId
-    });
-    return cleanAndParseJSON(response.text) || fallback;
+// --- TEXT GENERATION (proxies to convex/gemini.ts > generateText) ---
+export const safeGenerateContent = async (params: {
+  model: string;
+  contents: any;
+  config?: any;
+  missionId?: string;
+}): Promise<{ text?: string; candidates?: any[]; usageMetadata?: any }> => {
+  return await transport().action(api.gemini.generateText, {
+    model: params.model,
+    contents: params.contents,
+    config: params.config,
+    missionId: params.missionId as any,
+  });
+};
+
+// --- JSON AGENT CALLER ---
+export const callJsonAgent = async <T>(
+  prompt: string,
+  schema: any,
+  fallback: T,
+  missionId?: string
+): Promise<T> => {
+  const response = await safeGenerateContent({
+    model: "gemini-3-flash-preview",
+    contents: prompt,
+    config: { responseMimeType: "application/json", responseSchema: schema },
+    missionId,
+  });
+  return cleanAndParseJSON(response.text) || fallback;
 };
 
 // --- SCHEMA REGISTRY: HARD-CODED SCHEMAS TO PREVENT HALLUCINATION ---
 export const Schemas = {
-    Columnist: {
-        type: Type.OBJECT,
-        properties: {
-          headline: { type: Type.STRING },
-          deck: { type: Type.STRING },
-          blocks: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                type: { type: Type.STRING },
-                sentences: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      id: { type: Type.STRING },
-                      text: { type: Type.STRING }
-                    },
-                    required: ['id', 'text']
-                  }
-                },
-                status: { type: Type.STRING }
-              },
-              required: ['id', 'type', 'sentences', 'status']
-            }
-          },
-          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-          suggested_visual_prompt: { type: Type.STRING }
-        },
-        required: ['headline', 'deck', 'blocks', 'tags', 'suggested_visual_prompt']
-    },
-    Editor: {
+  Columnist: {
+    type: Type.OBJECT,
+    properties: {
+      headline: { type: Type.STRING },
+      deck: { type: Type.STRING },
+      blocks: {
         type: Type.ARRAY,
         items: {
           type: Type.OBJECT,
           properties: {
             id: { type: Type.STRING },
-            blockId: { type: Type.STRING },
-            sentenceId: { type: Type.STRING },
-            persona: { type: Type.STRING },
             type: { type: Type.STRING },
-            comment: { type: Type.STRING },
-            suggestion: { type: Type.STRING }
-          },
-          required: ['id', 'blockId', 'type', 'comment']
-        }
-    },
-    Debate: {
-        type: Type.OBJECT,
-        properties: {
-          transcript: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                persona: { type: Type.STRING },
-                message: { type: Type.STRING }
-              },
-              required: ['persona', 'message']
-            }
-          },
-          angles: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                id: { type: Type.STRING },
-                persona: { type: Type.STRING },
-                headline: { type: Type.STRING },
-                headlineOptions: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING }
+            sentences: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  text: { type: Type.STRING },
                 },
-                angle: { type: Type.STRING }
+                required: ["id", "text"],
               },
-              required: ['id', 'persona', 'headline', 'headlineOptions', 'angle']
-            }
-          }
+            },
+            status: { type: Type.STRING },
+          },
+          required: ["id", "type", "sentences", "status"],
         },
-        required: ['transcript', 'angles']
+      },
+      tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+      suggested_visual_prompt: { type: Type.STRING },
     },
-    Consensus: {
-        type: Type.OBJECT,
-        properties: {
-            consensus: { type: Type.STRING },
-            confidence: { type: Type.NUMBER }
+    required: ["headline", "deck", "blocks", "tags", "suggested_visual_prompt"],
+  },
+  Editor: {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        id: { type: Type.STRING },
+        blockId: { type: Type.STRING },
+        sentenceId: { type: Type.STRING },
+        persona: { type: Type.STRING },
+        type: { type: Type.STRING },
+        comment: { type: Type.STRING },
+        suggestion: { type: Type.STRING },
+      },
+      required: ["id", "blockId", "type", "comment"],
+    },
+  },
+  Debate: {
+    type: Type.OBJECT,
+    properties: {
+      transcript: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            persona: { type: Type.STRING },
+            message: { type: Type.STRING },
+          },
+          required: ["persona", "message"],
         },
-        required: ['consensus']
-    }
-};
-
-// --- HELPER: ROBUST API KEY RETRIEVAL ---
-const getApiKey = (): string => {
-    let apiKey = '';
-    try {
-        // Direct access to process.env.GEMINI_API_KEY is required because Vite replaces it at build time.
-        // The previous check `typeof process !== 'undefined'` caused it to be skipped in the browser.
-        if (process.env.GEMINI_API_KEY) apiKey = process.env.GEMINI_API_KEY;
-        else if (process.env.API_KEY) apiKey = process.env.API_KEY;
-        else if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        else if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) apiKey = import.meta.env.VITE_API_KEY;
-    } catch (e) {
-        console.warn("[NET] Error retrieving API key from env", e);
-    }
-
-    if (!apiKey) {
-        console.error("[NET] CRITICAL: No API Key found in environment variables.");
-    }
-    return apiKey;
-};
-
-// --- SAFE WRAPPER FOR TEXT GENERATION (Handles 429s & Transient Errors) ---
-export const safeGenerateContent = async (
-  params: { model: string; contents: any; config?: any; missionId?: string }
-): Promise<GenerateContentResponse> => {
-    
-    // MODEL FALLBACK LADDER (Strict adherence to v3/v2.5)
-    const modelLadder = [
-        params.model, // Try requested model first
-        'gemini-3-flash-preview', // Fallback 1: Fast & Reliable
-        'gemini-flash-lite-latest' // Fallback 2: Ultra fast
-    ];
-
-    // Remove duplicates
-    const uniqueModels = [...new Set(modelLadder)];
-
-    const apiKey = getApiKey();
-    const client = new GoogleGenAI({ apiKey: apiKey });
-    let lastError = null;
-
-    for (const model of uniqueModels) {
-        // Skip Pro if cooldown is active
-        if (model.includes('pro') && Date.now() < proCooldownUntil) {
-            console.debug(`[NET] Skipping ${model} due to cooldown.`);
-            continue;
-        }
-
-        try {
-            const start = performance.now();
-            console.debug(`[NET] Attempting ${model}...`);
-            
-            // Clone config to modify it for specific models if needed
-            const currentConfig = params.config ? JSON.parse(JSON.stringify(params.config)) : {};
-
-            // Lite models do not support tools (like googleSearch)
-            // If we are falling back to lite, we must strip tools to avoid 400s
-            if (model.includes('lite') && currentConfig.tools) {
-                console.debug(`[NET] Stripping tools for ${model}`);
-                delete currentConfig.tools;
-            }
-
-            const { missionId, ...rest } = params;
-            const result = await client.models.generateContent({
-                ...rest,
-                model: model,
-                config: currentConfig
-            });
-            
-            UsageTracker.record(missionId, result.usageMetadata);
-
-            const duration = Math.round(performance.now() - start);
-            console.debug(`[NET] ${model} OK in ${duration}ms`);
-            return result;
-
-        } catch (e: any) {
-            lastError = e;
-            const isRateLimit = e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('RESOURCE_EXHAUSTED');
-            
-            if (isRateLimit) {
-                console.warn(`[NET] Quota Exceeded on ${model}. Switching to backup.`);
-                if (model.includes('pro')) {
-                    proCooldownUntil = Date.now() + PRO_COOLDOWN_MS;
-                }
-                // Continue to next model in ladder
-            } else {
-                console.warn(`[NET] Error on ${model}:`, e.message);
-                // For non-rate-limit errors, we might still want to try the next model just in case it's a specific model outage
-            }
-        }
-    }
-
-    console.error("[NET] All models failed.", lastError);
-    throw lastError || new Error("All Gemini models unreachable.");
-};
-
-// Image Generation using Gemini 2.5 Flash Image (Nanobana)
-export const generateImage = async (prompt: string, aspectRatio: AspectRatio, missionId?: string): Promise<string> => {
-  if (typeof window !== 'undefined' && window.aistudio && await window.aistudio.hasSelectedApiKey()) {
-     // Key is injected
-  }
-  const apiKey = getApiKey();
-  const currentAi = new GoogleGenAI({ apiKey: apiKey });
-  const start = performance.now();
-
-  try {
-      const response = await currentAi.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: prompt }] },
-        config: { imageConfig: { aspectRatio: aspectRatio } },
-      });
-    
-      UsageTracker.record(missionId, response.usageMetadata);
-      console.debug(`[NET] Image Gen (${Math.round(performance.now() - start)}ms)`);
-
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
-      }
-      throw new Error("No image generated");
-  } catch(e) {
-      console.error(`[NET] Image Gen FAILED`, e);
-      throw e;
-  }
-};
-
-// Image Editing using Gemini 2.5 Flash Image
-export const editImage = async (base64Image: string, prompt: string, missionId?: string): Promise<string> => {
-  const apiKey = getApiKey();
-  const currentAi = new GoogleGenAI({ apiKey: apiKey });
-  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-
-  const response = await currentAi.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [
-        { inlineData: { data: base64Data, mimeType: 'image/png' } },
-        { text: prompt },
-      ],
+      },
+      angles: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            persona: { type: Type.STRING },
+            headline: { type: Type.STRING },
+            headlineOptions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            angle: { type: Type.STRING },
+          },
+          required: ["id", "persona", "headline", "headlineOptions", "angle"],
+        },
+      },
     },
+    required: ["transcript", "angles"],
+  },
+  Consensus: {
+    type: Type.OBJECT,
+    properties: {
+      consensus: { type: Type.STRING },
+      confidence: { type: Type.NUMBER },
+    },
+    required: ["consensus"],
+  },
+};
+
+// --- IMAGE GENERATION ---
+export const generateImage = async (
+  prompt: string,
+  aspectRatio: AspectRatio,
+  missionId?: string
+): Promise<string> => {
+  return await transport().action(api.gemini.generateImage, {
+    prompt,
+    aspectRatio,
+    missionId: missionId as any,
   });
-
-  UsageTracker.record(missionId, response.usageMetadata);
-
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
-  }
-  throw new Error("No edited image returned");
 };
 
-// Search Grounding using Gemini 3 Flash Preview
-export const searchTrend = async (query: string, missionId?: string): Promise<SearchResult & { isFallback?: boolean }> => {
-  try {
-    const response = await safeGenerateContent({
-      model: 'gemini-3-flash-preview',
-      contents: query,
-      config: { tools: [{ googleSearch: {} }] },
-      missionId,
-    });
-
-    const text = response.text || "No results found.";
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    
-    const groundingUrls = groundingChunks
-      .map((chunk: any) => chunk.web ? { title: chunk.web.title, url: chunk.web.uri } : null)
-      .filter((item: any) => item !== null) as { title: string; url: string }[];
-
-    return { text, groundingUrls, isFallback: false };
-  } catch (e) {
-    console.warn("[NET] Search Grounding failed (likely auth/billing). Falling back to internal knowledge.", e);
-    
-    // Fallback: Ask the model to simulate the search result using its internal knowledge
-    // We strip the tools config by not including it
-    const fallbackResponse = await safeGenerateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `You are acting as a search engine. The user queried: "${query}". 
-      Since live search is unavailable, provide a detailed summary of what you know about this topic from your training data. 
-      Be specific and technical.`,
-      missionId,
-    });
-
-    return { 
-      text: fallbackResponse.text || "Search unavailable and fallback failed.", 
-      groundingUrls: [],
-      isFallback: true
-    };
-  }
+// --- IMAGE EDITING ---
+export const editImage = async (
+  base64Image: string,
+  prompt: string,
+  missionId?: string
+): Promise<string> => {
+  return await transport().action(api.gemini.editImage, {
+    base64Image,
+    prompt,
+    missionId: missionId as any,
+  });
 };
 
-export const listModels = async () => {
-  const apiKey = getApiKey();
-  const client = new GoogleGenAI({ apiKey: apiKey });
-  try {
-    const response = await client.models.list();
-    for await (const model of response) {
-      if (model.name?.includes('embed')) {
-        console.log("MODEL:", model.name);
-      }
-    }
-  } catch (e) {
-    console.error(e);
-  }
+// --- SEARCH GROUNDING ---
+export const searchTrend = async (
+  query: string,
+  missionId?: string
+): Promise<SearchResult & { isFallback?: boolean }> => {
+  return await transport().action(api.gemini.searchTrend, {
+    query,
+    missionId: missionId as any,
+  });
 };
-export const generateEmbedding = async (text: string, missionId?: string): Promise<number[]> => {
-  const apiKey = getApiKey();
-  const client = new GoogleGenAI({ apiKey: apiKey });
-  const start = performance.now();
-  
-  try {
-    const response = await client.models.embedContent({
-      model: 'gemini-embedding-2',
-      contents: text,
-    });
-    
-    if (response.embeddings && response.embeddings.length > 0) {
-      const values = response.embeddings[0].values;
-      if (values) {
-        assertEmbeddingDim(values);
-        console.debug(`[NET] Embedding Gen (gemini-embedding-2, ${Math.round(performance.now() - start)}ms)`);
-        return values;
-      }
-    }
-    throw new Error("No embedding returned");
-  } catch (e: any) {
-    console.warn("[NET] gemini-embedding-2 failed, trying gemini-embedding-001", e.message);
-    try {
-      const response = await client.models.embedContent({
-        model: 'gemini-embedding-001',
-        contents: text,
-      });
 
-      if (response.embeddings && response.embeddings.length > 0) {
-        const values = response.embeddings[0].values;
-        if (values) {
-           assertEmbeddingDim(values);
-           console.debug(`[NET] Embedding Gen (embedding-001, ${Math.round(performance.now() - start)}ms)`);
-           return values;
-        }
-      }
-      throw new Error("No embedding returned from fallback");
-    } catch (fallbackError: any) {
-      console.error("[NET] Embedding Generation FAILED", fallbackError.message, fallbackError);
-      throw fallbackError;
-    }
-  }
+// --- EMBEDDING ---
+export const generateEmbedding = async (
+  text: string,
+  missionId?: string
+): Promise<number[]> => {
+  const values: number[] = await transport().action(
+    api.gemini.generateEmbedding,
+    { text, missionId: missionId as any }
+  );
+  assertEmbeddingDim(values);
+  return values;
 };

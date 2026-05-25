@@ -4,7 +4,6 @@ import { EditorialOrchestrator } from '../services/editorial';
 import { AtelierEngine } from '../services/visual';
 import { PublicationOrchestrator } from '../services/publication';
 import { ArchitectureDrill } from '../services/testing';
-import { listModels } from '../services/gemini';
 import { MissionRegistry } from '../services/mission';
 import { agentExtractSeedClaims, agentSearchIndependentSources, agentCheckSeedSimilarity } from '../services/agents';
 
@@ -18,10 +17,6 @@ import { useAtelier } from '../contexts/AtelierContext';
 import { useParameters } from '../contexts/ParameterContext';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
-  useEffect(() => {
-    listModels();
-  }, []);
-
   // 1. DOMAIN STATE
   const ui = useNewsroomUIState();
   const data = useNewsroomData();

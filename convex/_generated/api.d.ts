@@ -9,6 +9,7 @@
  */
 
 import type * as crons from "../crons.js";
+import type * as gemini from "../gemini.js";
 import type * as maintenance from "../maintenance.js";
 import type * as media from "../media.js";
 import type * as newsroom_actions from "../newsroom/actions.js";
@@ -33,6 +34,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
+  gemini: typeof gemini;
   maintenance: typeof maintenance;
   media: typeof media;
   "newsroom/actions": typeof newsroom_actions;

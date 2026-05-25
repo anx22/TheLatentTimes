@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { setGeminiTransport } from "./services/gemini";
 
 // --- SYSTEM DIAGNOSTICS ---
 console.log("%c THE LATENT TIMES OPERATING SYSTEM ", "background: #000; color: #fff; font-weight: bold; padding: 4px;");
@@ -13,12 +14,10 @@ console.log("Build Time:", new Date().toISOString());
 const envMode = (import.meta as any).env ? (import.meta as any).env.MODE : 'unknown/unbundled';
 console.log("Environment:", envMode);
 
-// Check connections (Boolean check only for security)
-const checkEnv = (key: string, val: any) => 
-  console.log(`${key}:`, val ? `%cCONNECTED` : "%cMISSING", val ? "color:green" : "color:red");
-
-checkEnv("Gemini API", process.env.GEMINI_API_KEY || process.env.API_KEY);
-checkEnv("Convex URL", import.meta.env.VITE_CONVEX_URL);
+// Convex is the only direct dependency we surface here. The Gemini API
+// key now lives in the Convex deployment env, not in the browser bundle.
+console.log("Convex URL:", import.meta.env.VITE_CONVEX_URL ? "%cCONNECTED" : "%cMISSING",
+  import.meta.env.VITE_CONVEX_URL ? "color:green" : "color:red");
 // --------------------------
 
 let convexUrl = import.meta.env.VITE_CONVEX_URL;
@@ -65,6 +64,9 @@ if (!convexUrl) {
   const convex = new ConvexReactClient(convexUrl, {
     skipConvexDeploymentUrlCheck: true, // Allow .convex.site URLs if necessary, though .convex.cloud is preferred
   });
+  // Hand the Convex client to the Gemini transport so non-React code
+  // (agents, orchestrators) can dispatch actions without prop drilling.
+  setGeminiTransport(convex);
   root.render(
     <React.StrictMode>
       <ConvexProvider client={convex}>
