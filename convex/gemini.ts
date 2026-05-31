@@ -37,11 +37,6 @@ const recordUsage = async (
 ): Promise<void> => {
   if (!missionId || !usage) return;
   try {
-    // TS2589: AI Studio's mutations re-export chain (mutations.ts →
-    // mutations/missionMutations.ts) makes the generated `api` type too
-    // deep for TS to resolve. Runtime resolution is fine. Mirror of the
-    // `frontendApi.ts` workaround on the client side.
-    // @ts-expect-error
     await ctx.runMutation(api.newsroom.mutations.recordTokenUsage, {
       missionId: missionId as any,
       prompt: usage.promptTokenCount || 0,

@@ -1,5 +1,5 @@
-import { GoogleGenAI } from '@google/genai';
 import { Signal, SystemLog, StoryAngle } from '../../types';
+import { safeGenerateContent, cleanAndParseJSON } from '../gemini';
 
 export const agentWorkbench = async (
     signals: Signal[],
@@ -14,12 +14,7 @@ export const agentWorkbench = async (
             level: 'action',
         });
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) throw new Error('Gemini API key is not configured');
-
-        const ai = new GoogleGenAI({ apiKey });
-
-        const formattedSignals = signals.map(s => 
+        const formattedSignals = signals.map(s =>
             `[${s.sourceType}] ${s.title}\n${s.content || ''}`
         ).join('\n---\n');
 
@@ -38,20 +33,15 @@ Generate the angles in JSON format. The JSON should be an array of objects, wher
 Respond ONLY with valid JSON.
 `;
 
-        const response = await ai.models.generateContent({
+        const response = await safeGenerateContent({
             model: 'gemini-2.5-pro',
             contents: prompt,
-            config: {
-                temperature: 0.7,
-                responseMimeType: "application/json",
-            }
+            config: { temperature: 0.7, responseMimeType: 'application/json' },
         });
 
-        if (!response.text) {
-            throw new Error('Workbench returned empty response.');
-        }
+        if (!response.text) throw new Error('Workbench returned empty response.');
 
-        const parsed = JSON.parse(response.text) as Pick<StoryAngle, 'title' | 'summary'>[];
+        const parsed = cleanAndParseJSON(response.text) as Pick<StoryAngle, 'title' | 'summary'>[];
 
         addLog({
             agentName: 'Workbench',

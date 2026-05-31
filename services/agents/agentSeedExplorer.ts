@@ -1,5 +1,5 @@
-import { GoogleGenAI, Type } from "@google/genai";
-import { safeGenerateContent, callJsonAgent, searchTrend, cleanAndParseJSON } from "../gemini";
+import { Type } from "@google/genai";
+import { safeGenerateContent, callJsonAgent, searchTrend } from "../gemini";
 
 export interface Claim {
   claimText: string;
