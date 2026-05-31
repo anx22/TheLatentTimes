@@ -15,11 +15,18 @@ export const getSignals = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 50;
-    return await (ctx.db as any)
+    const rows = await (ctx.db as any)
       .query("signals")
       .withIndex("by_timestamp")
       .order("desc")
       .take(limit);
+    // Strip the heavy server-only fields before sending to the client. Each
+    // embedding is a 3072-float array (~25 KB/doc); the UI only displays title/
+    // source/content and never reads embeddings (client clustering uses freshly
+    // fetched vectors, not this subscription). This query is subscribed reactively
+    // in useNewsroomData and re-runs on every signal write — shipping embeddings
+    // here was the dominant Convex read-bandwidth cost.
+    return rows.map(({ embedding, cultural_vectors, ...rest }: any) => rest);
   },
 });
 
@@ -63,7 +70,10 @@ export const getDraftById = query({
 export const getAgentLogs = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 300;
+    // Default lowered 300 -> 50: this query is subscribed reactively and re-runs
+    // on every logMessage write (hundreds per sweep). Returning 300 docs each time
+    // multiplied reads 6x; the UI only renders the last ~50 lines anyway.
+    const limit = args.limit ?? 50;
     return await (ctx.db as any)
       .query("agent_logs")
       .withIndex("by_timestamp")

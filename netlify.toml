@@ -2,13 +2,15 @@
 #
 # The frontend reads import.meta.env.VITE_CONVEX_URL at build time (see index.tsx)
 # and has no fallback — if it is missing the site renders a "System Configuration
-# Error" screen. Rather than hardcoding the URL, we let the Convex CLI inject it:
-# `convex deploy --cmd` deploys the backend AND runs the frontend build with
-# VITE_CONVEX_URL pre-populated from the deployment behind CONVEX_DEPLOY_KEY.
+# Error" screen. VITE_CONVEX_URL is provided as a Netlify build env var
+# (https://adamant-mastiff-745.convex.cloud) rather than hardcoded here.
 #
-# Requires the Netlify env var CONVEX_DEPLOY_KEY (build scope) to be set.
+# NOTE: we intentionally do NOT run `convex deploy` during the Netlify build.
+# The Convex backend is deployed separately (via `npx convex deploy`/`dev` with a
+# proper key); wiring it into the static-site build failed because the available
+# key is a dev key. Keep the frontend build pure.
 [build]
-  command = "npx convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'npm run build'"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
