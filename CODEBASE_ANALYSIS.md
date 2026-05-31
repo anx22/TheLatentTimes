@@ -240,3 +240,36 @@ und `drafts = 0`. → erklärt, warum trotz funktionierender Ingestion/Clusterin
 - **Deployment** (neu, hohe Prio): `VITE_CONVEX_URL` in Netlify fehlt → öffentliche Seite blind.
 - C2 (Feed-404-Quote) noch offen — Ingestion liefert aber live 193 Signals, also grundsätzlich gesund.
 
+---
+
+## 13. Session 2 — Build-Fix + Convex-Read-Usage-Normalisierung
+
+### Deployment / Build (Netlify)
+- **Build-Fail-Ursache:** Der erste `netlify.toml`-Versuch (`npx convex deploy --cmd …`)
+  scheiterte in CI, weil der verfügbare Schlüssel ein **Dev-Key** ist → `convex deploy`
+  liefert `403 Forbidden`. Lokaler `npm run build` (tsc && vite) läuft dagegen sauber.
+- **Fix:** `netlify.toml` baut nun mit reinem `npm run build`; `VITE_CONVEX_URL` wird
+  als Build-Env gesetzt. **Wichtig:** korrekte Host-Variante ist die **regionale**
+  `https://adamant-mastiff-745.eu-west-1.convex.cloud` (die nicht-regionale `…convex.cloud`
+  liefert 404). In `[build.environment]` versioniert gepinnt.
+- **Backend separat deployed:** Netlify baut nur das Frontend. Die Backend-Funktionen
+  (A1, A2, getStory, getSignals-Strip, Log-Limit) wurden via `npx convex dev --once`
+  (Dev-Key) auf `adamant-mastiff-745` gepusht.
+- **Live verifiziert:** neues Bundle enthält die regionale URL; `getSignals` liefert keine
+  Embeddings mehr; `getStory` aufrufbar.
+- **Kleiner manueller Rest:** In der Netlify-UI stehen noch zwei verwaiste Vars
+  (`VITE_CONVEX_URL` ohne Region — von `netlify.toml` überschrieben; `CONVEX_DEPLOY_KEY` —
+  jetzt ungenutzt, da kein `convex deploy` im Build). Aufräumen blockiert durch
+  temporären Netlify-MCP-502. Unkritisch.
+
+### Convex-Read-Usage — Hauptverursacher & Fixes
+| Hog | Befund | Fix |
+|---|---|---|
+| **`getSignals` mit Embeddings** | Reaktives Abo (`useNewsroomData`), das bei *jedem* Signal-Write neu lief und 50 Docs × 3072-Float-Embedding (~25 KB/Doc, ~1,25 MB/Lauf) auslieferte. Während eines Sweeps (193 Inserts) → massive DB-Bandbreite. **Dominanter Read-Kostenfaktor.** | `embedding` + `cultural_vectors` serverseitig gestrippt → ~90 % kleinere Payload. Client nutzt diese Felder nie (Cluster-Pfad nutzt frisch gefetchte Vektoren). |
+| **`getAgentLogs` limit 300** | Reaktiv; bei hunderten `logMessage`-Writes pro Sweep je 300 Docs gelesen (6× Verstärkung). | Default 300 → 50 (UI zeigt ohnehin ~50). |
+| **Client-Doppel-Engine** (`AutonomousPipeline.tsx`) | 30s-`setInterval`, das zur Slot-Zeit die **komplette Pipeline ein zweites Mal client-seitig** fährt (parallel zum Convex-Cron) → doppelte Ingest-/Embedding-/Vektor-Last bei offenem Ops-Panel. | **Nur dokumentiert** (Verhaltensänderung) — Empfehlung: client-seitigen Heartbeat deaktivieren, da der Server-Cron der kanonische Scheduler ist. |
+
+**Weiteres Sparpotenzial (offen):** `checkSemanticSimilarity` macht pro ingestiertem Signal
+eine Vektorsuche (193×/Sweep); ggf. Batchen/Schwellen. `getOrphanSignals` trägt ebenfalls
+Embeddings (aktuell nicht client-abonniert) — bei künftiger Nutzung ebenfalls strippen.
+
