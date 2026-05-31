@@ -3,6 +3,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { action } from "../../_generated/server";
 import { api } from "../../_generated/api";
+import { MODELS } from "../../models";
 
 // 2.0 INTEGRATIVE AUTONOMOUS SWEEP ACTION
 // Replicates the entire multi-agent, multistep pipeline server-side for background run cycles.
@@ -103,7 +104,7 @@ export const runScheduledAutonomousRun = action({
               }
             });
             const response = await client.models.embedContent({
-              model: 'gemini-embedding-2',
+              model: MODELS.embed,
               contents: textToEmbed,
             });
             if (response.embeddings && response.embeddings.length > 0) {
@@ -227,7 +228,7 @@ export const runScheduledAutonomousRun = action({
             `;
             
             const debateResult = await client.models.generateContent({
-              model: "gemini-3-flash-preview",
+              model: MODELS.text,
               contents: [{ role: 'user', parts: [{ text: debatePrompt }] }],
               config: { responseMimeType: "application/json" }
             });
@@ -266,7 +267,7 @@ export const runScheduledAutonomousRun = action({
             `;
 
             const columnistResult = await client.models.generateContent({
-              model: "gemini-3-flash-preview",
+              model: MODELS.text,
               contents: [{ role: 'user', parts: [{ text: columnistPrompt }] }],
               config: { responseMimeType: "application/json" }
             });

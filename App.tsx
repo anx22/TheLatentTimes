@@ -4,6 +4,7 @@ import { IssueContent, MagazineItem, LayoutItem } from './types';
 import { NewsroomFloor } from './components/newsroom-v2/NewsroomFloor';
 import { Header } from './components/Header'; 
 import { NewsroomProvider } from './contexts/NewsroomContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { ArchiveModal } from './components/ui/ArchiveModal';
 import { ArticleDetail } from './components/ArticleDetail';
 import { MagazineGrid } from './components/MagazineGrid';
@@ -164,6 +165,7 @@ const App: React.FC = () => {
   if (!hydrated) return null;
 
   return (
+    <AuthProvider>
     <NewsroomProvider onPublish={handlePublishItem}>
       <div className="min-h-screen bg-[#faf9f6] text-foreground font-sans selection:bg-accent selection:text-white pb-32">
          
@@ -228,6 +230,7 @@ const App: React.FC = () => {
          )}
       </div>
     </NewsroomProvider>
+    </AuthProvider>
   );
 };
 

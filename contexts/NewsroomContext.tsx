@@ -1,6 +1,7 @@
 import React, { createContext } from 'react';
 import { MagazineItem, NewsroomStep, SystemLog, GeneratedArticle, Signal, EditorialAngle, BlockAnnotation, DebateMessage, ScoutedSignal, EditorialMethodology, WorkbenchSession, StoryAngle, SourcingStrategy, Claim, SimilarityReport, EvidencePack } from '../types';
 import { useNewsroomState } from '../hooks/useNewsroomState';
+import { useAuth } from './AuthContext';
 
 interface NewsroomContextType {
   step: NewsroomStep;
@@ -85,6 +86,10 @@ interface NewsroomContextType {
   extractClaimsFromSeed: () => Promise<Claim[]>;
   gatherIndependentEvidence: () => Promise<EvidencePack | null>;
   runSimilarityAudit: (draftText: string) => Promise<SimilarityReport | null>;
+
+  // Auth / read-only state (populated by the read-only guard below).
+  readOnly?: boolean;
+  canEdit?: boolean;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -114,11 +119,48 @@ export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: 
   );
 };
 
+/**
+ * READ-ONLY GUARD — the single choke-point that enforces the auth soft wall.
+ *
+ * Deny-by-default: when the session is not editable, EVERY function on the context
+ * is replaced with a no-op that surfaces a read-only notice — EXCEPT local UI
+ * setters (keys starting with "set"), which stay live so anonymous visitors can
+ * still navigate the rooms. Because the rule is "guard everything that is not a
+ * setter", any action added to the newsroom in the future is gated automatically
+ * without touching this code. The raw `mutations` object is likewise neutralised.
+ */
+const applyReadOnlyGuard = (state: any, canEdit: boolean): NewsroomContextType => {
+  if (canEdit) {
+    return { ...state, canEdit: true, readOnly: false } as NewsroomContextType;
+  }
+  const notify = () => {
+    try {
+      state.setError?.('🔒 Read-only-Modus — bitte im Newsroom einloggen, um Aktionen auszuführen.');
+    } catch { /* ignore */ }
+  };
+  const guarded: any = {};
+  for (const key of Object.keys(state)) {
+    const val = state[key];
+    if (typeof val === 'function' && !key.startsWith('set')) {
+      guarded[key] = (..._args: any[]) => { notify(); return Promise.resolve(undefined); };
+    } else {
+      guarded[key] = val;
+    }
+  }
+  // Neutralise direct mutation access too (any property -> async no-op).
+  guarded.mutations = new Proxy({}, { get: () => () => Promise.resolve(undefined) });
+  guarded.canEdit = false;
+  guarded.readOnly = true;
+  return guarded as NewsroomContextType;
+};
+
 const NewsroomInternalProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void }> = ({ children, onPublish }) => {
   const state = useNewsroomState(onPublish);
+  const { canEdit } = useAuth();
+  const value = applyReadOnlyGuard(state, canEdit);
 
   return (
-    <NewsroomContext.Provider value={state}>
+    <NewsroomContext.Provider value={value}>
       {children}
     </NewsroomContext.Provider>
   );

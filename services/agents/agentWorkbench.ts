@@ -1,3 +1,4 @@
+import { MODELS } from '../../constants';
 import { Signal, SystemLog, StoryAngle } from '../../types';
 import { safeGenerateContent, cleanAndParseJSON } from '../gemini';
 
@@ -34,7 +35,7 @@ Respond ONLY with valid JSON.
 `;
 
         const response = await safeGenerateContent({
-            model: 'gemini-2.5-pro',
+            model: MODELS.pro,
             contents: prompt,
             config: { temperature: 0.7, responseMimeType: 'application/json' },
         });

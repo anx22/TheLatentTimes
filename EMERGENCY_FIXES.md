@@ -27,6 +27,19 @@ Diese Punkte machten die App „läuft nur stellenweise" → jetzt grundsätzlic
 
 ---
 
+## ✅ Umgesetzt (Auth-Session)
+- **EF-2 erledigt:** PW-only Newsroom-Auth. Passwort **server-verifiziert** (`convex/auth.ts`,
+  `NEWSROOM_PASSWORD` in Convex-Env, nie im Bundle); Login-Leiste in `NewsroomFloor`.
+  **Read-only-Modus** für Anon über *einen* zentralen Choke-Point (`NewsroomContext`-Guard,
+  deny-by-default: alle Nicht-`set*`-Funktionen werden No-Ops) → refactor-fest. Zusätzlich
+  Persist/Seed-Writes für Anon gesperrt. `useAuth()` fällt **fail-closed** auf read-only.
+- **EF-3 erledigt:** Client-Doppel-Engine-Heartbeat entfernt (Server-Cron kanonisch).
+- **EF-4 erledigt:** Modell-Aliasse zentralisiert (`convex/models.ts` + `constants.ts MODELS`),
+  alle Literale in Transport/Actions/Agenten umgestellt.
+- **EF-1 (Teil/Restrisiko):** Die soft wall stoppt anonyme/versehentliche Kosten über die UI.
+  Die Convex-Actions bleiben technisch direkt per URL aufrufbar (bewusst im Scope „nur Newsroom
+  PW, Rest ungeschützt"). Echte serverseitige Härtung (per-User-Auth / Rate-Limit) bleibt offen.
+
 ## 🔴 P0 — Echte Emergencies (vor jeder öffentlichen Nutzung)
 
 ### EF-1 · Offene, unauthentifizierte, bezahlte KI-Endpunkte  ⟵ größtes Risiko

@@ -1,3 +1,4 @@
+import { MODELS } from '../../constants';
 import { safeGenerateContent, searchTrend } from '../gemini';
 
 export const agentTargetedSearch = async (topic: string, globalDirective?: string, missionId?: string): Promise<{ context: string; grounded: boolean; urls: { title: string; url: string }[] }> => {
@@ -21,7 +22,7 @@ export const agentTargetedSearch = async (topic: string, globalDirective?: strin
   `;
 
   const response = await safeGenerateContent({
-    model: 'gemini-3-flash-preview',
+    model: MODELS.text,
     contents: prompt,
     missionId
   });

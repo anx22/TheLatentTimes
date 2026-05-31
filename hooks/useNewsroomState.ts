@@ -15,6 +15,7 @@ import { useVisualAgents } from './useVisualAgents';
 import { usePublicationFlow } from './usePublicationFlow';
 import { useAtelier } from '../contexts/AtelierContext';
 import { useParameters } from '../contexts/ParameterContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
   // 1. DOMAIN STATE
@@ -22,16 +23,20 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   const data = useNewsroomData();
   const { atelierState, setAtelierState } = useAtelier();
   const params = useParameters();
+  // Read-only sessions must not seed sources or persist shared UI state — that
+  // would let anonymous viewers clobber the editors' newsroom_state["current"].
+  const { canEdit } = useAuth();
 
-  // 1.5 AUTO-SEED SOURCES
+  // 1.5 AUTO-SEED SOURCES (editors only)
   useEffect(() => {
+    if (!canEdit) return;
     if (data.dbSourcesResult !== undefined) {
       const needsSeed = data.dbSources.length === 0 || data.dbSources.some((s: any) => !s.pack);
       if (needsSeed) {
         data.mutations.seedSources({});
       }
     }
-  }, [data.dbSourcesResult, data.dbSources, data.mutations]);
+  }, [canEdit, data.dbSourcesResult, data.dbSources, data.mutations]);
 
   // 2. MISSION REGISTRY
   const missionRegistry = useMemo(() => new MissionRegistry(data.mutations), [data.mutations]);
@@ -99,7 +104,7 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   }, [data.persistedState, ui, data, setAtelierState]);
 
   useEffect(() => {
-    if (ui.isHydrating) return;
+    if (ui.isHydrating || !canEdit) return;
     data.mutations.saveNewsroomState({
       key: "current",
       data: {
@@ -117,8 +122,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
       }
     });
   }, [
-    ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles, 
-    data.draftId, data.imageId, atelierState, ui.isHydrating, data.mutations, 
+    canEdit,
+    ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles,
+    data.draftId, data.imageId, atelierState, ui.isHydrating, data.mutations,
     ui.selectedStoryId, ui.activeMethodology
   ]);
 

@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as crons from "../crons.js";
 import type * as gemini from "../gemini.js";
 import type * as maintenance from "../maintenance.js";
 import type * as media from "../media.js";
+import type * as models from "../models.js";
 import type * as newsroom_actions from "../newsroom/actions.js";
 import type * as newsroom_actions_autonomousActions from "../newsroom/actions/autonomousActions.js";
 import type * as newsroom_actions_clusteringActions from "../newsroom/actions/clusteringActions.js";
@@ -28,10 +30,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   crons: typeof crons;
   gemini: typeof gemini;
   maintenance: typeof maintenance;
   media: typeof media;
+  models: typeof models;
   "newsroom/actions": typeof newsroom_actions;
   "newsroom/actions/autonomousActions": typeof newsroom_actions_autonomousActions;
   "newsroom/actions/clusteringActions": typeof newsroom_actions_clusteringActions;

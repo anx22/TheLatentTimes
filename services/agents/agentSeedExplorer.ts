@@ -1,3 +1,4 @@
+import { MODELS } from '../../constants';
 import { Type } from "@google/genai";
 import { safeGenerateContent, callJsonAgent, searchTrend } from "../gemini";
 
@@ -145,7 +146,7 @@ export const agentSearchIndependentSources = async (
 
   try {
     const response = await safeGenerateContent({
-      model: "gemini-3-flash-preview",
+      model: MODELS.text,
       contents: synthesisPrompt,
       missionId
     });

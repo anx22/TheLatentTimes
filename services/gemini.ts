@@ -1,6 +1,7 @@
 import { Type } from "@google/genai";
 import { ConvexReactClient } from "convex/react";
 import { AspectRatio, SearchResult } from "../types";
+import { MODELS } from "../constants";
 import { api } from "../convex/_generated/api";
 import { assertEmbeddingDim } from "../lib/vector";
 
@@ -86,7 +87,7 @@ export const callJsonAgent = async <T>(
   missionId?: string
 ): Promise<T> => {
   const response = await safeGenerateContent({
-    model: "gemini-3-flash-preview",
+    model: MODELS.text,
     contents: prompt,
     config: { responseMimeType: "application/json", responseSchema: schema },
     missionId,

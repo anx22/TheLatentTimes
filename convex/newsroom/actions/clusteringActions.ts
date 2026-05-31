@@ -5,6 +5,7 @@ import { action } from "../../_generated/server";
 import { v } from "convex/values";
 import { api } from "../../_generated/api";
 import { Id } from "../../_generated/dataModel";
+import { MODELS } from "../../models";
 
 // Helper for Neural Synthesis
 const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, summary: string }> => {
@@ -36,7 +37,7 @@ const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, su
 
   try {
     const result = await client.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: MODELS.text,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { responseMimeType: "application/json" }
     });
@@ -153,7 +154,7 @@ export const discoverStories = action({
 
     try {
       const result = await client.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: MODELS.text,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: { responseMimeType: "application/json" }
       });

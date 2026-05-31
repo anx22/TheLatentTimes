@@ -1,3 +1,4 @@
+import { MODELS } from '../../constants';
 import { safeGenerateContent } from '../gemini';
 
 export async function agentSynthesis(clusterTitle: string, items: { title: string; content?: string }[], missionId?: string): Promise<{ summary: string; keyEntities: string[] }> {
@@ -19,7 +20,7 @@ Provide your analysis in the following JSON format:
 
   try {
     const response = await safeGenerateContent({
-      model: "gemini-3-flash-preview",
+      model: MODELS.text,
       contents: prompt,
       config: {
         responseMimeType: "application/json",

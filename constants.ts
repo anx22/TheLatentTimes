@@ -17,3 +17,15 @@ export const EDITORIAL_LENSES: Record<EditorialDepartment, string> = {
 
 export const DEFAULT_BLOCK_SIZES: Record<string, BlockConfig> = {};
 export const INITIAL_LAYOUT: any[] = [];
+
+/**
+ * Single source of truth for Gemini model aliases (client side).
+ * Mirror of convex/models.ts — keep both in sync. Centralised so a model swap
+ * or deprecation is a one-line change instead of hunting literals across agents.
+ */
+export const MODELS = {
+  text: "gemini-3-flash-preview",
+  pro: "gemini-2.5-pro",
+  image: "gemini-2.5-flash-image",
+  embed: "gemini-embedding-2",
+} as const;

@@ -31,71 +31,15 @@ export const AutonomousPipeline: React.FC = () => {
   const params = useContext(NewsroomContext)?.engineSchedule;
   const lastTriggeredSlot = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (enginePaused || !context || !context.engineSchedule.enabled) return;
-    
-    const interval = setInterval(async () => {
-      const now = new Date();
-      const currentTimeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      const { morning, midday, evening } = context.engineSchedule;
-      const todayDate = now.toDateString();
-
-      const slots = [
-        { name: 'morning', time: morning },
-        { name: 'midday', time: midday },
-        { name: 'evening', time: evening }
-      ];
-
-      for (const slot of slots) {
-        const slotKey = `${todayDate}-${slot.name}`;
-        if (currentTimeString === slot.time && lastTriggeredSlot.current !== slotKey) {
-          try {
-            lastTriggeredSlot.current = slotKey;
-            context.logMessage('SYSTEM', `Circadian Schedule Triggered: ${slot.name.toUpperCase()} Sweep`, 'info');
-            
-            // 1. Ingest
-            await context.ingestSignals();
-            
-            // 2. Discover
-            const discoveryResult = await context.runDeepDiscovery();
-            
-            // 3. Automated Editorial Dispatch
-            if (discoveryResult && discoveryResult.newStories > 0 && discoveryResult.newStoryIds.length > 0) {
-              const targetId = discoveryResult.newStoryIds[0];
-              const story = (context.newsClusters || []).find(c => c._id === targetId);
-              
-              if (story) {
-                context.logMessage('SYSTEM', `Targeting high-resonance pillar: ${story.title}`, 'success');
-                context.setSelectedStoryId(targetId);
-                context.setTopic(story.title);
-                
-                // Give it a moment to stabilize state
-                setTimeout(async () => {
-                  try {
-                    // 4. Debate
-                    context.logMessage('SYSTEM', `Initiating autonomous editorial debate for: ${story.title}`, 'action');
-                    await context.runDebate();
-                    
-                    // 5. Draft
-                    context.logMessage('SYSTEM', `Finalizing consensus and generating autonomous draft...`, 'action');
-                    await context.runPipeline();
-                    
-                    context.logMessage('SYSTEM', `Autonomous Loop Completed. Draft pinned to publishing queue for final review.`, 'success');
-                  } catch (err) {
-                    console.error("Autonomous Editorial Failure:", err);
-                  }
-                }, 5000);
-              }
-            }
-          } catch (e) {
-            console.warn("Autopilot Schedule Exception:", e);
-          }
-        }
-      }
-      
-    }, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, [enginePaused, context]);
+  // NOTE: The browser-side circadian heartbeat that used to re-run the FULL
+  // ingest -> discover -> debate -> draft pipeline here has been removed. It
+  // duplicated the canonical Convex cron (convex/crons.ts +
+  // runScheduledAutonomousRun), doubling ingest/embedding/token cost whenever
+  // an Ops tab was left open. Scheduling now lives exclusively server-side; the
+  // manual "Force" buttons below remain for on-demand runs.
+  // (lastTriggeredSlot / params retained intentionally to avoid wider churn.)
+  void lastTriggeredSlot;
+  void params;
 
   if (!context) return null;
 

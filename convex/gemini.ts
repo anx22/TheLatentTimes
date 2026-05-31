@@ -4,6 +4,7 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { GoogleGenAI } from "@google/genai";
+import { MODELS } from "./models";
 
 /**
  * SERVER-SIDE GEMINI TRANSPORT
@@ -64,8 +65,8 @@ export const generateText = action({
   handler: async (ctx, args): Promise<any> => {
     const ladder = [
       args.model,
-      "gemini-3-flash-preview",
-      "gemini-flash-lite-latest",
+      MODELS.text,
+      MODELS.textLite,
     ];
     const uniqueModels = [...new Set(ladder)];
     const client = getClient();
@@ -117,7 +118,7 @@ export const generateImage = action({
   handler: async (ctx, args): Promise<string> => {
     const client = getClient();
     const response = await client.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: MODELS.image,
       contents: { parts: [{ text: args.prompt }] },
       config: { imageConfig: { aspectRatio: args.aspectRatio as any } },
     });
@@ -144,7 +145,7 @@ export const editImage = action({
       ""
     );
     const response = await client.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: MODELS.image,
       contents: {
         parts: [
           { inlineData: { data: base64Data, mimeType: "image/png" } },
@@ -171,7 +172,7 @@ export const generateEmbedding = action({
     const client = getClient();
     try {
       const response = await client.models.embedContent({
-        model: "gemini-embedding-2",
+        model: MODELS.embed,
         contents: args.text,
       });
       const values = response.embeddings?.[0]?.values;
@@ -180,7 +181,7 @@ export const generateEmbedding = action({
     } catch (e: any) {
       // Fallback to embedding-001 — older but more widely available.
       const response = await client.models.embedContent({
-        model: "gemini-embedding-001",
+        model: MODELS.embedFallback,
         contents: args.text,
       });
       const values = response.embeddings?.[0]?.values;
@@ -206,7 +207,7 @@ export const searchTrend = action({
     const client = getClient();
     try {
       const response = await client.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: MODELS.text,
         contents: args.query,
         config: { tools: [{ googleSearch: {} }] },
       });
@@ -223,7 +224,7 @@ export const searchTrend = action({
     } catch (e) {
       // Fallback: ask the model to summarise from internal knowledge.
       const fallback = await client.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: MODELS.text,
         contents:
           `You are acting as a search engine. The user queried: "${args.query}". ` +
           `Since live search is unavailable, provide a detailed summary of what you know ` +

@@ -7,6 +7,7 @@ import { TheDarkroom } from './TheDarkroom';
 import { PrintingPress } from './printing-press/PrintingPress';
 import { ObservabilityDashboard } from './ObservabilityDashboard';
 import { NewsroomButton, NewsroomLabel, NewsroomPanel, ClusterCard } from './NewsroomUI';
+import { NewsroomAuthBar } from './NewsroomAuthBar';
 import { cn } from '../../lib/utils';
 
 interface NewsroomFloorProps {
@@ -125,12 +126,15 @@ export const NewsroomFloor: React.FC<NewsroomFloorProps> = ({ onClose }) => {
            ))}
         </div>
 
-           <button 
-             onClick={onClose}
-             className="text-zinc-600 hover:text-white transition-all p-1.5 hover:rotate-90 duration-300 ml-4"
-           >
-             <X className="w-5 h-5" />
-           </button>
+           <div className="ml-4 flex items-center gap-3">
+             <NewsroomAuthBar />
+             <button
+               onClick={onClose}
+               className="text-zinc-600 hover:text-white transition-all p-1.5 hover:rotate-90 duration-300"
+             >
+               <X className="w-5 h-5" />
+             </button>
+           </div>
       </div>
 
       {/* Sub-navbar */}
