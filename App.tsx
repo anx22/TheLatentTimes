@@ -48,8 +48,17 @@ const MainNewspaper: React.FC<{ items: MagazineItem[], onItemClick: (item: Magaz
           </article>
         ))}
         {safeItems.length === 0 && (
-          <div className="text-center py-32 border-2 border-dashed border-zinc-200 rounded-lg">
-            <p className="font-mono text-xs uppercase tracking-widest text-zinc-400">No Articles Published Yet</p>
+          <div className="text-center py-32">
+            <div className="text-[10px] font-mono uppercase tracking-[0.4em] text-zinc-400 mb-6">The Latent Times · Vol. 1.0</div>
+            <h2 className="font-serif text-5xl md:text-6xl leading-tight mb-6">The Genesis Issue<br/>is being composed.</h2>
+            <p className="font-serif text-lg text-zinc-500 italic max-w-xl mx-auto leading-relaxed">
+              Our agents are ingesting the signal, debating the angle, and developing the visuals.
+              The first edition publishes shortly.
+            </p>
+            <div className="mt-10 flex items-center justify-center gap-3 text-[10px] font-mono uppercase tracking-[0.3em] text-zinc-400">
+              <span className="w-1.5 h-1.5 bg-emerald-500/60 rounded-full animate-pulse"></span>
+              Signal · High · Synthesis in progress
+            </div>
           </div>
         )}
       </div>
