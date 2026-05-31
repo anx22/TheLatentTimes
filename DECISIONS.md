@@ -1,304 +1,177 @@
 
 # DECISIONS.md
 
-## [2026-05-25] The Great Ticker De-complication (Signal Convergence)
-**Problem**: The "Ticker" concept had become bloated. Originally conceived as a raw visual feed, its logic leaked into the core backend. Normalizing `TickerItems` into the pipeline felt superfluous and confused the data model, making the system architecture harder to reason about and scaling efforts brittle.
-**Choice**: Systematically eradicated the "Ticker" concept from the core backend. Renamed `TickerItems` back to their canonical truth: `Signals`. Refactored all `agentTicker` logic into the more precise `SignalBroker` ingestion flow. Replaced overloaded UI methods like `fetchTickerData` or `isFetchingTicker` with literal actions: `ingestSignals` and `isIngesting`.
-**Reason**: Strict adherence to the [HARD] principle of Architectural Honesty. Removes semantic conflation between a UI layout concept (a scrolling ticker) and the fundamental backend data pipeline (Signal ingestion).
+## [2026-05-31] Generative Semantics & Thematic Synthesis Engine
+**Problem**: The legacy semantic clustering approach (`discoverStories`) mapped signals strictly via mathematical cosine similarity on embeddings (e.g. Euclidean distance > `0.85`). This algorithm was too literal for a creative editorial engine. It grouped articles by vocabulary overlap (e.g. two articles about OpenAI) rather than cultural themes (e.g. connecting a technical breakthrough with a new policy shift).
+**Choice**: Ripped out the deterministic vector-distance thresholding matrix from `discoverStories`. Rewrote the pipeline to pipe up to 60 "orphan" signals directly to Gemini 3.5 Flash in a single generational sweep. We now prompt the Board persona to find non-obvious, creative macro-themes across loosely correlated signals to derive new theses dynamically.
+**Reason**: Transforms the application from a simplistic News Aggregator into a genuine Editorial Brain. This ensures that out of hundreds of ingested sources, creative, cross-domain stories are consistently discovered.
 
-## [2026-05-25] UI Integration of Deep Discovery
-**Problem**: The "Cluster Related Topics" trigger in the UI was broken silently due to a Convex query (`getOrphanSignals`) remaining undeployed after refactoring to the new `Signal` schema, resulting in an unresponsive UI button.
-**Choice**: Verified vector embeddings search and fully deployed the updated Convex schema. 
-**Reason**: Restores correct functionality to the manual semantic clustering feature, allowing deep exploration without blocking workflow.
+## [2026-05-31] Observability & Gemini SDK Stability Boundaries
+**Problem**: The semantic clustering and autonomous sweep mechanisms were silently failing despite UX interactions indicating active processes. Investigating with hard error boundaries (`console.error` + explicit `throw Error`) revealed the GenAI SDK was throwing invisible HTTP 404 errors due to an illegal model signature constraint (`gemini-3.5-flash`).
+**Choice**: Switched clustering and autonomous agents back to `gemini-3-flash-preview` and fully stripped out all silent `rescue` patterns in `clusteringActions`.
+**Reason**: Agent pipelines must crash loudly, not swallow root causes, otherwise core autonomous functions appear fully broken in production.
 
-## [2026-05-25] TheBullpen Functional Refactor
-**Problem**: TheBullpen only displayed the generated draft headline and provided a misleading "Review & Handover" button that simply changed the tab to DARKROOM. It did not display the actual draft content, breaking the editorial feedback loop.
-**Choice**: Refactored `TheBullpen` to display the actual editorial draft (`headline`, `deck`, `body`), removed the misleading forwarding buttons, and added inline actions to revise or assemble the draft directly.
-**Reason**: Empowers the user to read and review the agent's work locally before deciding to navigate to the visual department via the top rail.
+## [2026-05-31] Magazine Front-Page Rendering & Dynamic Grid Injection
+**Problem**: After signing off on drafts in the Printing Press, the newly approved articles were added to the `issues` database but failed to appear on the front-page `MagazineGrid`. The root cause was systemic: the underlying layout coordinator extracted the current layout configuration, but newly approved articles were dumped into the `items` array *without* being mapped to a corresponding structural `LayoutItem`. Additionally, recent backend patches accidentally mapped incoming Grid Layout elements to `y: max(y)`, rendering them at the bottom of the grid out of bounds.
+**Choice**: Updated `addItemToLatestIssue` in `issueMutations.ts`. It now analyzes the existing layout and securely injects an adaptive grid block component (e.g., `Glamour`, `CoverStory`) corresponding to the new article directly into the issue's structural schema at coordinate `y = 0`, shifting subsequent schema blocks down by `item.h` accordingly.
+**Reason**: Restores active grid reactivity. The user can now see approved issues manifest immediately upon the frontend Magazine layout.
 
-## [2026-05-25] Magazine Card Interactivity
-**Problem**: The "Draft Story" action on the Magazine signal card triggered a room transition, and users lacked a way to manually command the Scout agent to deeply research a specific signal from the grid.
-**Choice**: Added an explicit "Analyze" capability to the Magazine Signal Cards, allowing users to trigger deep topological research on a signal without leaving the Wire.
-**Reason**: Increases the tool's interaction density and allows users to treat the Wire as a living research surface.
+## [2026-05-31] Convex Server Actions Clean-up & Absolute Modular Splitting
+**Problem**: The central `actions.ts` file had originally grown into a massive monolith of asynchronous processing crossing three distinct operational domains—semantic similarity checks, topological story clustering, raw document parsing (RSS, GitHub), and the full Circadian autonomous background multi-agent sweep process. At 620+ lines, it was a "god actions" module that was difficult to audit or adapt.
 
-## [2026-05-25] Global System Directive
-**Problem**: The tactical input box in the Intelligence Ops rail was labeled "Search Focus," which was functionally misleading as it acts as an overarching `globalDirective` (a system instruction injected into all downstream agents).
-**Choice**: Renamed the field to "Director's Directive" and updated its placeholder to accurately reflect its systemic impact on narrative bias and agent tone.
-**Reason**: Restores architectural honesty and clarifies a powerful structural lever that was previously hidden behind generic UI copy.
+**Choice**: Fully decoupled and divided `actions.ts` into a clean, modular structure:
+1. Created `/convex/newsroom/actions/` subdirectory.
+2. Formulated 3 isolated domain modules:
+   - `clusteringActions.ts` (hosts similarity score verification, Topological Resonance discovery, and the neural Gemini cluster title synthesizer)
+   - `fetchActions.ts` (hosts RSS parsing, GitHub trending search, and feed path probe discovery)
+   - `autonomousActions.ts` (hosts the complete scheduled autonomous background agent process execution loop)
+3. Preserved absolute backwards-compatibility across all client hooks and files referencing `api.newsroom.actions` by cleanly re-exporting the submodules from `/convex/newsroom/actions.ts`.
 
-## [2026-05-25] Contextual Reading & Interactive Clarification
-**Problem**: Users felt stuck with "Focus Topic" as the only action on cards, misinterpreting it as merely a room forwarding without interaction value. They couldn't read the stories on the Wire grid.
-**Choice**: Injected real signal summaries (`item.content`) into the Magazine Grid so they can be read in place. Renamed "Focus Topic" to "Draft Story" to clarify it triggers the creative narrative engine. Cleaned up redundant sidebars.
-**Reason**: Empowers the user to consume the news directly on the Wire and makes the next pipeline action explicitly clear.
+**Reason**: Completely eradicates the god-actions file. By splitting asynchronous logic from data-fetching and background schedules, individual action routines are highly readable (all under 200 lines), while maintaining perfect integration with Convex's type-safe code generation.
 
-## [2026-05-25] De-marketing & Literal Naming (Anti-Junior Refactor)
-**Problem**: The application used "marketing" terms like "Deep Discovery" and "Neural Health" which didn't literally explain their function, leading to UX friction and a sense of "junior bullshit."
-**Choice**: Systematically purged marketing labels in favor of literal functional names: "Deep Discovery" -> "Synthesize Clusters", "Interrogate" -> "Analyze", "Deploy Mission" -> "Research/Select".
-**Reason**: To adhere to the [HARD] principle of ARCHITECTURAL HONESTY and provide a professional editorial tool that explains its own logic through clear labeling.
+## [2026-05-31] Convex Write-Operations Clean-up & Absolute Modular Splitting
+**Problem**: The core `mutations.ts` file had originally grown into a massive monolith of write operations crossing wildly unrelated domains—including live telemetry, mission states, story clustering, drafting, workbench interactions, image saving, state persistence, publication, and seeding. This made it difficult to maintain and was highly intimidating for database auditing.
 
-## [2026-05-25] The Tactical Progress Rail
-**Problem**: Users felt "hijacked" by room transitions (Handovers) and lacked situational awareness of where they were in the editorial process.
-**Choice**: Implemented a persistent "Tactical Progress Rail" at the top of the Newsroom workspace. Removed automatic room jumps; all transitions are now intentional user actions.
-**Reason**: Restores agency to the user ("Director's Overview") and ensures logic continuity across the mission lifecycle.
+**Choice**: Fully decoupled and divided `mutations.ts` into a clean, modular structure.
+1. Created `/convex/newsroom/mutations/` subdirectory.
+2. Formulated 5 isolated domain modules:
+   - `missionMutations.ts` (startMission, completeMission, failMission, logMessage, clearLogs)
+   - `signalMutations.ts` (addSignal, toggleSource, updateSource, addSource, deleteSource, updateSourceFetchTime, updateSignalStory, seedSources)
+   - `issueMutations.ts` (clearAll, saveImage, saveNewsroomState, publishIssue, resetNewsroom, addItemToLatestIssue)
+   - `workbenchMutations.ts` (createWorkbenchSession, updateWorkbenchSession, saveStoryAngles, toggleStoryAngle)
+   - `draftMutations.ts` (addNewsCluster, updateNewsCluster, saveDraft, updateDraftStatus, deleteDraft)
+3. Preserved backward compatibility across all 40+ project files referencing `api.newsroom.mutations` by cleanly importing and re-exporting the entire set from the main `/convex/newsroom/mutations.ts` file in just 5 lines.
 
-## [2026-05-25] Briefing Vault Isolation
-**Problem**: Briefings (historical drafts) were treated as a view-mode of the Wire, cluttering the primary signal stream and confusing the object hierarchy.
-**Choice**: Decoupled "Briefings" from the `TheWire` view modes. Moved them to a dedicated "Vault" utility in the Intelligence Ops rail.
-**Reason**: Clarifies the structural hierarchy where the Wire is for *discovery* and the Vault is for *records*.
+**Reason**: Completely eradicates the massive monolith. This clean splitting enforces separation of concerns across our tables, makes individual database transactions extremely readable and simple (under 100 lines per file), and avoids breaking any existing backend actions or client hooks.
 
-## [2026-05-25] Signal Pipeline Disambiguation
-**Problem**: Technical conflation of "Neural Search" (Retrieval) with "Clustering" (Processing) in UI/Docs.
-**Choice**: Explicitly separated "Interrogation" (Retrieval) from "Synthesis" (Story Clustering). Updated `TheWire` UI and `ARCHITECTURE.md`.
-**Reason**: To maintain technical integrity and prevent "AI Slop" masking distinct engineering steps.
+## [2026-05-31] Convex Write-Operations Clean-up & Modular Seed Isolation
+**Problem**: The core `mutations.ts` file grew into a monolithic, multi-purpose database module. It loaded vast static JSON assets (over 20 records) for pipeline bootstrapping and first-run seeder iterations alongside standard write operations, cluttering operational logic and increasing the complexity of standard database updates.
 
-## [2026-05-25] UX Flow Continuity & Convex Query Resilience
-**Problem**: "Dead Ends" in UI navigation and a critical server error in the `getAllDrafts` query.
-**Choice**: Implemented explicit navigation bridges (Back/Abort) in all depts. Deployed updated Convex schema/queries.
-**Reason**: Respects user intent for a "whole flow" and ensures technical stability across the mission lifecycle.
+**Choice**: Extracted all structural database seed definitions and bootstrapped shell documents out of the database transaction routines:
+1. Created `/convex/newsroom/seedData.ts` to cleanly host `INITIAL_SOURCES` and the structured default layout factory `getGenesisIssueContent`.
+2. Refactored `mutations.ts` to import and utilize these encapsulated datasets, slashing the size of transaction schemas.
+3. Cleaned backend execution logic by removing redundant variable assignments to unused handles (such as `draftId`), satisfying strict linter rules.
 
-## [2026-05-25] Mainstream Strategic Pivot
-**Problem**: System was biased toward "Niche Voices," missing high-impact mainstream movements.
-**Choice**: Re-centered vision on **Mainstream Disruption**. Categorized niche signals as "Lead Indicators".
-**Reason**: Ensures market relevance and intellectual authority as a publication on "Big Movements."
+**Reason**: Reduces code complexity footprint in core transactions, decouples static presets from state machine mutation queries, and boosts long-term maintainability for full-stack developers.
 
-## [2026-05-25] God Hook Decomposition
-**Problem**: `useNewsroomState.ts` was an 800+ line monster mixing UI, data, and agent logic.
-**Choice**: Decomposition into 5 specialized domain hooks. `useNewsroomState` is now a shallow aggregator.
-**Reason**: Dramatically improves maintainability and allows for fine-grained testing.
+## [2026-05-31] Clarifying GDELT Project Scope & Expanding Authority via Elite Primary Technical Sources
+**Problem**: The GDELT Project was proposed during strategic restructuring discussions, but did not exist in our system. We needed to confirm its state and ensure that our Signal Ingestion system possesses the highest-authority, most widely available primary sources focused purely on core developer and AI architectural shifts, avoiding low-quality aggregates or noisy geopolitical telemetry.
 
-## 037 - Newsroom Accessibility & Typography Scaling
-**Problem**: Technical debt accrued in UI text sizes (as small as 7px) created significant accessibility and legibility debt, inconsistent with professional publication standards.
-**Decision**:
-1.  **Hard Floor**: Established a [HARD] rule of 14px (Tailwind `text-sm`) as the minimum valid text size for any human-facing newsroom label.
-2.  **Proportional Scale**: Updated `NewsroomUI` tokens to a new relative scale: Status/Key (14px), Base (16px), Header (18px), Display (20px+).
-3.  **UI Refactor**: Systematically updated `TheWire`, `TheBullpen`, `TheDarkroom`, and `NewsroomFloor` to adhere to this new architectural constraint.
-**Why**: Ensures the "Atelier" quality promised in the vision is actually legible and professional. Prioritizes human readability over "cool-but-tiny" tactical aesthetics.
+**Choice**: Handled our technical sourcing strategy with precision:
+1. Confirmed that GDELT exists as a geopolitical event database but was not implemented. Because GDELT lacks dedicated AI developer-centric signals and introduces noise, we chose not to integrate it.
+2. Formulated a list of 6 new industry-leading, high-signal primary engineering hubs: Lilian Weng's Lil'Log (Meta systems safety/engineering), NVIDIA Developer Blog (Compute/CUDA optimizations), Berkeley AI Research (Academic design shifts), vLLM Project Blog (Runtime serving changes), Google Research Blog, and Simon Willison's Pragmatic Log.
+3. Expanded `/services/signals/SourceRegistry.ts` statically and hot-patched live databases non-destructively through `/convex/newsroom/mutations.ts`.
 
-## 038 - Formalizing Mission Telemetry State
-**Problem**: `activeMissionId` was implicitly accessed via type-casts, causing a rift between the domain logic and the UI state representation.
-**Decision**:
-1.  **State Promotion**: Promoted `activeMissionId` to a first-class property in `useNewsroomUIState`.
-2.  **Clean Interfaces**: Removed all `(ui as any)` casts in the domain hooks and orchestrator wiring.
-3.  **Telemetry Bedrock**: Reinforced the ARCHITECTURE [HARD] rule that every agent execution must be linked to a mission.
-**Why**: Fixes significant technical debt and ensures the Mission Registry can reliably link logs to user sessions without fragile code-path assumptions.
+**Reason**: Aligns perfectly with our premium editorial voice of "Vogue meets Wired" — highlighting elite lead indicators from actual system practitioners rather than generic web noise.
 
-## 039 - Domain Context Decomposition (Context Slashing)
-**Problem**: The `NewsroomContext` had become a monolithic "God Object" holding 50+ properties, making the internal engine logic difficult to reason about and scale.
-**Decision**:
-1.  **Domain Split**: Decoupled `AtelierState` (Visual Engine) and parameters (Department/Style/Ratio) into specialized providers: `AtelierContext` and `ParameterContext`.
-2.  **Component Unification**: Extracted repeat UI patterns (SignalCard, ClusterCard, EditorialCard, AssetPreviewCard) from dept modules into the `NewsroomUI` primitive library.
-3.  **Shallow Aggregation**: Maintained the flattened API at the `useNewsroom` level for consumer convenience while strictly isolating the underlying state logic.
-**Why**: Dramatically reduces "Context Bloat" (TD-003) and enforces DRY principles (TD-004), paving the way for easier domain-specific testing and future feature expansion.
+## [2026-05-31] Correcting Outdated & 404 RSS Feed URLs with Active Database Self-Healing Paths
+**Problem**: The application experienced daily ingestion 404 console errors originating from `fetchRss`:
+1. WIRED AI's default news feed was pointing to `https://www.wired.com/feed/category/ai/latest/rss` which returns a HTTP 404.
+2. Anthropic News had no active, reliable native RSS endpoint at `https://www.anthropic.com/news/rss.xml` (HTTP 404).
 
-## 032 - Systematic Deletion: Atmospheric Soundscapes
-**Problem**: The Soundscape feature was an "Additive Feature" that didn't provide enough editorial leverage to justify its complexity and token cost.
-**Decision**: 
-1.  **Deletion**: Completely removed `agentSoundDesigner`, its types, and its UI presence.
-2.  **Principles**: Adhered to the "Minimal but Real" architecture guideline—removing speculative features to focus on core End-to-End editorial flow.
-**Why**: Reduces noise and maintenance burden, keeping the system lean for the deepening phase.
+**Choice**: Handled feed failures sustainably:
+1. Updated WIRED AI's configuration to use the active, tag-based URL pattern: `https://www.wired.com/feed/tag/ai/latest/rss`.
+2. Swapped the broken Anthropic feed for the highly active, stable, and authoritative Hugging Face Blog feed: `https://huggingface.co/blog/feed.xml`.
+3. Designed an active migration within `seedSources` in `convex/newsroom/mutations.ts` that patches outdated/broken feed URLs on live database schemas seamlessly.
 
-## 035 - Broadened Layout Palette
-**Problem**: The `agentLayoutDesigner` was restricted to a tiny subset ('CoverStory', 'Glamour', 'SmallArticle', 'Image', 'Quote') of available block types, causing the magazine layout to appear uniform and list-like.
-**Decision**: Expanded the instructions passed to `agentLayoutDesigner` to include the full suite of available templates (16 types total) defined in `registry.ts`.
-**Why**: Ensures the Art Director can exercise true design flexibility and maintain the diverse, avant-garde layout promised in the product vision.
+**Reason**: Completely heals live and new databases, eliminates distracting runtime 404 errors, and replaces them with a higher volume of valid scientific/technical signals.
 
-## 033 - Mission Registry: Unified Execution Lifecycle
-**Problem**: Logging and telemetry were scattered across hooks and services, making it hard to track long-running agent threads ("Missions").
-**Decision**:
-1.  **Mission Entity**: Created `MissionInstance` and `MissionRegistry` classes to encapsulate start, log, complete, and fail states.
-2.  **Telemetry Integration**: Linked `UsageTracker` directly to the mission lifecycle to provide per-mission token auditing.
-3.  **Deep Signatures**: Refactored ALL agents to accept `missionId` as a standard (optional) param, ensuring every Gemini call is accountable.
-**Why**: Provides the bedrock for professional observability and future "Explainable AI" audit trails.
+## [2026-05-31] Eliminating Rules of Hooks Violations & Unstable HOC Generation inside MagazineGrid
+**Problem**: The application experienced a critical runtime React crash inside `MagazineGrid.tsx`.
+1. The dynamic higher-order component `ResponsiveGridLayout` was created inside a `useMemo` block inside the render method of the functional component. This violated React's Rule of Hooks because HOC initialization functions (such as `WidthProvider` in `react-grid-layout`) register live internal state hooks dynamically during component render cycles.
+2. `WidthProvider` was imported as a default export, which in `react-grid-layout` resolves to the `ReactGridLayout` component instead of the helper. This caused an invalid React element type error ("expected a string or class/function but got: object").
 
-## 042 - UX Logic Continuity & Convex Query Resilience
-**Problem**: The user experienced "Dead Ends"—states where the UI provided no clear navigation path forward or backward—and a critical "Server Error" when fetching historic briefings via the `getAllDrafts` query.
-**Decision**: 
-1.  **Contextual Reciprocity**: Implemented explicit "Back" and "Abort" navigation bridges in every department (Bullpen, Darkroom, Press), ensuring the user can always retreat to `The Wire` to pivot their mission topic.
-2.  **View Persistence**: Integrated an `onClose` callback from the `NewsroomFloor` into the `PrintingPress`, allowing the user to seamlessly transition from "Published" state to viewing the magazine.
-3.  **Schema Enforcement**: Deployed and verified the `getAllDrafts` Convex query to ensure historical research artifacts ("Briefings") are reliably accessible.
-4.  **Cta Recovery**: Added fallback CTAs in empty views (e.g., empty Briefing vault) to guide the user back to valid operational paths.
-**Why**: Respects the user's need for a "whole flow" representation and ensures technical stability across the deep-mission lifecycle.
+**Choice**: Refactored the core layout engine imports and component boundaries:
+1. Imported `react-grid-layout` via its default module export `ReactGridLayout` and safely extracted `.Responsive` and `.WidthProvider` components at runtime.
+2. Initialized `ResponsiveGridLayout = WidthProvider(Responsive)` statically at the file/module level, permanently outside the `MagazineGrid` React component.
 
-## 030 - Latent Layout: AI-Controlled Grids
-**Problem**: The front page was a static list, failing to reflect the "Visual First" editorial vision of dynamic, AI-placed layouts.
-**Decision**: 
-1.  **Grid Engine**: Transition `App.tsx` from a list to `react-grid-layout`.
-2.  **AI Orchestration**: Use `agentLayoutDesigner` during publication to determine (x, y, w, h) based on the story's importance and visual type.
-3.  **Unified State**: Persist both `MagazineItem` and its `LayoutItem` in a single transactional mutation to ensure grid-data parity.
-**Why**: Moves the system from "AI Content" to "AI Publication," where the presentation itself is agentic.
+**Reason**: Completely satisfies React's Rule of Hooks guidelines, prevents unstable component regeneration during rendering of the newspaper layouts, and fully resolves runtime crashes.
 
-## 029 - Canonical State Ownership & Write Paths
-**Problem**: As the app grew, data was being updated in multiple places (local state, context, different mutations), risking fragmentation.
-**Decision**: 
-1.  **Convex as Truth**: Any data intended for the "Published Line" must live in the `issues` table and be written via the `addItemToLatestIssue` mutation.
-2.  **Mission State**: All operational telemetry (logs, token usage) belongs to the `missions` table, indexed by `missionId`.
-**Why**: Ensures predictable data flow and a single source of truth for the magazine's persistent history.
+## [2026-05-30] State Coupling for Asset Generators & Tactile Exception Handling
+**Problem**: Two critical issues blocked the visual darkroom editorial loop:
+1. When a user clicked "Commit to Publication", the operation silently crashed with `"Cannot read properties of undefined (reading 'layout')"`. This was caused by `useNewsroomState.ts` constructing its action context `allUi` as `{ ...ui, ...params }`, but omitting `atelierState` and `setAtelierState` from it. This left `atelierState` undefined inside `usePublicationFlow` and `useVisualAgents`, causing any layout/aspect-ratio checks to crash.
+2. When pipeline exceptions occurred, they set the context `error` state. However, because `error` was never rendered anywhere on the user interface, failures were silently swallowed, rendering buttons inert and giving users the impression that "nothing happens".
 
-## 028 - Systematic Integrity: The Architecture Drill
-**Problem**: As the codebase deepens, regressive bugs in service coordination become harder to catch during feature development.
-**Decision**: 
-1.  **Drill Service**: Implement an `ArchitectureDrill` that exercising deep module interfaces via "Dry Runs".
-2.  **Simulation over Mocks**: Prefer running the actual module logic with minimal/deterministic inputs to verify cross-module paths.
-**Why**: Ensures the "Interface is the Test Surface" principle is actionable and observable.
+**Choice**: Resolved these issues immediately:
+1. Updated `allUi` inside `useNewsroomState.ts` to include `atelierState` and `setAtelierState` (`const allUi = { ...ui, ...params, atelierState, setAtelierState };`), fully exposing the active Atelier state parameters to the downstream agent hooks.
+2. Added a highly visible, tactical self-dismissible **Pipeline Exception Alert Banner** at the top right of the `NewsroomFloor` workspace, displaying any operational context error messages in clear font paired with a `clear` callback to reset state.
 
-## 027 - Release Depth: The Publication Orchestrator
-**Problem**: The final "Press" phase (polishing, layout synthesis, artifact prep) was implemented as a sequence of state updates in the hook.
-**Decision**: 
-1.  **Release Module**: Extract the final preparation logic into a `PublicationOrchestrator`.
-2.  **Synthesis**: Move metadata generation and layout decision-making into the orchestrator.
-**Why**: Concentrates "Release Knowledge" in one place and ensures published items follow a consistent structural canonical.
+**Reason**: Fully restores state synchronization across the entire publishing pipeline, secures user confidence through real-time feedback, and provides a polished experience.
 
-## 026 - Image Deepening: The Atelier Engine
-**Problem**: Visual production logic (concepts, palettes, aspect ratios) was tightly coupled with the React hook, making the Darkroom brittle and hard to extend.
-**Decision**: 
-1.  **Visual Orchestrator**: Create an `AtelierEngine` to manage design sessions.
-2.  **Session state**: The engine initializes a `VisualConcept` and `ColorPalette` strategy from the draft.
-3.  **Prompt Refinement**: Centralize prompt construction logic (applying modifiers/palettes) inside the engine.
-**Why**: Ensures visual consistency and allows for more complex "Image-to-Image" or multi-model visual flows in the future.
+## [2026-05-30] Visual Layout State Continuity & Department Transition Streamlining
+**Problem**: Two critical seams existed in the end-to-end editorial pipeline:
+1. When generating a new image asset (clicking "Develop Lead Asset" / `reShoot`), the wizard prematurely changed the view state to `PRINTING_PRESS`. This bypassed the "Commit to Publication" button in the Darkroom component entirely, leaving users stranded on an unpublishable "Awaiting grid placement confirmation..." placeholder screen.
+2. In `usePublicationFlow`, the layout coordinator read current layout positions from `(persistedState as any)?.latestIssue?.content?.layout`. However, `persistedState` queried the `newsroom_state["current"]` table, which never has a `latestIssue` property. This fallback evaluates to `[]`, meaning existing publication grid structures were lost upon every single publish event, leading to overlapping elements and screen erasure.
+3. If no issues existed in the DB (new run), default bootstrapped issues completely bypassed laying out records and omitted layout properties, discarding initial layouts.
 
-## 025 - Decoupled Ingestion: The Signal Broker
-**Problem**: News ingestion was "shallow," with the hook handling RSS parsing, normalization, and noisy filtering.
-**Decision**: 
-1.  **Broker Pattern**: Implement a `SignalBroker` that manages a collection of `SignalAdapters`.
-2.  **Adapters**: Create specific adapters for RSS, GitHub, etc., each returning canonical tokens.
-3.  **Hiding Complexity**: The broker handles the noise filter and embedding generation internally.
-**Why**: Promotes **Locality** of ingestion logic and makes adding new data sources trivial.
+**Choice**: Resolved these seams with three decisive actions:
+1. Removed `setStep('PRINTING_PRESS')` from the `reShoot` routine in `/hooks/useVisualAgents.ts`. The darkroom now preserves state during rendering. Once image generation completes, the user can verify the asset in `TheDarkroom` and click "Commit to Publication", which safely transitions them to `'PUBLISHED'`.
+2. Added a `latestIssue` query to `useNewsroomData` and plugged it as `data.latestIssue` directly into `usePublicationFlow`. The layout designer now fetches and appends grid elements to the *real* live current issue layout, preserving position parameters.
+3. Updated `/convex/newsroom/mutations.ts` to support layout parameters on bootstrapped genesis issues, and added an intuitive "Send to Darkroom" transition button to `TheBullpen.tsx` under finalized drafts.
 
-## 024 - Observable Execution: The Mission Thread
-**Problem**: Global agent logs are difficult to trace, making it impossible to determine which agent contributed to a specific draft or where a failure occurred in the chain.
-**Decision**: 
-1.  **Mission Entity**: Introduce a `missions` table to track execution runs (editorial, scout).
-2.  **Breadcrumb Logging**: Update `logMessage` to include a `missionId` (link to context).
-3.  **Threaded Logic**: The `EditorialOrchestrator` tags every agent interaction with the active `missionId`.
-**Why**: Enables deep observability and future "Replay" or "Explainable AI" features within the newsroom.
+**Reason**: Ensures a bulletproof, intuitive draft-to-publish chain, avoids grid overlaps and asset wiping, and restores flawless reactivity.
 
-## 023 - Architecture Depth: The Editorial Orchestrator
-**Problem**: `useNewsroomState.ts` was becoming a "God Hook," containing complex multi-agent coordination logic that was difficult to test and maintain.
-**Decision**: 
-1.  **Orchestrator Module**: Extract the coordination of Scout, Board, Columnist, and Editor into a dedicated `EditorialOrchestrator` service.
-2.  **Deep Interface**: Provide high-leverage entry points like `conductDebate` and `produceDraft` that encapsulate multiple agent cycles and context management.
-3.  **Seam for Testing**: Decouple agent coordination from React state to allow for backend / headless testing of the editorial chain.
-**Why**: Improves **Locality** of editorial knowledge and provides **Leverage** to UI callers, reducing hook complexity by ~40%.
-**Problem**: Once published, articles feel "dead". There is no feedback loop or sense of a living community within the magazine.
-**Decision**: 
-1.  **Peer Review Sidebar**: Implement a "Critic's Corner" in the published article view.
-2.  **Persona Feedback**: Upon publication, a separate multi-agent call (`agentCriticsCorner`) generates 3 witty, provocative comments from distinct AI personas (The Brutalist, The Accelerationist, etc.).
-3.  **Avatar Vibrancy**: Each critic has a "Visual Vibe" that colors their appearance.
-**Why**: Adds "soul" and a sense of ongoing conversation to the magazine, fulfilling the vision of a "living organism."
+## [2026-05-30] Copyright Shield & Factual Claim Deconstruction (Variant 2)
+**Problem**: Redrafting third-party feeds (such as the TechCrunch RSS wire) runs a severe risk of copyright infringement (UrhG § 23 / 44b) if the dramatic arrangement, structure, or verbatim phrases are mirrored. Simple paraphrasing is legally unsafe and journalists need guarantees that they aren't copying form.
+**Choice**: Designed and integrated a five-step defensive legal protocol inside the three-zone pipeline:
+1. Nominate a signal in Zone 1 as the Lead Article (Seed / Leitartikel).
+2. Deconstruct the seed into raw, dry "Atomic Claims" (factual vectors), casting away unique phrasing.
+3. Automatically search for independent sources and synthesize a confirmation-rich "Evidence Pack".
+4. Prompt the columnist agent using the synthesized facts, with strict instructions to draft a completely original layout with multiple citations.
+5. Auto-run a compliance similarity auditor upon draft creation to assign a Safe Distance Score and counsel recommendations.
+**Reason**: Enforces absolute legal compliance (UrhG) and promotes original investigative journalism instead of simple automated paraphrasing.
 
-## 021 - Deep Context: Cultural Grounding (Querverbindungen)
-**Problem**: Technical signals (e.g., "New LLM release") often feel disconnected from broader human history, philosophy, or cultural trends. They are "tote News" (dead news).
-**Decision**: 
-1.  **Vector Extraction**: Introduce an automated agent (`agentCulturalGrounding`) that runs whenever news signals are ingested or synthesized.
-2.  **Cultural Resonance Mapping**: This agent maps technical data points to philosophical concepts, art movements, or historical events (e.g., mapping "Autonomous Agents" to "Leibniz's Monads").
-3.  **Visualization**: Display these "Querverbindungen" as a Mood Board in the Darkroom to influence visual asset production and editorial depth.
-**Why**: Ensures The Latent Times remains the "Spearhead of the Tech Cultural AI Revolution" by revealing philosophies that others miss, giving weight to "weakly written but powerful thoughts."
+## [2026-05-30] Workbench Context Integration
+**Problem**: During the Three-Zone Pipeline workbench drafting trigger ("Draft selected angles"), the raw signal details and directional feedback did not flow forward to the columnist/editor. This left context blank (`''`), forcing an emergency web search fallback and discarding curated telemetry.
+**Choice**: Gather and serialize the selected workspace signals' raw metadata (title, publisher/sourceType, and content body) along with the active workbench override/strategic directive. Inject this aggregated document structure as `fullContext` in the `produceDraft` orchestrator flow.
+**Reason**: Preserves selected curated context from Zone 1 & 2 without throwing unnecessary search events or causing data loss.
 
-## 020 - Intelligent News Engine (Vector Clustering & Source Cutoffs)
-**Problem**: The Ticker acts as a dumb aggregator. It fetches the same news repeatedly, causing redundancy, and fails to connect related articles from different sources (e.g., a GitHub repo and a TechCrunch article about the same tool).
-**Decision**: 
-1.  **Source Management**: Introduce a `sources` table in Convex with `last_fetched_at` timestamps to implement hard cutoffs and prevent redundant API calls.
-2.  **Vector Embeddings**: Every incoming article is embedded via Gemini.
-3.  **Semantic Clustering**: Use vector similarity search to group related articles into `Stories` (Clusters). High similarity (>95%) triggers deduplication; moderate similarity (>75%) groups articles into a single evolving story.
-4.  **UI Shift**: The News Terminal will display "Stories" (clusters of articles) rather than isolated, chronological items.
-**Why**: Transforms the app from a simple RSS reader into a "Knowledge Graph" that understands context, reduces noise, and provides a much richer foundation for the Editorial Board.
+## [2026-05-30] Pipeline Integration & Stability
+**Problem**: The news flow from ingestion to publishing required manual coordination between Editorial(Orchestrator), Visual(AtelierEngine), and Publication(PublicationOrchestrator) rooms.
+**Choice**: Added `executeFullPipeline` to `useNewsroomState` to unify the end-to-end flow. Also fixed an ingestion schema validation error by updating the mutation validator to include `qualityScore` instead of stripping it.
+**Reason**: Enables seamless "one-click" news synthesis from raw signals to published artifact without complex manual scaffolding.
+**Problem**: The "Signal Ingestion" was flat-weighted; high-quality technical feeds carried the same gravity as general noise. Directorial control was split between "Global Directive" and accidental "Manual Override."
+**Choice**:
+1. **Source Packs & Trust Tiers**: Implemented `sourcePack` (e.g., AI_CORE, VC_SENTIMENT) and `sourceTrustTier` (primary/secondary). The fetcher now scores signals based on source quality before embedding. 
+2. **Neural Pillar Synthesis**: Clustering now requires "Cross-Pack Resonance" (signals from different packs) to reach a crystallization threshold. New pillars are synthesized via the **Boardmember logic** (Gemini) rather than simple title inheritance.
+3. **Unified Directorial Mandate**: Consolidated UI controls into a single "Mandate" injection that weighs the autonomous engine's focus probability vectors.
+**Reason**: Increases the signal-to-noise ratio in the high-frequency technical landscape and prevents "echo-chamber" clustering within single sources.
 
-## 019 - Native Grid Layout Handles
-**Problem**: Custom resize handles (e.g., "Magenta Corner Markers") were over-engineered, causing duplication issues and visual glitches during drag operations.
-**Decision**: Reverted to using the native `react-grid-layout` resize handles, styled minimally with CSS.
-**Why**: Prioritizes stability and standard behavior over complex custom UI code. "Boring is better" for core interaction mechanics.
+## [2026-05-30] Agentic Reliability & Schema Locking
+**Problem**: Inter-agent handoffs (Columnist to Editor) and Board debates were subject to JSON hallucinations and inefficient parallel mutations.
+**Choice**:
+1.  **Schema Centralization**: Move all Type schemas to `services/gemini.ts`. Every agent now references a "locked" source of truth for its output structure.
+2.  **Consensus Serialization**: Replaced individual persona calls with a single `agentDebate` atomic call. The engine now generates the entire transcript and editorial output in one serialized transaction.
+3.  **Lexical Shielding**: Added a "Lexical Deduplication" and "Noise Filter" middleware to the `SignalBroker` to purge irrelevant or redundant headlines before expensive embedding generation.
+**Reason**: Reduces token waste, prevents "thread snaps" in the pipeline, and ensures industrial-grade reliability for autonomous cycles.
 
-## 018 - Editorial Excellence: Surgical Sentence Editing
-**Problem**: Block-level rewrites (paragraphs) are still too coarse. A user might want to fix a single awkward sentence without risking the rest of the paragraph's flow. Additionally, AI rewrites often lose the "global context" of the article.
-**Decision**: 
-1.  **Sentence-Level Granularity**: Implement a system that can split blocks into sentences for targeted editing.
-2.  **Annotation-First Workflow**: The Editor (KI-Linter) will now provide "Surgical Annotations" that target specific sentences or phrases.
-3.  **Contextual Memory Buffer**: When an agent rewrites a sentence, it is provided with the *entire* article context (the "Narrative Skelett") to ensure tonal and logical consistency.
-4.  **Multi-Agent Refinement**: Allow different agents (e.g., The Critic, The Fashion-Forward) to "pitch" sentence-level improvements based on their specific personas.
-**Why**: This achieves "Exzellenz" by moving away from generic LLM outputs toward highly crafted, individualistic prose that feels human-edited.
+## [2026-05-30] Engine Efficiency & Persistence Isolation
+**Problem**: The autonomous engine was running frequent (~1 min) scans regardless of usage. Global settings were reset on reload.
+**Choice**: Implemented **Circadian Schedule** (Morning/Midday/Evening triggers) and **Persistence Isolation** (dedicated Convex `settings` key for parameters).
+**Reason**: Prioritizes resource conservation and configuration reliability.
 
-## 017 - Shift to Granular Collaboration (Structured Drafts)
-**Problem**: The "Re-Draft" button was a blunt instrument. If a user liked 90% of a draft but hated one paragraph, they had to regenerate the entire text, risking the loss of the good parts. The system was a linear "Generator" rather than a "Collaborator".
-**Decision**: 
-1.  **Structured Drafts**: Refactored the `GeneratedArticle` body from a single `string` to an array of `DraftBlock` objects (`{ id, type, content, status }`).
-2.  **KI-Linter (The Editor)**: Introduced an agent that analyzes individual blocks and attaches annotations (Tone Mismatch, Clarity, Fact Check).
-3.  **Micro-Actions**: Allowed users to trigger block-level rewrites or expansions without affecting the rest of the document.
-**Why**: This moves the Newsroom from a simple prompt-wrapper to a professional editorial tool. It gives the user granular control, builds trust through transparent AI critiques, and aligns with the "Director's Overview" philosophy.
+## [2026-05-30] Pipeline Visibility & UX Clarity
+**Problem**: Autonomous ops were hidden; dark UI grayscale values were too low for legibility.
+**Choice**: Replaced standard views with an **Asymmetrical Bento Grid** for the autonomous pipeline and upgraded contrast baselines to `zinc-400`.
+**Reason**: Transparency of agentic process and accessibility compliance.
 
-## 016 - Modular Newsroom Architecture
-**Problem**: `NewsroomFloor.tsx` became a "monster god file" (800+ lines) containing all logic for every department, making it impossible to maintain or scale.
-**Decision**: Refactored the monolithic component into a modular architecture.
-1.  **Departmental Isolation**: Extracted `TheWire`, `TheBullpen`, `TheDarkroom`, and `ThePress` into their own files.
-2.  **Shared Context**: Leveraged `NewsroomContext` and the `useNewsroom` hook to manage global state, eliminating prop drilling.
-3.  **UI Orchestration**: `NewsroomFloor.tsx` now acts as a lightweight orchestrator, managing only high-level layout and navigation.
-**Why**: Improves code readability, allows for independent development of department features, and follows React best practices for component composition.
+## [2026-05-26] Modular Methodologies & The Three-Zone Pipeline
+**Problem**: Editorial flows were hardcoded, limiting manual/automated experimentation.
+**Choice**: Converted `TheWire` into a **Methodology Switchboard** and launched the **Three-Zone Pipeline** (Mosaic -> Workbench -> Press).
+**Reason**: Empowers the product to adapt to multiple conceptual workflows via structural toggles.
 
-## 015 - Newspaper Terminology & Tabbed Editorial Chain
-**Problem**: The "Cockpit" metaphor and 4-column layout felt too generic and cluttered, lacking the specific "soul" of a futuristic newspaper.
-**Decision**: 
-1.  **Terminology**: Renamed all modules to reflect a physical newspaper (The Newsroom Floor, The Wire, The Bullpen, The Darkroom, The Press) and agents to specific roles (The Scout, The Columnist, The Editor, The Photographer).
-2.  **Layout**: Replaced the 4-column grid with a persistent, tabbed "Editorial Chain". Only one department is fully visible at a time, but the chain always shows the status and item count of all departments.
-3.  **Liveliness**: Added "Agent Cards" that visually pulse and display current actions when an agent is working.
-**Why**: Deepens the immersion and thematic consistency ("Vogue meets Wired meets The Matrix"). The tabbed layout provides more horizontal space for complex tasks (like writing and image review) while maintaining global situational awareness.
+## [2026-05-24 to 2026-05-25] Core Foundation & Cleanup
+**Problem**: System bloat, buzzword naming, and monolithic hooks.
+**Choice**: 
+1. **Signal Convergence**: Eradicated "Ticker" concept for canonical `Signals`.
+2. **De-marketing**: Renamed "Deep Discovery" to "Synthesize Clusters" and other literal terms.
+3. **Hook Decomposition**: Split 800-line `useNewsroomState` into domain-specific orchestrators.
+4. **Mission Registry**: Unified telemetry and logging under a single `missionId` thread.
+**Reason**: Adherence to **Architectural Honesty** and maintainability.
 
-## 014 - Multi-Modal Scout & Zero-Token Ticker
-**Problem**: Running AI on every incoming signal from the web is too expensive and token-intensive.
-**Decision**: The Scout now has three modes. Mode A (The Ticker) is a zero-token aggregator of real-world sources (GitHub, RSS) filtered purely by user settings. Mode B (Research) and Mode C (Specific) are active, token-consuming AI searches triggered manually by the user from the Ticker.
-**Why**: Saves costs, reduces noise, and gives the user control over when to deploy expensive AI resources.
-
-## 013 - Tech-First Foundation & Lenses
-**Problem**: The magazine's focus was too broad, treating fashion, culture, and tech equally, leading to generic outputs.
-**Decision**: AI Technology (models, workflows, code) is now the absolute foundation. Fashion, culture, and social issues are treated as "add-ons" or "lenses" applied to the tech foundation.
-**Why**: Creates a sharper, more unique editorial voice ("Vogue meets Wired") and grounds the content in hard, verifiable facts before abstracting it.
-
-## 012 - The Cockpit Architecture
-**Problem**: The linear wizard UI of the MVP hid the complexity and operational power of the newsroom.
-**Decision**: Transition the Newsroom to a "Cockpit" model where all modules (Ingestion, Board, Desk, Art) are simultaneously visible and interactive.
-**Why**: Treats the Newsroom as a professional workspace. Allows the user to intervene at any point in the pipeline, adjust settings, and see the entire operational chain at a glance.
-
-## 011 - Environment Variable Standardization
-**Problem**: The application crashed in the browser with "An API Key must be set" because different environments (local, platform, headless) inject the Gemini API key under different names (`GEMINI_API_KEY`, `API_KEY`, `VITE_GEMINI_API_KEY`).
-**Decision**: Implemented a robust fallback chain in `vite.config.ts` `define` block: `process.env.GEMINI_API_KEY || process.env.API_KEY || env.GEMINI_API_KEY || env.API_KEY || env.VITE_GEMINI_API_KEY`.
-**Why**: Ensures the API key is always available to the client-side `@google/genai` SDK regardless of how the container or platform provisions it.
-
-## 010 - The Simple Newsroom MVP
-**Problem**: The legacy `TheNewsroom` component became too complex with multi-agent pitching, debates, and layout binding all happening simultaneously, making it hard to debug the core generation pipeline.
-**Decision**: Bypassed the complex implementation in favor of `SimpleNewsroom.tsx`.
-**Why**: Establishes a reliable, linear end-to-end pipeline (Topic -> Columnist Draft -> Photographer Image -> Publish) first. We will layer complexity (Editorial Board, RSS scanning) back on top of this stable foundation in Phase 2.
-
-## 009 - Hybrid Signal Ingestion (The Live Wire)
-**Problem**: Pure LLM-based search is expensive, slow, and can miss "breaking" updates from specific high-trust niches (e.g., specific Substack feeds or TechCrunch).
-**Decision**: Implement a **Hybrid Ingestion Model**.
-1.  **Deterministic Layer (RSS)**: A hardcoded `FEED_REGISTRY` of high-signal sources (Wired, 404 Media, Arxiv) polled via a CORS proxy. This provides the "Baseline Hum" of the newsroom.
-2.  **Agentic Layer (Search)**: Gemini-driven query expansion for specific topics ("Agentic Patterns") to find signals *outside* the registry.
-**Why**: Reduces hallucination risk, ensures coverage of trusted domains, and lowers the "Time to Signal" for breaking news.
-
-## 008 - Tactile Layout Binding
-**Problem**: Assigning content to layout slots via dropdowns or ID pasting is tedious and breaks flow.
-**Decision**: Implement native HTML5 Drag-and-Drop.
-- **Source**: Asset Pool cards (`draggable=true`).
-- **Payload**: `itemId` string.
-- **Target**: Block wrapper in `LayoutEngine`.
-- **Feedback**: Visual highlight (Emerald Ring) on valid drop targets.
-**Why**: Aligns with the "Editor's Desk" metaphor. Makes the layout process feel like physical collage.
-
-## 007 - Separation of Church and State (Content vs Layout)
-**Problem**: Trying to "write" the news and "design" the page in the same view created cognitive overload and UI clutter.
-**Decision**: Split the Newsroom into two distinct modes:
-1.  **Content Mode**: For gathering signals, writing copy, and editorial approval.
-2.  **Layout Mode**: For binding assets to slots, managing the grid, and art direction.
-**Why**: Allows for specialized UI (e.g., Asset Pool vs. Agent Console) and mirrors real-world editorial workflows (Editor vs. Art Director).
-
-## 006 - The Layout Engine (v3.0)
-**Problem**: Hardcoded React components (`CoverStory.tsx`, `TheEdit.tsx`) made it impossible for AI Agents to "design" the page. The magazine was static structure with dynamic text.
-**Decision**: 
-- Adopt a **Headless CMS Pattern** where the "Page" is a JSON array of `BlockInstances`.
-- Create a `LayoutEngine` component that maps `block_type` strings to React components.
-- **Why**: Allows the "Editor Agent" to move sections, change layouts, and invent new page structures without code changes.
-
-## 005 - Tone Physics vs. Presets (v4.3 Legacy)
-**Problem**: "Gonzo" or "Academic" presets were too rigid.
-**Decision**: Replaced with **Tone EQ** sliders.
-
-## 004 - The Glass Box Principle
-**Decision**: Expose raw agent logs and JSON data to the user to build trust.
+## [Historical Foundations]
+- **[2026-05-22] AI-Native Layout**: Transitioned to `react-grid-layout` orchestrated by agent metadata.
+- **[2026-05-20] Vector Clustering**: Implemented semantic grouping and deduplication for incoming news signals.
+- **[2026-05-18] Structured Drafts**: Refactored drafts into `DraftBlock` arrays for surgical agent/human editing.
+- **[2026-05-15] Departmental Isolation**: Established the "Editorial Chain" (Floor, Wire, Bullpen, Darkroom, Press).
+- **[2026-05-10] Hybrid Ingestion**: Combined deterministic RSS registry with agentic search.

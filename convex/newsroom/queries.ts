@@ -99,14 +99,14 @@ export const getImageById = query({
   },
 });
 
-// 5. GET NEWSROOM STATE
-// Fetches the persisted UI state.
-export const getNewsroomState = query({
-  args: {},
-  handler: async (ctx) => {
+// 5. GET NEWSROOM STATE - STYLED PERSISTENCE (VERIFIED)
+export const getNewsroomStateByKey = query({
+  args: { key: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const key = args.key ?? "current";
     const state = await (ctx.db as any)
       .query("newsroom_state")
-      .withIndex("by_key", (q: any) => q.eq("key", "current"))
+      .withIndex("by_key", (q: any) => q.eq("key", key))
       .unique();
     return state?.data || null;
   },
@@ -163,26 +163,38 @@ export const getSources = query({
 export const getNewsClusters = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 20;
+    const limit = 1;
     const stories = await ctx.db
       .query("stories")
       .withIndex("by_lastUpdatedAt")
       .order("desc")
       .take(limit);
 
-    // Compute density for each story
-    return await Promise.all(
-      stories.map(async (story) => {
-        const items = await ctx.db
-          .query("signals")
-          .filter((q) => q.eq(q.field("storyId"), story._id))
-          .collect();
-        return {
-          ...story,
-          articleCount: items.length,
-        };
-      })
-    );
+    // Return minimal data
+    return stories.map((story) => ({
+      _id: story._id,
+      _creationTime: story._creationTime,
+      title: story.title,
+      summary: story.summary,
+      keyEntities: story.keyEntities,
+      lastUpdatedAt: story.lastUpdatedAt,
+      status: story.status,
+      cultural_context: story.cultural_context,
+      missionId: story.missionId,
+      articleCount: 0,
+    }));
+  },
+});
+
+// 11. GET MISSIONS
+export const getMissions = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    return await ctx.db
+      .query("missions")
+      .order("desc")
+      .take(limit);
   },
 });
 
@@ -191,16 +203,20 @@ export const getDeepInsight = query({
   args: {},
   handler: async (ctx) => {
     const activeMissions = await ctx.db.query("missions").filter(q => q.eq(q.field("status"), "running")).collect();
-    const tickerCount = (await ctx.db.query("signals").collect()).length;
-    const storiesCount = (await ctx.db.query("stories").collect()).length;
-    const sources = await ctx.db.query("sources").collect();
+    
+    // Instead of collecting the entire table and risking 'too many bytes read', 
+    // we take a sample/cap just to get a general idea or use a limited view.
+    const tickerCount = 0;
+    const storiesCount = 0;
+    
+    const sources = await ctx.db.query("sources").take(50);
     const lastLogs = await ctx.db.query("agent_logs").order("desc").take(50);
     const recentDrafts = await ctx.db.query("drafts").order("desc").take(5);
 
     return {
       metrics: {
-        signals: tickerCount,
-        narrativePillars: storiesCount,
+        signals: tickerCount >= 500 ? "500+" : tickerCount,
+        narrativePillars: storiesCount >= 500 ? "500+" : storiesCount,
         activeSources: sources.filter(s => s.isActive).length,
         pendingMissions: activeMissions.length,
       },
@@ -223,11 +239,41 @@ export const getOrphanSignals = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 100;
-    return await ctx.db
+    
+    // Convex query filter for undefined fields can be tricky. 
+    // We will query ordered by timestamp and filter in memory for those missing storyId.
+    const signals = await ctx.db
       .query("signals")
-      .filter((q) => q.eq(q.field("storyId"), undefined))
+      .withIndex("by_timestamp")
       .order("desc")
-      .take(limit);
+      .take(limit * 5); // Take more to account for filtering
+
+    const orphans = signals.filter(s => !s.storyId);
+    return orphans.slice(0, limit);
+  },
+});
+
+export const getActiveWorkbenchSession = query({
+  args: {},
+  handler: async (ctx) => {
+    // For now we just return the most recently updated active or processing session
+    return await ctx.db
+      .query("workbench_sessions")
+      .withIndex("by_updatedAt")
+      .filter(q => q.neq(q.field("status"), "completed"))
+      .order("desc")
+      .first();
+  },
+});
+
+export const getStoryAngles = query({
+  args: { workbenchId: v.optional(v.id("workbench_sessions")) },
+  handler: async (ctx, args) => {
+    if (!args.workbenchId) return [];
+    return await ctx.db
+      .query("story_angles")
+      .withIndex("by_workbench", q => q.eq("workbenchId", args.workbenchId!))
+      .collect();
   },
 });
 

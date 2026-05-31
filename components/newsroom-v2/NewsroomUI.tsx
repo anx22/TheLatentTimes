@@ -42,7 +42,7 @@ export const NewsroomHeader: React.FC<{
   icon?: LucideIcon;
   actions?: React.ReactNode;
 }> = ({ title, subtitle, icon: Icon, actions }) => (
-  <div className="h-16 border-b border-zinc-800/50 flex items-center px-8 gap-6 bg-black/40 backdrop-blur-md sticky top-0 z-20">
+  <div className="h-16 border-b border-zinc-600 flex items-center px-8 gap-6 bg-zinc-800 backdrop-blur-md sticky top-0 z-20">
     <div className="flex-1 min-w-0">
       {subtitle && (
         <div className="text-[14px] font-mono uppercase tracking-[0.3em] text-zinc-500 mb-1">
@@ -87,7 +87,7 @@ export const NewsroomButton: React.FC<{
   const variants = {
     primary: "bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]",
     secondary: "bg-zinc-100 text-black hover:bg-white",
-    ghost: "border border-zinc-800/50 text-zinc-400 hover:border-zinc-600 hover:text-white",
+    ghost: "border border-zinc-600 text-zinc-400 hover:border-zinc-600 hover:text-white",
     tactical: "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20",
   };
 
@@ -114,9 +114,9 @@ export const NewsroomPanel: React.FC<{
   width?: string;
 }> = ({ children, className, side = 'center', width }) => {
   const sideStyles = {
-    left: "border-r border-zinc-800/50 bg-black/20",
-    right: "border-l border-zinc-800/50 bg-black/40",
-    center: "flex-1 flex flex-col min-w-0 bg-[#060606]",
+    left: "border-r border-zinc-600 bg-zinc-900",
+    right: "border-l border-zinc-600 bg-zinc-800",
+    center: "flex-1 flex flex-col min-w-0 bg-zinc-900",
   };
 
   return (
@@ -135,9 +135,9 @@ export const NewsroomLabel: React.FC<{
   type?: 'header' | 'status' | 'key';
 }> = ({ children, className, type = 'key' }) => {
   const styles = {
-    header: "text-[15px] font-bold uppercase tracking-[0.2em] text-zinc-500",
+    header: "text-[15px] font-bold uppercase tracking-[0.2em] text-zinc-400",
     status: "text-[14px] font-bold uppercase tracking-[0.2em] text-emerald-500/70 bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1 rounded-sm",
-    key: "text-[11px] font-mono uppercase tracking-[0.1em] text-zinc-600",
+    key: "text-[11px] font-mono uppercase tracking-[0.1em] text-zinc-400",
   };
 
   return (
@@ -158,14 +158,14 @@ export const SignalCard: React.FC<{
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       className={cn(
-        "p-5 bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-default group border-l-[3px] relative overflow-hidden flex flex-col h-full min-h-[160px] shadow-sm",
+        "p-5 bg-white/[0.03] border border-zinc-700 hover:bg-white/[0.06] hover:border-zinc-700 transition-all cursor-default group border-l-[3px] relative overflow-hidden flex flex-col h-full min-h-[160px] shadow-sm",
         isResonant ? "border-l-[#ccff00] bg-[#ccff00]/5 shadow-[0_0_30px_rgba(204,255,0,0.03)]" : "border-l-zinc-800 hover:border-l-emerald-500",
         className
       )}
     >
       <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-zinc-800/80 text-zinc-400 border border-zinc-700/30 uppercase tracking-[0.15em] rounded-[2px]">
+              <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-zinc-800 text-zinc-400 border border-zinc-700/30 uppercase tracking-[0.15em] rounded-[2px]">
                   {item.source || 'UNK'}
               </span>
               {isResonant && (
@@ -231,7 +231,7 @@ export const MagazineSignalCard: React.FC<{
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "group relative overflow-hidden bg-zinc-900/40 border border-white/5 hover:border-white/20 transition-all flex flex-col",
+        "group relative overflow-hidden bg-zinc-900 border border-zinc-700 hover:border-zinc-600 transition-all flex flex-col",
         featured ? "md:col-span-2 md:row-span-2 p-8" : "p-6",
         className
       )}
@@ -283,7 +283,7 @@ export const MagazineSignalCard: React.FC<{
             {onAnalyze && (
                 <button 
                   onClick={() => onAnalyze(item.title, item.storyId)}
-                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors border border-zinc-700/50 px-3 py-1.5 hover:bg-white/5 rounded-xs"
+                  className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-white transition-colors border border-zinc-700/50 px-3 py-1.5 hover:bg-zinc-900 rounded-xs"
                 >
                   <Sparkles className="w-3 h-3" />
                   Analyze
@@ -300,7 +300,7 @@ export const MagazineSignalCard: React.FC<{
         </div>
         
         {item.url && (
-          <a href={item.url} target="_blank" rel="noreferrer" className="text-zinc-600 hover:text-zinc-300 bg-white/5 p-1.5 rounded-[4px] hover:bg-white/10 transition-all">
+          <a href={item.url} target="_blank" rel="noreferrer" className="text-zinc-600 hover:text-zinc-300 bg-zinc-900 p-1.5 rounded-[4px] hover:bg-zinc-800 transition-all">
             <Globe className="w-4 h-4" />
           </a>
         )}
@@ -320,7 +320,7 @@ export const BriefingCard: React.FC<{
       animate={{ opacity: 1, x: 0 }}
       whileHover={{ x: 5 }}
       className={cn(
-        "p-6 bg-zinc-900/60 border border-emerald-500/10 hover:border-emerald-500/30 transition-all cursor-pointer group relative overflow-hidden",
+        "p-6 bg-zinc-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all cursor-pointer group relative overflow-hidden",
         className
       )}
       onClick={() => onSelect(draft._id)}
@@ -354,7 +354,7 @@ export const ClusterCard: React.FC<{
   return (
     <div 
       className={cn(
-        "p-5 bg-zinc-900/20 border border-zinc-800/50 hover:border-zinc-700 transition-all rounded-sm group relative cursor-pointer",
+        "p-5 bg-zinc-900 border border-zinc-600 hover:border-zinc-700 transition-all rounded-sm group relative cursor-pointer",
         className
       )}
       onClick={() => onSelect(cluster.title, cluster._id)}
@@ -368,7 +368,7 @@ export const ClusterCard: React.FC<{
        <h5 className="text-[14px] font-bold text-zinc-300 group-hover:text-white leading-tight mb-2 tracking-tight">{cluster.title}</h5>
        <div className="flex gap-2">
           {cluster.keyEntities?.slice(0, 3).map((e: string) => (
-             <NewsroomLabel key={e} type="key" className="text-[10px] px-2 py-0.5 bg-black border border-zinc-800">
+             <NewsroomLabel key={e} type="key" className="text-[10px] px-2 py-0.5 bg-black border border-zinc-600">
                {e}
              </NewsroomLabel>
           ))}
@@ -386,7 +386,7 @@ export const EditorialCard: React.FC<{
   return (
     <div 
       className={cn(
-        "p-6 border border-zinc-800/50 bg-zinc-900/10 rounded-sm text-left group hover:border-emerald-500/20 transition-all cursor-pointer",
+        "p-6 border border-zinc-600 bg-zinc-900 rounded-sm text-left group hover:border-emerald-500/20 transition-all cursor-pointer",
         className
       )}
       onClick={onClick}
@@ -404,7 +404,7 @@ export const AssetPreviewCard: React.FC<{
 }> = ({ src, onRefresh, className }) => {
   return (
     <div className={cn(
-      "aspect-[4/3] w-full max-w-[320px] mx-auto border border-zinc-900 bg-black overflow-hidden group relative rounded-sm shadow-2xl",
+      "aspect-[4/3] w-full max-w-[320px] mx-auto border border-zinc-700 bg-black overflow-hidden group relative rounded-sm shadow-2xl",
       className
     )}>
       <img 
@@ -414,7 +414,7 @@ export const AssetPreviewCard: React.FC<{
         referrerPolicy="no-referrer"
       />
       {onRefresh && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-zinc-900">
           <NewsroomButton 
             variant="ghost"
             onClick={onRefresh}

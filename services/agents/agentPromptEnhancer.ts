@@ -10,7 +10,9 @@ export const agentPromptEnhancer = async (basePrompt: string, style: string, glo
     Base Prompt: "${basePrompt}"
     Requested Style: "${style}"
     
-    Expand this into a rich, descriptive prompt (max 3 sentences) that captures the "Vogue meets Wired" aesthetic. Include lighting, composition, and specific visual details.
+    Expand this into a rich, descriptive prompt (max 3 sentences) that captures our visual mandate: "The Elegant Machine". Pair high-end fashion/editorial photography sensibilities with the subject matter. Describe the atmosphere, the direction of the light, the texture of the materials, and the intentionality of the composition.
+    
+    CRITICAL CONSTRAINT: Leave room for unexpected creative accents and colors. Do not rely on literal sci-fi styling. Move the aesthetic into the realm of conceptual art, high-fashion editorial, or striking minimalism. Ensure it explicitly states "No text, no typography".
     
     Output JSON only:
     {

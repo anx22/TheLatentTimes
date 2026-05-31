@@ -6,6 +6,7 @@ import { PublicationOrchestrator } from '../services/publication';
 import { ArchitectureDrill } from '../services/testing';
 import { listModels } from '../services/gemini';
 import { MissionRegistry } from '../services/mission';
+import { agentExtractSeedClaims, agentSearchIndependentSources, agentCheckSeedSimilarity } from '../services/agents';
 
 // Refactored Sub-Hooks
 import { useNewsroomUIState } from './useNewsroomUIState';
@@ -29,8 +30,11 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
 
   // 1.5 AUTO-SEED SOURCES
   useEffect(() => {
-    if (data.dbSourcesResult !== undefined && data.dbSources.length === 0) {
-      data.mutations.seedSources({});
+    if (data.dbSourcesResult !== undefined) {
+      const needsSeed = data.dbSources.length === 0 || data.dbSources.some((s: any) => !s.pack);
+      if (needsSeed) {
+        data.mutations.seedSources({});
+      }
     }
   }, [data.dbSourcesResult, data.dbSources, data.mutations]);
 
@@ -38,8 +42,8 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   const missionRegistry = useMemo(() => new MissionRegistry(data.mutations), [data.mutations]);
 
   // 3. LOGGING HELPER
-  const addLog = useCallback((agent: string, message: string, level: any = 'info') => {
-    data.mutations.logMessage({
+  const addLog = useCallback(async (agent: string, message: string, level: any = 'info') => {
+    return await data.mutations.logMessage({
       agentName: agent,
       message,
       level,
@@ -67,9 +71,10 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
   }), [ui, data.mutations]);
 
   // 5. ACTION HOOKS
-  const editorial = useEditorialAgents(data, ui, orchestrator, missionRegistry, addLog);
-  const visual = useVisualAgents(data, ui, atelier, missionRegistry, addLog);
-  const press = usePublicationFlow(data, ui, publication, onPublish, missionRegistry, addLog);
+  const allUi = { ...ui, ...params, atelierState, setAtelierState };
+  const editorial = useEditorialAgents(data, allUi, orchestrator, missionRegistry, addLog);
+  const visual = useVisualAgents(data, allUi, atelier, missionRegistry, addLog);
+  const press = usePublicationFlow(data, allUi, publication, onPublish, missionRegistry, addLog);
 
   // 5. HYDRATION & PERSISTENCE
   useEffect(() => {
@@ -85,13 +90,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
         ui.setSelectedStoryId(state.selectedStoryId || null);
         data.setDraftId(state.draftId || null);
         data.setImageId(state.imageId || null);
-        setAtelierState(state.atelierState || atelierState);
+        if (state.atelierState) setAtelierState(prev => ({ ...prev, ...state.atelierState }));
+        if (state.activeMethodology) ui.setActiveMethodology(state.activeMethodology);
         
-        if (state.editorialDepartment) params.setEditorialDepartment(state.editorialDepartment);
-        if (state.wordCount) params.setWordCount(state.wordCount);
-        if (state.visualStyle) params.setVisualStyle(state.visualStyle);
-        if (state.aspectRatio) params.setAspectRatio(state.aspectRatio);
-
         // Reset all loading
         ui.setIsResearching(false);
         ui.setIsScouting(false);
@@ -100,27 +101,30 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
       }
       ui.setIsHydrating(false);
     }
-  }, [data.persistedState, ui, data]);
+  }, [data.persistedState, ui, data, setAtelierState]);
 
   useEffect(() => {
     if (ui.isHydrating) return;
     data.mutations.saveNewsroomState({
+      key: "current",
       data: {
-        step: ui.step, topic: ui.topic, globalDirective: ui.globalDirective,
-        context: ui.context, scoutedTopics: ui.scoutedTopics, angles: ui.angles,
-        draftId: data.draftId, imageId: data.imageId, atelierState: atelierState,
-        editorialDepartment: params.editorialDepartment,
-        wordCount: params.wordCount,
-        visualStyle: params.visualStyle,
-        aspectRatio: params.aspectRatio,
-        selectedStoryId: ui.selectedStoryId
+        step: ui.step, 
+        topic: ui.topic, 
+        globalDirective: ui.globalDirective,
+        context: ui.context, 
+        scoutedTopics: ui.scoutedTopics, 
+        angles: ui.angles,
+        draftId: data.draftId, 
+        imageId: data.imageId, 
+        atelierState: atelierState,
+        selectedStoryId: ui.selectedStoryId,
+        activeMethodology: ui.activeMethodology,
       }
     });
   }, [
     ui.step, ui.topic, ui.globalDirective, ui.context, ui.scoutedTopics, ui.angles, 
-    data.draftId, data.imageId, atelierState, ui.isHydrating, data.mutations, data, 
-    params.editorialDepartment, params.wordCount, params.visualStyle, params.aspectRatio,
-    ui.selectedStoryId
+    data.draftId, data.imageId, atelierState, ui.isHydrating, data.mutations, 
+    ui.selectedStoryId, ui.activeMethodology
   ]);
 
   // 6. WRAPPER ACTIONS
@@ -137,8 +141,111 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
     await data.mutations.clearLogs({});
   };
 
+  const toggleStoryAngle = async (id: string, selected: boolean) => {
+    await data.mutations.toggleStoryAngle({ id: id as any, selected });
+  };
+
+  const extractClaimsFromSeed = async () => {
+    if (!ui.seedArticle) {
+      addLog('THE SCOUT', 'No seed article nominated yet.', 'warning');
+      return [];
+    }
+    ui.setIsExtractingClaims(true);
+    addLog('THE SCOUT', `Deconstructing seed article to raw, atomic facts...`, 'action');
+    try {
+      const claims = await agentExtractSeedClaims(
+        ui.seedArticle.title,
+        ui.seedArticle.content || '',
+        ui.seedArticle.sourcePack || ui.seedArticle.sourceType || 'Wire',
+        ui.seedArticle.url || '',
+        ui.activeMissionId || undefined
+      );
+      ui.setExtractedClaims(claims);
+      addLog('THE SCOUT', `Extraction completed. ${claims.length} fact claims isolated from protected phrasing.`, 'success');
+      return claims;
+    } catch (e: any) {
+      addLog('THE SCOUT', `Fact claim extraction failed: ${e.message}`, 'error');
+      return [];
+    } finally {
+      ui.setIsExtractingClaims(false);
+    }
+  };
+
+
+  const gatherIndependentEvidence = async () => {
+    if (ui.extractedClaims.length === 0) {
+      addLog('THE SCOUT', 'No atomic fact claims available. Run extraction first.', 'warning');
+      return null;
+    }
+    ui.setIsResearching(true);
+    addLog('THE SCOUT', `Launching targeted web searches to gather independent evidence & confirmations...`, 'action');
+    try {
+      const pack = await agentSearchIndependentSources(ui.extractedClaims, ui.activeMissionId || undefined);
+      ui.setEvidencePack(pack);
+      addLog('THE SCOUT', `Evidence Pack synthesized successfully! ${pack.sources.length} independent sources analyzed.`, 'success');
+      return pack;
+    } catch (e: any) {
+      addLog('THE SCOUT', `Independent search exploration failed: ${e.message}`, 'error');
+      return null;
+    } finally {
+      ui.setIsResearching(false);
+    }
+  };
+
+  const runSimilarityAudit = async (draftText: string) => {
+    if (!ui.seedArticle) {
+      addLog('THE EDITOR', 'No seed article is defined to run compliance checks against.', 'warning');
+      return null;
+    }
+    ui.setIsCheckingSimilarity(true);
+    addLog('THE EDITOR', `Auditing copy structure & literal phrasing distance...`, 'action');
+    try {
+      const report = await agentCheckSeedSimilarity(
+        draftText,
+        ui.seedArticle.content || '',
+        ui.activeMissionId || undefined
+      );
+      ui.setSimilarityReport(report);
+      if (report.score >= 70) {
+        addLog('THE COMPLIANCE', `UrhG Clearance Approved: Safety Distance is ${report.score}% (PASSED). No copycat phrasing.`, 'success');
+      } else {
+        addLog('THE COMPLIANCE', `UrhG Compliance Alert: High copycat risk. Safety Distance is ${report.score}% (FAILED).`, 'warning');
+      }
+      return report;
+    } catch (e: any) {
+      addLog('THE EDITOR', `Similarity validation failed: ${e.message}`, 'error');
+      return null;
+    } finally {
+      ui.setIsCheckingSimilarity(false);
+    }
+  };
+
+
   const publish = async () => {
     await press.publish();
+  };
+
+  const executeFullPipeline = async (prompt: string, aspectRatio: AspectRatio) => {
+    addLog('SYSTEM', 'Initiating full editorial-visual-publication pipeline...', 'action');
+    
+    try {
+      // 1. Polish
+      addLog('EDITORIAL', 'Applying final polish...', 'action');
+      await press.runFinalPolish();
+      
+      // 2. Generate Visual
+      addLog('DARKROOM', `Generating assets for: ${prompt}...`, 'action');
+      await visual.generateAtelierImage(prompt);
+      
+      // 3. Publish
+      addLog('PRESS', 'Submitting to final distribution...', 'action');
+      await press.publish();
+      
+      addLog('SYSTEM', 'Pipeline completed successfully!', 'success');
+    } catch (e: any) {
+      addLog('SYSTEM', `Pipeline FAILED: ${e.message}`, 'error');
+      console.error(e);
+    }
   };
 
   return {
@@ -152,7 +259,13 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
     ...press,
     reset,
     publish,
+    executeFullPipeline,
     clearLogs,
+    logMessage: addLog,
+    toggleStoryAngle,
+    extractClaimsFromSeed,
+    gatherIndependentEvidence,
+    runSimilarityAudit,
     runIntegrityDrill: useCallback(() => new ArchitectureDrill().runIntegrityDrill(), [])
   };
 };

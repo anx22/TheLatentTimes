@@ -48,6 +48,101 @@ export const callJsonAgent = async <T>(prompt: string, schema: any, fallback: T,
     return cleanAndParseJSON(response.text) || fallback;
 };
 
+// --- SCHEMA REGISTRY: HARD-CODED SCHEMAS TO PREVENT HALLUCINATION ---
+export const Schemas = {
+    Columnist: {
+        type: Type.OBJECT,
+        properties: {
+          headline: { type: Type.STRING },
+          deck: { type: Type.STRING },
+          blocks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                type: { type: Type.STRING },
+                sentences: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: { type: Type.STRING },
+                      text: { type: Type.STRING }
+                    },
+                    required: ['id', 'text']
+                  }
+                },
+                status: { type: Type.STRING }
+              },
+              required: ['id', 'type', 'sentences', 'status']
+            }
+          },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          suggested_visual_prompt: { type: Type.STRING }
+        },
+        required: ['headline', 'deck', 'blocks', 'tags', 'suggested_visual_prompt']
+    },
+    Editor: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            blockId: { type: Type.STRING },
+            sentenceId: { type: Type.STRING },
+            persona: { type: Type.STRING },
+            type: { type: Type.STRING },
+            comment: { type: Type.STRING },
+            suggestion: { type: Type.STRING }
+          },
+          required: ['id', 'blockId', 'type', 'comment']
+        }
+    },
+    Debate: {
+        type: Type.OBJECT,
+        properties: {
+          transcript: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                persona: { type: Type.STRING },
+                message: { type: Type.STRING }
+              },
+              required: ['persona', 'message']
+            }
+          },
+          angles: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                persona: { type: Type.STRING },
+                headline: { type: Type.STRING },
+                headlineOptions: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                },
+                angle: { type: Type.STRING }
+              },
+              required: ['id', 'persona', 'headline', 'headlineOptions', 'angle']
+            }
+          }
+        },
+        required: ['transcript', 'angles']
+    },
+    Consensus: {
+        type: Type.OBJECT,
+        properties: {
+            consensus: { type: Type.STRING },
+            confidence: { type: Type.NUMBER }
+        },
+        required: ['consensus']
+    }
+};
+
 // --- HELPER: ROBUST API KEY RETRIEVAL ---
 const getApiKey = (): string => {
     let apiKey = '';

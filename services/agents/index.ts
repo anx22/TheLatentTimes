@@ -16,4 +16,6 @@ export * from './agentLayoutDesigner';
 export * from './agentConverseWithCritic';
 export * from './agentCulturalGrounding';
 export * from './agentCriticsCorner';
+export * from './agentWorkbench';
+export * from './agentSeedExplorer';
 

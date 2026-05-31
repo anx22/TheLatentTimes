@@ -31,8 +31,7 @@ export const agentRewriteBlock = async (
     "${instruction}"
     
     Rewrite the block to satisfy the Editor's instruction.
-    MANDATE: Ensure the rewritten block fits perfectly into the overall flow of the NARRATIVE SKELETON above. Maintain the intellectual, haughty, "Vogue meets Wired" tone.
-    Break the rewritten block down into individual sentences.
+    MANDATE: Ensure the rewritten block fits perfectly into the overall flow of the NARRATIVE SKELETON above. Apply our editorial voice: highly analytical, stylistically confident, and free of expected industry jargon. Use precise, evocative language.
     
     Output JSON only:
     {

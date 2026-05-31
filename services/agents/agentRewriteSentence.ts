@@ -39,7 +39,7 @@ export const agentRewriteSentence = async (
     "${instruction}"
     
     Rewrite ONLY the target sentence. 
-    MANDATE: Ensure the rewritten sentence fits perfectly into the overall flow of the NARRATIVE SKELETON above. Maintain the intellectual, haughty, "Vogue meets Wired" tone. 
+    MANDATE: Ensure the rewritten sentence fits perfectly into the overall flow of the NARRATIVE SKELETON above. Apply our editorial voice: highly analytical, stylistically confident, and free of expected industry jargon. Use precise, evocative language.
     
     Output JSON only:
     {

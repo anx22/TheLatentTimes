@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { Id } from "../convex/_generated/dataModel";
 import { NewsCluster, EditorialAngle, EditorialDepartment } from '../types';
 import { EDITORIAL_LENSES } from '../constants';
-import { agentScout, agentTargetedSearch, agentConsensus, agentCulturalGrounding, agentSynthesis } from '../services/agents';
-import { SignalBroker, RSSAdapter, GitHubAdapter, SearchAdapter } from '../services/signals';
+import { agentScout, agentTargetedSearch, agentConsensus, agentCulturalGrounding, agentSynthesis, agentWorkbench } from '../services/agents';
+import { SourceFetcher } from '../services/signals/SourceFetcher';
 
 export const useEditorialAgents = (
   data: any, 
@@ -12,8 +12,151 @@ export const useEditorialAgents = (
   missionRegistry: any,
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
-  const { mutations, actions, dbSources, signals } = data;
-  const { noiseFilter, globalDirective, newsClusters } = ui;
+  const { mutations, actions, dbSources, signals, activeWorkbenchSession, setDraftId } = data;
+  const { noiseFilter, globalDirective, newsClusters, activeMethodology } = ui;
+
+  // WORKBENCH METHODS (Methodology 1)
+  const initializeWorkbench = async (signalIds: string[]) => {
+    try {
+      addLog('SYSTEM', 'Initializing Workbench Session...', 'action');
+      await mutations.createWorkbenchSession({ signals: signalIds });
+      ui.setContext(''); // Reset context for the new workbench
+      addLog('SYSTEM', 'Workbench configured. Awaiting narrative extraction trigger in Zone 2.', 'success');
+    } catch (error: any) {
+      addLog('SYSTEM', `Failed to initialize workbench: ${error.message}`, 'error');
+    }
+  };
+
+  const generateWorkbenchAngles = async (overrideContext?: string) => {
+    if (!activeWorkbenchSession) return;
+    try {
+      const mission = await missionRegistry.start('editorial', 'Angle Synthesis');
+      ui.setActiveMissionId(mission.id);
+
+      await mutations.updateWorkbenchSession({
+        id: activeWorkbenchSession._id,
+        status: 'processing',
+        context: overrideContext || activeWorkbenchSession.context,
+      });
+
+      const sessionSignals = signals.filter((s: any) => activeWorkbenchSession.signals.includes(s._id));
+      const jsonAngles = await agentWorkbench(sessionSignals, overrideContext || activeWorkbenchSession.context, (log) => mission.log(log.agentName, log.message, log.level));
+
+      await mutations.saveStoryAngles({
+        angles: jsonAngles.map(a => ({
+          workbenchId: activeWorkbenchSession._id,
+          title: a.title,
+          summary: a.summary,
+          selected: false,
+        })),
+      });
+
+      await mutations.updateWorkbenchSession({
+        id: activeWorkbenchSession._id,
+        status: 'active',
+      });
+      
+      await mission.complete();
+    } catch (error: any) {
+      await mutations.updateWorkbenchSession({ id: activeWorkbenchSession._id, status: 'active' }); // Revert
+      addLog('Workbench', `Angle generation failed: ${error.message}`, 'error');
+    }
+  };
+
+  const executeDraftFromWorkbench = async () => {
+    if (!activeWorkbenchSession) return;
+    const { storyAngles } = data;
+    const selectedAngles = storyAngles.filter((a: any) => a.selected);
+    if (selectedAngles.length === 0) {
+      addLog('Workbench', 'No angles selected for drafting.', 'warning');
+      return;
+    }
+
+    try {
+      const mission = await missionRegistry.start('editorial', 'Workbench Draft Execution');
+      ui.setActiveMissionId(mission.id);
+      
+      const topic = selectedAngles.map((a: any) => a.title).join(' & ');
+      const angleDesc = selectedAngles.map((a: any) => a.summary).join('\n');
+      
+      let finalContext = '';
+      
+      // Enforce Seed Mode & Legal Compliance if Enabled
+      if (ui.isLegalGuardrailsEnabled && ui.seedArticle) {
+        addLog('COMPLIANCE', 'Legal compliance & safe-seed mode active. Routing through Claim-Evidence Pack flow.', 'info');
+        
+        // 1. Check if claims are already extracted
+        let claims = ui.extractedClaims;
+        if (claims.length === 0) {
+          claims = await ui.extractClaimsFromSeed();
+        }
+        
+        // 2. Discover independent sources
+        let pack = ui.evidencePack;
+        if (!pack) {
+          pack = await ui.gatherIndependentEvidence();
+        }
+        
+        if (pack) {
+          finalContext = `[LEGAL MODE: COMPLIANT EVIDENCE PACK]
+Seed Origin: ${ui.seedArticle.title} (${ui.seedArticle.sourcePack || ui.seedArticle.sourceType || 'Wire'})
+Extracted Facts: ${claims.map((c: any) => `- ${c.claimText} [Entity: ${c.entities.join(', ')}]`).join('\n')}
+
+Multi-Source Exploratory Evidence:
+${pack.synthesizedEvidence}
+
+Citations Identified: 
+${pack.sources.map((s: any) => `- ${s.title}: ${s.url}`).join('\n')}
+
+DIRECTOR COMPLIANCE INSTRUCTION: You are strictly forbidden from reusing the lexical structures or phrases of the Seed. Cite facts based on the exploratory multi-source evidence instead.`;
+        } else {
+          addLog('COMPLIANCE', 'Evidence Pack aggregation incomplete, falling back to basic factual context.', 'warning');
+          const sessionSignals = (signals || []).filter((s: any) => activeWorkbenchSession.signals.includes(s._id));
+          finalContext = sessionSignals.map((s: any) => `Signal: ${s.title}\nSource: ${s.sourceType || s.sourcePack || 'RSS'}\nContent: ${s.content || s.summary || ''}`).join('\n\n---\n\n');
+        }
+      } else {
+        const sessionSignals = (signals || []).filter((s: any) => activeWorkbenchSession.signals.includes(s._id));
+        const signalsContext = sessionSignals.map((s: any) => `Signal: ${s.title}\nSource: ${s.sourceType || s.sourcePack || 'RSS'}\nContent: ${s.content || s.summary || ''}`).join('\n\n---\n\n');
+        const workbenchDirective = activeWorkbenchSession.context ? `Workbench Strategic Directive: ${activeWorkbenchSession.context}\n\n` : '';
+        finalContext = `${workbenchDirective}Raw Signals Context:\n${signalsContext}`;
+      }
+
+      ui.setStep('EDITORIAL_BOARD');
+      ui.setIsDrafting(true);
+      ui.setContext(finalContext);
+      
+      const currentLens = `Synthesize the provided research into a cohesive narrative covering the following specific editorial angles:\n\n${angleDesc}`;
+      
+      const result = await orchestrator.produceDraft(topic, finalContext, currentLens, ui.wordCount || 500, mission.id);
+      
+      const newDraftId = await mutations.saveDraft({
+        missionId: mission.id,
+        headline: result.article.headline,
+        deck: result.article.deck,
+        body: result.article.body,
+        blocks: result.article.blocks,
+        tags: result.article.tags,
+        status: 'draft'
+      });
+      
+      setDraftId(newDraftId);
+      ui.setTopic(topic);
+      
+      // Autosimilarity check if seed was active!
+      if (ui.seedArticle) {
+        const draftText = result.article.body || result.article.blocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');
+        await ui.runSimilarityAudit(draftText);
+      }
+
+      
+      await mutations.updateWorkbenchSession({ id: activeWorkbenchSession._id, status: 'completed' });
+      await mission.complete();
+    } catch (e: any) {
+      addLog('Workbench', `Draft execution failed: ${e.message}`, 'error');
+    } finally {
+      ui.setIsDrafting(false);
+    }
+  };
 
   const ingestSignals = useCallback(async () => {
     if (ui.isIngesting) return;
@@ -34,24 +177,13 @@ export const useEditorialAgents = (
       const activeSources = (dbSources as any[] || []).filter(s => s.isActive);
       await mission.log('SYSTEM', `Neural Intake: ${activeSources.length} active boundaries identified.`, 'info');
 
-      const adapters = activeSources
-        .map(s => {
-          if (s.type === 'rss') return new RSSAdapter(s._id, s.name, s.url, s.lastFetchedAt, actions.fetchRss);
-          if (s.type === 'github') return new GitHubAdapter(s._id, s.name, s.lastFetchedAt);
-          return null;
-        })
-        .filter(Boolean) as any[];
-
-      const broker = new SignalBroker(adapters);
+      await mission.log('FETCHER', 'Dispatching specialized workers to diverse technical feeds...', 'action');
       
-      await mission.log('BROKER', 'Dispatching specialized workers to diverse technical feeds...', 'action');
-      
-      let items = await broker.broadcastIngestion(10, noiseFilter, mission.id, (s, m, t) => mission.log(s, m, t));
+      const items = await SourceFetcher.fetchAll(activeSources, 20, mission.id, actions, (s, m, t) => mission.log(s, m, t));
       
       if (items.length === 0) {
-        await mission.log('BROKER', 'Passive intake returned zero signals. Triggering Active Deep Scout...', 'warning');
-        const searchAdapter = new SearchAdapter(globalDirective || "latest technical breakthroughs", globalDirective);
-        items = await searchAdapter.fetch(5, (s, m, t) => mission.log(s, m, t));
+        await mission.log('FETCHER', 'Passive intake returned zero signals. Retrying with high-value scan...', 'warning');
+        // Optional fallback logic
       }
 
       await mission.log('SYSTEM', `Pool Stabilized: ${items.length} raw signals ingested. Initializing semantic synthesis...`, 'info');
@@ -78,48 +210,18 @@ export const useEditorialAgents = (
           if (simResult.storyId) {
             assignedStoryId = simResult.storyId as Id<"stories">;
             await mission.log('THE WIRE', `Resonance: Signal absorbed into Pillar ${assignedStoryId.slice(-4)}`, 'success');
-          } else if (simResult.similarId) {
-            // Check if it's a different source from the similar item
-            const similarItem: any = await data.queries.getSignal({ id: simResult.similarId });
-            const isCrossSource = similarItem && similarItem.source !== item.source;
-
-            if (isCrossSource) {
-              assignedStoryId = await mutations.addNewsCluster({
-                title: item.title,
-                summary: "Source Inception: Multi-dimensional resonance detected across independent channels.",
-                keyEntities: [],
-                missionId: mission.id
-              });
-              await mutations.updateSignalStory({
-                id: simResult.similarId as Id<"signals">,
-                storyId: assignedStoryId
-              });
-              await mission.log('THE WIRE', `SOURCE INCEPTION: Narrative Pillar Crystallized from ${item.source} + ${similarItem.source}`, 'success');
-            }
-          }
-        }
-
-        // Robust check for sourceId validity
-        let finalSourceId: Id<"sources"> | undefined = undefined;
-        let finalSourceType = 'api';
-        
-        if (item.sourceId && typeof item.sourceId === 'string') {
-          const dbSource = (dbSources as any[] || []).find(s => s._id === item.sourceId);
-          if (dbSource) {
-            finalSourceId = dbSource._id;
-            finalSourceType = dbSource.type;
-          } else if (item.sourceId === 'search_fallback') {
-            finalSourceType = 'api';
           }
         }
 
         await mutations.addSignal({
           title: item.title,
-          source: item.source,
-          sourceType: finalSourceType,
-          sourceId: finalSourceId,
+          source: item.source || "Unknown",
+          sourceType: item.sourceType || 'rss',
+          sourceId: item.sourceId as Id<"sources">,
+          sourcePack: item.sourcePack,
+          sourceTrustTier: item.sourceTrustTier,
           url: item.url || "",
-          content: item.content,
+          content: item.content || undefined,
           embedding: item.embedding && item.embedding.length > 0 ? item.embedding : undefined,
           storyId: assignedStoryId,
           innovation_score: (item as any).innovation_score || 50,
@@ -199,7 +301,7 @@ export const useEditorialAgents = (
     ui.setIsDebating(true);
     ui.setDebateTranscript([]);
     ui.setAngles([]);
-    ui.setDraftId(null);
+    setDraftId(null);
     
     const mission = await missionRegistry.start('editorial', topic);
     ui.setActiveMissionId(mission.id);
@@ -246,7 +348,7 @@ export const useEditorialAgents = (
         suggested_visual_prompt: result.article.suggested_visual_prompt,
         status: 'draft'
       });
-      ui.setDraftId(newDraftId);
+      setDraftId(newDraftId);
       ui.setAnnotations(result.annotations);
       await mission.complete(newDraftId);
     } catch (e: any) {
@@ -281,11 +383,13 @@ export const useEditorialAgents = (
     ui.setActiveMissionId(mission.id);
     await mission.log('THE WIRE', 'Initializing Neural Intake Synthesis: Scanning latent signal pool for unmapped resonance...', 'action');
     try {
-      const { processed, newStories } = await actions.discoverStories({ missionId: mission.id });
+      const { processed, newStories, newStoryIds } = await actions.discoverStories({ missionId: mission.id });
       await mission.log('THE WIRE', `Synthesis finished. Processed: ${processed} | New Pillars: ${newStories}`, processed > 0 ? 'success' : 'info');
       await mission.complete();
+      return { processed, newStories, newStoryIds };
     } catch (e: any) {
       await mission.fail(e.message || 'Synthesis failure');
+      return { processed: 0, newStories: 0, newStoryIds: [] };
     }
   };
 
@@ -311,7 +415,7 @@ export const useEditorialAgents = (
         suggested_visual_prompt: result.article.suggested_visual_prompt,
         status: 'draft'
       });
-      ui.setDraftId(newDraftId);
+      setDraftId(newDraftId);
       ui.setAnnotations(result.annotations);
       await mission.complete(newDraftId);
     } catch (e: any) {
@@ -330,6 +434,9 @@ export const useEditorialAgents = (
     runPipeline,
     synthesizeCluster,
     runDeepDiscovery,
+    initializeWorkbench,
+    generateWorkbenchAngles,
+    executeDraftFromWorkbench,
     reDraft
   };
 };

@@ -9,7 +9,7 @@ export const usePublicationFlow = (
   missionRegistry: any,
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
-  const { mutations, setDraftId, draft, image, persistedState } = data;
+  const { mutations, setDraftId, draft, image, persistedState, latestIssue } = data;
   const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId } = ui;
 
   const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
@@ -111,7 +111,7 @@ export const usePublicationFlow = (
     try {
       const prep = await publication.prepareForPublication(
         draft.headline, draft.deck, draft.body, draft.blocks,
-        { url: image, aspectRatio: (atelierState.layout === 'FEATURE' ? '16:9' : '4:3') as any },
+        { url: image, aspectRatio: (atelierState?.layout === 'FEATURE' ? '16:9' : '4:3') as any },
         mission.id
       );
 
@@ -133,7 +133,7 @@ export const usePublicationFlow = (
         public_comments: publicComments
       };
 
-      const currentLayout = (persistedState as any)?.latestIssue?.content?.layout || [];
+      const currentLayout = latestIssue?.content?.layout || [];
       await mission.log('THE ART DIRECTOR', 'Calculating optimal grid placement...', 'action');
       const newLayout = await agentLayoutDesigner(newItem, currentLayout, mission.id);
       

@@ -1,11 +1,11 @@
-import { Type } from '@google/genai';
 import { GeneratedArticle } from '../../types';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent, Schemas } from '../gemini';
 
-export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string, globalDirective?: string, missionId?: string): Promise<GeneratedArticle> => {
+export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string | number, globalDirective?: string, missionId?: string): Promise<GeneratedArticle> => {
   let lengthInstruction = "2-3 paragraphs";
-  if (wordCountTarget.includes("300")) lengthInstruction = "1-2 short, punchy paragraphs";
-  if (wordCountTarget.includes("1200")) lengthInstruction = "4-5 detailed paragraphs";
+  const targetStr = String(wordCountTarget || "");
+  if (targetStr.includes("300")) lengthInstruction = "1-2 short, punchy paragraphs";
+  if (targetStr.includes("1200")) lengthInstruction = "4-5 detailed paragraphs";
 
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
 
@@ -19,7 +19,12 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
     Your task is to write an article about this technical topic, but you MUST apply the following Editorial Lens: "${lens}".
     This means you must view the hard technology through the perspective of ${lens}.
     
-    Tone: Intellectual, haughty, insightful, "Vogue meets Wired".
+    CRITICAL EDITORIAL GUIDELINES:
+    - Your architectural mandate is to synthesize the rigor of a systems architect with the observation of a cultural critic. 
+    - Write with confidence, using precise, striking metaphors that ground abstract concepts in physical reality. 
+    - Avoid the expected industry buzzwords by reaching for literary or sociological comparisons instead. Every sentence should feel curated, rhythmic, and intentional.
+    - The "Wort-Bild-Schere": Ensure the tone pairs clinical technical reality with sharp, sophisticated, and slightly detached observations.
+    
     Length: ${lengthInstruction}.
     
     Output JSON only:
@@ -42,39 +47,7 @@ export const agentColumnist = async (topic: string, context: string, lens: strin
     }
   `;
 
-  const parsed = await callJsonAgent<any>(prompt, {
-    type: Type.OBJECT,
-    properties: {
-      headline: { type: Type.STRING },
-      deck: { type: Type.STRING },
-      blocks: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.STRING },
-            type: { type: Type.STRING },
-            sentences: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  text: { type: Type.STRING }
-                },
-                required: ['id', 'text']
-              }
-            },
-            status: { type: Type.STRING }
-          },
-          required: ['id', 'type', 'sentences', 'status']
-        }
-      },
-      tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-      suggested_visual_prompt: { type: Type.STRING }
-    },
-    required: ['headline', 'deck', 'blocks', 'tags', 'suggested_visual_prompt']
-  }, null, missionId);
+  const parsed = await callJsonAgent<any>(prompt, Schemas.Columnist, null, missionId);
 
   if (parsed) {
     parsed.body = parsed.blocks.map((b: any) => b.sentences.map((s: any) => s.text).join(' ')).join('\n\n');

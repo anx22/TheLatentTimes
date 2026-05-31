@@ -8,7 +8,7 @@ import { ArchiveModal } from './components/ui/ArchiveModal';
 import { ArticleDetail } from './components/ArticleDetail';
 import { MagazineGrid } from './components/MagazineGrid';
 import { useQuery, useMutation } from "convex/react";
-import { api } from "./convex/_generated/api";
+import { api } from "./frontendApi";
 
 const MainNewspaper: React.FC<{ items: MagazineItem[], onItemClick: (item: MagazineItem) => void }> = ({ items, onItemClick }) => {
   const safeItems = items || [];

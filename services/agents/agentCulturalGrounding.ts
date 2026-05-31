@@ -24,21 +24,20 @@ export const agentCulturalGrounding = async (
     Content: "${content}"
     
     PHILOSOPHY: 
-    We don't look for the obvious (e.g. "AI will make people lose jobs"). 
-    We look for the sub-currents: 
-    - Does this tech resonate with "Acid-Marxism"? 
-    - Does it parallel a specific 19th-century architectural movement? 
-    - Does it create a shift in how we perceive "The Self" or "The Void"?
-    - Is there a parallel in Berlin's underground club scene or Swiss Modernism?
+    We don't look for the obvious (e.g. "AI will change how we work"). 
+    We look for the sub-currents and deep aesthetics: 
+    - Does this tech resonate with a specific historical or architectural movement? 
+    - Does it create a shift in how we perceive "The Self", "Scale", or "Time"?
+    - Is there a parallel in contemporary art, high-fashion structural design, or sociological systems?
     
-    Think like a philosopher-cyberpunk-designer. Give us 2-3 "Cultural Vectors".
+    Think like an avant-garde cultural critic and systems sociologist. Give us 2-3 "Cultural Vectors".
     
     Output JSON only:
     [
       {
-        "trend": "The name of the cultural/philosophical trend (e.g., 'Metamodernist Solipsism')",
+        "trend": "The name of the cultural/philosophical trend (e.g., 'Metamodernist Solipsism', 'Clinical Brutalism')",
         "resonance": 0-100 (How strongly it connects),
-        "connection": "A punchy, intellectual explanation of WHY this tech connects to this trend."
+        "connection": "A precise, culturally observant explanation of WHY this technical shift embodies this concept."
       }
     ]
   `;

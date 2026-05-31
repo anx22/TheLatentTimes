@@ -1,10 +1,22 @@
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 
+export type EditorialMethodology = 'three-zone' | 'autonomous' | 'chronological';
+
 export type EditorialDepartment = 'Fashion' | 'Cyber' | 'Academic';
 
+export interface SourcingStrategy {
+  id: string;
+  label: string;
+  category: 'Classical' | 'Advanced' | 'Modern/Experimental';
+  description: string;
+  isActive: boolean;
+  isFuture?: boolean;
+  configOptions?: { name: string; type: 'boolean' | 'string' | 'number'; defaultValue: any }[];
+}
+
 // --- NEWSROOM TYPES ---
-export type NewsroomStep = 'IDLE' | 'NEWS_TERMINAL' | 'EDITORIAL_BOARD' | 'DARKROOM' | 'PRINTING_PRESS' | 'PUBLISHED';
+export type NewsroomStep = 'IDLE' | 'NEWS_TERMINAL' | 'OBSERVABILITY' | 'EDITORIAL_BOARD' | 'DARKROOM' | 'PRINTING_PRESS' | 'PUBLISHED';
 
 export interface ScoutedSignal {
   id: string;
@@ -46,10 +58,15 @@ export interface Source {
   _creationTime: number;
   name: string;
   url: string;
-  type: 'rss' | 'api' | 'github';
+  type: 'rss' | 'api' | 'github' | 'html_watch';
+  pack?: string;
+  priority?: number;
+  trustTier?: string;
+  rightsMode?: string;
   lastFetchedAt: number;
   crawlFrequency: number;
   isActive: boolean;
+  notes?: string;
 }
 
 export interface CulturalVector {
@@ -77,6 +94,10 @@ export interface Signal {
   title: string;
   source: string;
   sourceId?: string;
+  sourcePack?: string;
+  sourceTrustTier?: string;
+  qualityScore?: number;
+  hash?: string;
   url: string;
   content?: string;
   timestamp: number;
@@ -87,6 +108,26 @@ export interface Signal {
   sourceType?: string;
   cultural_vectors?: CulturalVector[];
   missionId?: string;
+}
+
+export interface WorkbenchSession {
+  _id: string;
+  _creationTime: number;
+  signals: string[]; // references Signal _ids
+  context?: string;
+  status: 'active' | 'processing' | 'completed';
+  updated_at: number;
+  created_at: number;
+}
+
+export interface StoryAngle {
+  _id: string;
+  _creationTime: number;
+  workbenchId: string;
+  title: string;
+  summary: string;
+  selected: boolean;
+  created_at: number;
 }
 
 export interface DraftSentence {
@@ -271,5 +312,29 @@ export interface ImageHistoryItem {
   timestamp: number;
   layout: AtelierLayoutMode;
   palette?: string;
+}
+
+// --- SEED EXPLORATION & LEGAL COMPLIANCE TYPES ---
+export interface Claim {
+  claimText: string;
+  sourceUrl: string;
+  sourceName: string;
+  entities: string[];
+  confidence: number;
+  claimType: "funding" | "launch" | "lawsuit" | "research" | "policy" | "market" | "unspecified";
+}
+
+export interface SimilarityReport {
+  score: number; // Safety distance score (0-100)
+  literalOverlapBlocks: string[];
+  verbatimRisk: boolean;
+  recommendation: string;
+}
+
+export interface EvidencePack {
+  claims: Claim[];
+  independentSourcesCount: number;
+  synthesizedEvidence: string;
+  sources: Array<{ title: string; url: string }>;
 }
 

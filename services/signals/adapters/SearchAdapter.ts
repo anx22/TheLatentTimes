@@ -63,7 +63,7 @@ export class SearchAdapter implements SignalAdapter {
       source: this.name,
       sourceId: this.id as any,
       url: item.url || `https://google.com/search?q=${encodeURIComponent(item.title)}`,
-      content: item.content,
+      content: item.content || "",
       timestamp: Date.now(),
       status: 'new',
       sourceType: 'api',

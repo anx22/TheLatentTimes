@@ -32,10 +32,25 @@
 }
 
 /* Basic Typography */
-.scrollbar-hide::-webkit-scrollbar {
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #52525b transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #52525b;
+  border-radius: 4px;
+}
+.hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
-.scrollbar-hide {
+.hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }

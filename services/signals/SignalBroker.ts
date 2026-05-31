@@ -38,12 +38,13 @@ export class SignalBroker {
     const rawResults = await Promise.all(
       this.adapters.map(async (adapter) => {
         try {
-          onLog?.('SIGNAL_BROKER', `Ingesting signals from: ${adapter.name}...`, 'action');
-          const results = await adapter.fetch(limitPerSource);
-          onLog?.('SIGNAL_BROKER', `Success: ${results.length} nodes received from ${adapter.name}.`, 'success');
+          onLog?.('SIGNAL_BROKER', `Attempting intake boundary: ${adapter.name}...`, 'action');
+          const results = await adapter.fetch(limitPerSource, onLog);
+          onLog?.('SIGNAL_BROKER', `Ingestion Successful: ${results.length} atoms captured from ${adapter.name}.`, 'success');
           return results;
         } catch (error: any) {
-          onLog?.('SIGNAL_BROKER', `Failure for ${adapter.name}: ${error.message}`, 'error');
+          const errMsg = `Critical block on ${adapter.name}: ${error.message}`;
+          onLog?.('SYSTEM', errMsg, 'error');
           console.error(`Broker failure for adapter ${adapter.id}:`, error);
           return [];
         }
@@ -53,12 +54,28 @@ export class SignalBroker {
     const allItems = rawResults.flat();
     if (allItems.length === 0) return [];
 
-    onLog?.('SIGNAL_BROKER', `Unified pool size: ${allItems.length} nodes. Enriching semantic vectors...`, 'info');
+    // 0. Filter Noise and Literal Duplicates
+    const seenTitles = new Set<string>();
+    const filteredItems = allItems.filter(item => {
+      // Noise suppression: ignore common placeholders or non-technical spam
+      const noisePatterns = [/newsletter/i, /subscribe/i, /sign up/i, /cookie/i, /promo/i, /sponsored/i];
+      const isNoise = noisePatterns.some(p => p.test(item.title) || p.test(item.content || ''));
+      if (isNoise) return false;
+
+      // Lexical deduplication: normalize and check exact title match
+      const normalTitle = item.title.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      if (seenTitles.has(normalTitle)) return false;
+      seenTitles.add(normalTitle);
+      
+      return true;
+    });
+
+    if (filteredItems.length === 0) return [];
+    onLog?.('SIGNAL_BROKER', `Noise/Redundancy sweep: Reduced pool from ${allItems.length} to ${filteredItems.length} nodes. Enriching semantic vectors...`, 'info');
     
     // 1. Initial Enrichment (Embeddings)
-    // We need embeddings BEFORE filtering to do semantic deduplication
     const enrichedPool = await Promise.all(
-      allItems.map(async (item) => {
+      filteredItems.map(async (item) => {
         try {
           const textToEmbed = `${item.title} ${item.content || ''}`;
           item.embedding = await generateEmbedding(textToEmbed, missionId);

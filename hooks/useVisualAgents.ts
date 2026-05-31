@@ -46,7 +46,7 @@ export const useVisualAgents = (
       else if (atelierState.layout === 'COLUMN' || atelierState.layout === 'SOCIAL') ratio = '1:1';
 
       const base64Ref = (isEdit && atelierState.currentImageBase64) ? atelierState.currentImageBase64 : undefined;
-      const imgUrlBase64 = await agentPhotographer(finalPrompt, 'Editorial Photography', ratio, globalDirective, base64Ref, mission.id);
+      const imgUrlBase64 = await agentPhotographer(finalPrompt, visualStyle, ratio, globalDirective, base64Ref, mission.id);
       
       const blob = await compressImage(imgUrlBase64, 0.7);
       const postUrl = await mutations.getUploadUrl();
@@ -104,7 +104,6 @@ export const useVisualAgents = (
       const newImageId = await mutations.saveImage({ prompt: draft.suggested_visual_prompt || '', storageId: storageId, missionId: mission.id });
       setImageId(newImageId);
       await mission.log('THE PHOTOGRAPHER', 'New visual assets developed.', 'success');
-      setStep('PRINTING_PRESS');
       await mission.complete(newImageId);
     } catch (e: any) {
       setError(e.message || 'Re-shoot failure');

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useAction } from "convex/react";
-import { api } from "../convex/_generated/api";
-import { Id } from "../convex/_generated/dataModel";
+import { api } from "../frontendApi";
+type Id<T extends string> = string;
 import { Signal, SystemLog, GeneratedArticle } from '../types';
 
 export const useNewsroomData = () => {
@@ -12,8 +12,11 @@ export const useNewsroomData = () => {
   const logs = (useQuery(api.newsroom.queries.getAgentLogs, {}) || []) as SystemLog[];
   const dbSourcesResult = useQuery(api.newsroom.queries.getSources, {});
   const dbSources = useMemo(() => dbSourcesResult || [], [dbSourcesResult]);
-  const persistedState = useQuery(api.newsroom.queries.getNewsroomState);
+  const persistedState = useQuery(api.newsroom.queries.getNewsroomStateByKey, { key: "current" });
+  const latestIssue = useQuery(api.newsroom.queries.getLatestIssue);
   const drafts = useQuery(api.newsroom.queries.getAllDrafts, {}) || [];
+  const activeWorkbenchSession = useQuery(api.newsroom.queries.getActiveWorkbenchSession, {});
+  const storyAngles = useQuery(api.newsroom.queries.getStoryAngles, { workbenchId: activeWorkbenchSession?._id }) || [];
 
   // Local IDs for Draft/Image (Persisted)
   const [draftId, setDraftId] = useState<Id<"drafts"> | null>(null);
@@ -25,31 +28,83 @@ export const useNewsroomData = () => {
   const image = imageRecord ? imageRecord.url : null;
 
   // Mutations
-  const mutations = {
-    seedSources: useMutation(api.newsroom.mutations.seedSources),
-    addSignal: useMutation(api.newsroom.mutations.addSignal),
-    saveDraft: useMutation(api.newsroom.mutations.saveDraft),
-    logMessage: useMutation(api.newsroom.mutations.logMessage),
-    saveImage: useMutation(api.newsroom.mutations.saveImage),
-    resetNewsroom: useMutation(api.newsroom.mutations.resetNewsroom),
-    saveNewsroomState: useMutation(api.newsroom.mutations.saveNewsroomState),
-    clearLogs: useMutation(api.newsroom.mutations.clearLogs),
-    updateSourceFetchTime: useMutation(api.newsroom.mutations.updateSourceFetchTime),
-    addNewsCluster: useMutation(api.newsroom.mutations.addNewsCluster),
-    updateSignalStory: useMutation(api.newsroom.mutations.updateSignalStory),
-    updateNewsCluster: useMutation(api.newsroom.mutations.updateNewsCluster),
-    startMission: useMutation(api.newsroom.mutations.startMission),
-    completeMission: useMutation(api.newsroom.mutations.completeMission),
-    failMission: useMutation(api.newsroom.mutations.failMission),
-    getUploadUrl: useMutation(api.media.generateUploadUrl)
-  };
+  const seedSourcesMutation = useMutation(api.newsroom.mutations.seedSources);
+  const addSignalMutation = useMutation(api.newsroom.mutations.addSignal);
+  const saveDraftMutation = useMutation(api.newsroom.mutations.saveDraft);
+  const logMessageMutation = useMutation(api.newsroom.mutations.logMessage);
+  const saveImageMutation = useMutation(api.newsroom.mutations.saveImage);
+  const resetNewsroomMutation = useMutation(api.newsroom.mutations.resetNewsroom);
+  const saveNewsroomStateMutation = useMutation(api.newsroom.mutations.saveNewsroomState);
+  const clearLogsMutation = useMutation(api.newsroom.mutations.clearLogs);
+  const updateSourceFetchTimeMutation = useMutation(api.newsroom.mutations.updateSourceFetchTime);
+  const addNewsClusterMutation = useMutation(api.newsroom.mutations.addNewsCluster);
+  const updateSignalStoryMutation = useMutation(api.newsroom.mutations.updateSignalStory);
+  const updateNewsClusterMutation = useMutation(api.newsroom.mutations.updateNewsCluster);
+  const startMissionMutation = useMutation(api.newsroom.mutations.startMission);
+  const completeMissionMutation = useMutation(api.newsroom.mutations.completeMission);
+  const failMissionMutation = useMutation(api.newsroom.mutations.failMission);
+  const getUploadUrlMutation = useMutation(api.media.generateUploadUrl);
+  const createWorkbenchSessionMutation = useMutation(api.newsroom.mutations.createWorkbenchSession);
+  const updateWorkbenchSessionMutation = useMutation(api.newsroom.mutations.updateWorkbenchSession);
+  const saveStoryAnglesMutation = useMutation(api.newsroom.mutations.saveStoryAngles);
+  const toggleStoryAngleMutation = useMutation(api.newsroom.mutations.toggleStoryAngle);
+  const toggleSourceMutation = useMutation(api.newsroom.mutations.toggleSource);
+  const updateSourceMutation = useMutation(api.newsroom.mutations.updateSource);
+  const deleteSourceMutation = useMutation(api.newsroom.mutations.deleteSource);
+  const updateDraftStatusMutation = useMutation(api.newsroom.mutations.updateDraftStatus);
+  const deleteDraftMutation = useMutation(api.newsroom.mutations.deleteDraft);
 
   // Actions
-  const actions = {
-    fetchRss: useAction(api.newsroom.actions.fetchRss),
-    checkSemanticSimilarity: useAction(api.newsroom.actions.checkSemanticSimilarity),
-    discoverStories: useAction(api.newsroom.actions.discoverStories)
-  };
+  const fetchRssAction = useAction(api.newsroom.actions.fetchRss);
+  const fetchGitHubAction = useAction(api.newsroom.actions.fetchGitHub);
+  const checkSemanticSimilarityAction = useAction(api.newsroom.actions.checkSemanticSimilarity);
+  const discoverStoriesAction = useAction(api.newsroom.actions.discoverStories);
+
+  // Mutations
+  const mutations = useMemo(() => ({
+    seedSources: seedSourcesMutation,
+    addSignal: addSignalMutation,
+    saveDraft: saveDraftMutation,
+    logMessage: logMessageMutation,
+    saveImage: saveImageMutation,
+    resetNewsroom: resetNewsroomMutation,
+    saveNewsroomState: saveNewsroomStateMutation,
+    clearLogs: clearLogsMutation,
+    updateSourceFetchTime: updateSourceFetchTimeMutation,
+    addNewsCluster: addNewsClusterMutation,
+    updateSignalStory: updateSignalStoryMutation,
+    updateNewsCluster: updateNewsClusterMutation,
+    startMission: startMissionMutation,
+    completeMission: completeMissionMutation,
+    failMission: failMissionMutation,
+    getUploadUrl: getUploadUrlMutation,
+    createWorkbenchSession: createWorkbenchSessionMutation,
+    updateWorkbenchSession: updateWorkbenchSessionMutation,
+    saveStoryAngles: saveStoryAnglesMutation,
+    toggleStoryAngle: toggleStoryAngleMutation,
+    toggleSource: toggleSourceMutation,
+    updateSource: updateSourceMutation,
+    deleteSource: deleteSourceMutation,
+    updateDraftStatus: updateDraftStatusMutation,
+    deleteDraft: deleteDraftMutation,
+  }), [
+    seedSourcesMutation, addSignalMutation, saveDraftMutation, logMessageMutation,
+    saveImageMutation, resetNewsroomMutation, saveNewsroomStateMutation,
+    clearLogsMutation, updateSourceFetchTimeMutation, addNewsClusterMutation,
+    updateSignalStoryMutation, updateNewsClusterMutation, startMissionMutation,
+    completeMissionMutation, failMissionMutation, getUploadUrlMutation,
+    createWorkbenchSessionMutation, updateWorkbenchSessionMutation,
+    saveStoryAnglesMutation, toggleStoryAngleMutation, toggleSourceMutation, updateSourceMutation, deleteSourceMutation,
+    updateDraftStatusMutation, deleteDraftMutation
+  ]);
+
+  // Actions
+  const actions = useMemo(() => ({
+    fetchRss: fetchRssAction,
+    fetchGitHub: fetchGitHubAction,
+    checkSemanticSimilarity: checkSemanticSimilarityAction,
+    discoverStories: discoverStoriesAction
+  }), [fetchRssAction, fetchGitHubAction, checkSemanticSimilarityAction, discoverStoriesAction]);
 
   return {
     signals,
@@ -58,8 +113,11 @@ export const useNewsroomData = () => {
     dbSources,
     dbSourcesResult,
     persistedState,
+    latestIssue,
     draft,
     drafts,
+    activeWorkbenchSession,
+    storyAngles,
     image,
     draftId, setDraftId,
     imageId, setImageId,

@@ -37,7 +37,7 @@ export class RSSAdapter implements SignalAdapter {
         source: this.name,
         sourceId: this.id,
         url: item.link,
-        content: item.description,
+        content: item.description || "",
         timestamp: new Date(item.pubDate).getTime() || Date.now(),
         sourceType: 'rss',
         status: 'new'

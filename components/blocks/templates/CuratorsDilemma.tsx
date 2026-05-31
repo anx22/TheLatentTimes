@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const CuratorsDilemmaBlock: React.FC = () => (
-  <div className="flex flex-col h-full p-10 bg-[#111111] text-white border-l border-zinc-800">
+  <div className="flex flex-col h-full p-10 bg-[#111111] text-white border-l border-zinc-600">
     <div className="text-[10px] font-mono uppercase tracking-widest text-zinc-300 mb-6">Feature</div>
     <h2 className="font-serif text-6xl leading-none tracking-tight mb-8">
       The Curator's <br /> Dilemma

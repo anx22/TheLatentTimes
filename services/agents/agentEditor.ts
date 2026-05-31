@@ -1,6 +1,5 @@
-import { Type } from '@google/genai';
 import { DraftBlock, BlockAnnotation } from '../../types';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent, Schemas } from '../gemini';
 
 export const agentEditor = async (blocks: DraftBlock[], context: string, lens: string, globalDirective?: string, missionId?: string): Promise<BlockAnnotation[]> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
@@ -18,18 +17,18 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
     Identify specific sentences (or entire blocks) that need improvement. 
     
     SIMULATE A HEATED EDITORIAL DEBATE between the following three personas:
-    1. THE CRITIC: Harsh, focused on "Vogue" style, hates clichés, demands elegance.
-    2. THE TECHNOLOGIST: Focused on "Wired" accuracy, demands technical depth, hates hand-wavy explanations.
-    3. THE REBEL: Focused on "Accelerationism", demands provocative takes, hates playing it safe.
+    1. THE CRITIC: An avant-garde cultural editor. Seeks to elevate the prose beyond the industry standard, demanding poetic precision, the 'Wort-Bild-Schere', and unexpected cultural synthesis.
+    2. THE TECHNOLOGIST: A cynical systems architect. Demands clinical accuracy, preferring to expose the cold hard metal of the narrative rather than relying on hand-wavy metaphors.
+    3. THE ACCELERATIONIST: A provocative philosopher. Seeks to push the underlying thesis into uncomfortable, systemic truths about scale, speed, and societal momentum.
 
     For each issue found, specify which persona is raising the concern. 
-    We want conflicting opinions. If one block is too technical, THE CRITIC might complain, while THE TECHNOLOGIST defends it.
+    We want conflicting opinions. If one block uses assumed industry framing, THE CRITIC must dismantle it.
     
     Focus on:
-    1. TONE_MISMATCH: Too boring/generic.
-    2. CLARITY: Confusing technicals.
-    3. FACT_CHECK: Context contradictions.
-    4. STYLE: Clunkiness.
+    1. NARRATIVE ELEGANCE: Is the text relying on tired industry idioms? Elevate it to a higher cultural register.
+    2. CLARITY: Are the technical concepts precise and grounded in reality?
+    3. TONE_MISMATCH: Does it lack the refined, slightly detached, and highly observational tone of our publication?
+    4. RHYTHM: Are the sentences carrying the weight they should? Fix clunky pacing.
     
     Output JSON only. Return an array of annotations.
     [
@@ -45,20 +44,5 @@ export const agentEditor = async (blocks: DraftBlock[], context: string, lens: s
     ]
   `;
 
-  return callJsonAgent<BlockAnnotation[]>(prompt, {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        id: { type: Type.STRING },
-        blockId: { type: Type.STRING },
-        sentenceId: { type: Type.STRING },
-        persona: { type: Type.STRING },
-        type: { type: Type.STRING },
-        comment: { type: Type.STRING },
-        suggestion: { type: Type.STRING }
-      },
-      required: ['id', 'blockId', 'type', 'comment']
-    }
-  }, [], missionId);
+  return callJsonAgent<BlockAnnotation[]>(prompt, Schemas.Editor, [], missionId);
 };

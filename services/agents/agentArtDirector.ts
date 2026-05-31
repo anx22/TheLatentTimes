@@ -13,6 +13,9 @@ export const agentArtDirector = async (article: GeneratedArticle, missionId?: st
     
     Your task is to analyze the following article and develop a VISUAL IDENTITY for it.
     Do not just illustrate the text. Capture the subtext, the mood, and the "meta-meaning".
+    Your artistic mandate is "The Elegant Machine": an aesthetic space where high-end fashion editorial sensibilities are applied to abstract technical concepts.
+    Your goal is the "Wort-Bild-Schere" (text-image dissonance) – an arresting, highly polished visual disconnect that forces the reader to think deeper about the text. 
+    Rather than merely illustrating the text, capture the hidden tension between human intention and systemic execution. Think in terms of high-fashion photography directing a technical shoot.
 
     ARTICLE HEADLINE: "${article.headline}"
     ARTICLE DECK: "${article.deck}"
@@ -20,15 +23,15 @@ export const agentArtDirector = async (article: GeneratedArticle, missionId?: st
 
     ---------------------------------------------------------
     TASK 1: VISUAL CONCEPTS (Generate 3 Distinct Directions)
-    1. "THE LITERAL": A direct, high-fidelity representation of the subject matter, but styled (e.g., Editorial Photography).
-    2. "THE METAPHOR": An abstract, symbolic, or surreal interpretation of the core theme (e.g., 3D Render, Abstract Art).
-    3. "THE VIBE": A mood-based, atmospheric approach that captures the feeling of the piece (e.g., Cinematic, Lo-fi, Glitch).
+    1. "THE AVANT-GARDE PORTRAIT": A sleek, highly curated representation capturing the psychological posture of the subject. Use piercing lighting, sculptural staging, or unexpected textures.
+    2. "THE SURREAL METAPHOR": An isolated object or peculiar scenario that acts as a brilliant, unexpected metaphorical stand-in for the systemic issue described in the text.
+    3. "THE MACRO SYSTEM": An extreme close-up of structural forces, abstract geometry, or physical material that feels imposing, precise, and deeply intentional.
 
-    CRITICAL CONSTRAINT: All prompts MUST explicitly state "No text, no typography, no magazine titles, no layout elements". The generated image should be a PURE VISUAL without any words or letters.
+    CRITICAL CONSTRAINT: All prompts MUST explicitly state "No text, no typography, no magazine titles, no layout elements". The generated image should be a PURE VISUAL without any words or letters. Avoid obvious, literal sci-fi styling; lean heavily into contemporary art and editorial curation.
 
     TASK 2: COLOR PALETTES (Generate 3 Distinct Palettes)
-    Create 3 color palettes (5 hex codes each) that reinforce these concepts.
-    Give them evocative names (e.g., "Neon Noir", "Rust & Chrome", "Digital Ether").
+    Create 3 highly intentional color palettes (5 hex codes each) that balance sophisticated foundational tones with vivid, unexpected accents that provide visual shock or editorial intrigue.
+    Give them atmospheric, luxury/editorial names (e.g., "Velvet & Chrome", "Clinical Porcelain", "Oxidized Suburbia").
 
     TASK 3: META MEANING
     Write a 1-sentence analysis of the "meta-meaning" or "hidden truth" of this article that the visuals should convey.

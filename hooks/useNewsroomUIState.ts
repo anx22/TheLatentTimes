@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { NewsroomStep, ScoutedSignal, EditorialAngle, BlockAnnotation, DebateMessage, AtelierState, AspectRatio, EditorialDepartment } from '../types';
+import { NewsroomStep, ScoutedSignal, EditorialAngle, BlockAnnotation, DebateMessage, EditorialMethodology, SourcingStrategy, Signal, Claim, SimilarityReport, EvidencePack } from '../types';
 
 export const useNewsroomUIState = () => {
   const [step, setStep] = useState<NewsroomStep>('IDLE');
+  const [activeMethodology, setActiveMethodology] = useState<EditorialMethodology>('three-zone');
   const [topic, setTopic] = useState('');
   const [globalDirective, setGlobalDirective] = useState('');
   const [activeConsensus, setActiveConsensus] = useState<string | null>(null);
@@ -25,8 +26,18 @@ export const useNewsroomUIState = () => {
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
 
+  // Seed Article & Legal Guardrails
+  const [seedArticle, setSeedArticle] = useState<Signal | null>(null);
+  const [isLegalGuardrailsEnabled, setIsLegalGuardrailsEnabled] = useState<boolean>(true);
+  const [extractedClaims, setExtractedClaims] = useState<Claim[]>([]);
+  const [evidencePack, setEvidencePack] = useState<EvidencePack | null>(null);
+  const [similarityReport, setSimilarityReport] = useState<SimilarityReport | null>(null);
+  const [isExtractingClaims, setIsExtractingClaims] = useState(false);
+  const [isCheckingSimilarity, setIsCheckingSimilarity] = useState(false);
+
   return {
     step, setStep,
+    activeMethodology, setActiveMethodology,
     topic, setTopic,
     globalDirective, setGlobalDirective,
     activeConsensus, setActiveConsensus,
@@ -48,6 +59,15 @@ export const useNewsroomUIState = () => {
     isHydrating, setIsHydrating,
     selectedStoryId, setSelectedStoryId,
     activeMissionId, setActiveMissionId,
+
+    // Seed/Compliance states
+    seedArticle, setSeedArticle,
+    isLegalGuardrailsEnabled, setIsLegalGuardrailsEnabled,
+    extractedClaims, setExtractedClaims,
+    evidencePack, setEvidencePack,
+    similarityReport, setSimilarityReport,
+    isExtractingClaims, setIsExtractingClaims,
+    isCheckingSimilarity, setIsCheckingSimilarity,
   };
 };
 

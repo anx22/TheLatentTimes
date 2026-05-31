@@ -10,6 +10,7 @@
 - **Domain Decoupling** [HARD]: Agents live in `/services`, State logic in domain hooks. `App.tsx` is for layout only.
 - **Canonical State** [HARD]: Convex is the single source of truth for the "Published Line".
 - **Mission Wrapping** [HARD]: Every agent execution MUST be linked to a `missionId` for observability.
+- **Persistence Protocol** [HARD]: Global parameters and system settings MUST be stored in dedicated Convex state keys to ensure session reliability.
 - **Deep Modules** [PREFER]: Encapsulate agent coordination behind high-leverage service interfaces (e.g., `EditorialOrchestrator`).
 
 ## Golden Principles

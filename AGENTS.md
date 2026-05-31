@@ -19,6 +19,12 @@ This project is an AI-native editorial engine ("Vogue meets Wired").
 - `/services/visual`: Art direction and asset processing.
 - `/services/mission`: Lifecycle, telemetry, and observability.
 
+## Standardized Agent Skills (Installed)
+- **`convex-database`** (`/skills/custom_skills/convex-database/SKILL.md`): Hardened rules against silent Convex action failures and missing environment variables detection.
+- **`grid-geometry`** (`/skills/custom_skills/grid-geometry/SKILL.md`): Rules governing 2D responsive grid matrices, aspect ratios, and preventing structural layout overlaps in React-Grid-Layout based systems.
+- **`llm-orchestration`** (`/skills/custom_skills/llm-orchestration/SKILL.md`): Hard error boundaries, rigid model aliasing policies (e.g., Gemini Flash), and observability patterns for autonomous agents like 'The Board'.
+- **`data-ingestion`** (`/skills/custom_skills/data-ingestion/SKILL.md`): Best practices for robust external fetching (RSS/scrapes), handling transient network closures, and data sanitization prior to DB writes.
+
 ## Routing
 - Feature task -> read [PRODUCT.md](/PRODUCT.md) + [NOW.md](/NOW.md)
 - Architecture task -> read [ARCHITECTURE.md](/ARCHITECTURE.md) + [NOW.md](/NOW.md)

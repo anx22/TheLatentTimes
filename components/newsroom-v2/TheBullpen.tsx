@@ -7,10 +7,10 @@ export const TheBullpen: React.FC = () => {
   const context = useContext(NewsroomContext);
   if (!context) return null;
 
-  const { topic, draft, isDrafting, runPipeline } = context;
+  const { topic, draft, isDrafting, runPipeline, setStep } = context;
 
   return (
-    <NewsroomPanel side="center" className="flex flex-col bg-[#050505] p-6 lg:p-12 overflow-y-auto">
+    <NewsroomPanel side="center" className="flex flex-col bg-zinc-900 p-6 lg:p-12 overflow-y-auto custom-scrollbar">
       <div className="max-w-3xl mx-auto w-full space-y-8 animate-in fade-in zoom-in-95 duration-700">
         
         <div className="flex items-center justify-between border-b border-emerald-500/20 pb-6">
@@ -58,12 +58,23 @@ export const TheBullpen: React.FC = () => {
               </p>
             </div>
             
-            <div className="h-px bg-white/10 w-full" />
+            <div className="h-px bg-zinc-800 w-full" />
             
             <div className="prose prose-invert prose-zinc max-w-none font-sans text-[16px] leading-loose text-zinc-300">
                {draft.body.split('\n').map((paragraph: string, idx: number) => (
                  <p key={idx}>{paragraph}</p>
                ))}
+            </div>
+
+            <div className="pt-8 border-t border-zinc-800 flex justify-end">
+              <NewsroomButton
+                variant="primary"
+                onClick={() => setStep('DARKROOM')}
+                icon={ChevronRight}
+                className="h-12 px-8 font-mono text-xs uppercase tracking-widest"
+              >
+                Send to Darkroom
+              </NewsroomButton>
             </div>
           </div>
         )}

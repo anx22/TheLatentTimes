@@ -4,11 +4,12 @@ import { callJsonAgent } from "../gemini";
 
 export const agentPolisher = async (draft: GeneratedArticle, missionId?: string): Promise<GeneratedArticle> => {
   const prompt = `
-    You are the Final Polish Editor for a high-end tech/culture magazine.
-    Your job is to perform a final review of the following article and make minor surgical improvements to ensure:
-    1. Perfect flow between paragraphs.
-    2. Consistent tone (sophisticated, slightly provocative, tech-literate).
-    3. Impactful headline and deck.
+    You are the Final Polish Editor for a high-end tech/culture magazine ("Vogue meets Wired").
+    Your job is to perform a final review of the following article and elevate it to our editorial standard—a space where deep technical analysis meets the sophisticated pacing of a luxury cultural magazine.
+    1. Perfect flow between paragraphs, maintaining an elegant, authoritative rhythm.
+    2. Lexical Curation: Ensure the vocabulary is sharp, unexpected, and avoids standard tech-industry tropes by replacing them with precise, grounded observations.
+    3. The "Wort-Bild-Schere": Ensure the tone feels like modern sleek fascination—a high-fashion critique of a hard-tech reality.
+    4. Impactful headline and deck (must be intellectually stimulating and stylistically bold).
     
     ARTICLE DATA:
     Headline: ${draft.headline}

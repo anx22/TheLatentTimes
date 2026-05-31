@@ -1,4 +1,4 @@
-import { agentPersonaSpeak, agentDebate, agentColumnist, agentEditor, agentTargetedSearch } from '../agents';
+import { agentDebate, agentColumnist, agentEditor, agentTargetedSearch } from '../agents';
 import { DebateMessage, EditorialAngle, GeneratedArticle, BlockAnnotation } from '../../types';
 
 export interface EditorialOrchestratorConfig {
@@ -48,24 +48,15 @@ export class EditorialOrchestrator {
   async conductDebate(topic: string, context?: string, missionId?: string): Promise<{ transcript: DebateMessage[], angles: EditorialAngle[], context: string }> {
     const activeContext = await this.ensureContext(topic, context, missionId);
     
-    const personas = ['The Tech-Optimist', 'The Culture-Critic', 'The Fashion-Forward'];
-    const transcript: DebateMessage[] = [];
-
     this.log('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info', missionId);
-
-    for (const persona of personas) {
-      this.log('THE BOARD', `${persona} is contributing to the debate...`, 'action', missionId);
-      const message = await agentPersonaSpeak(persona, topic, activeContext, transcript, this.config.globalDirective, missionId || this.config.missionId);
-      transcript.push(message);
-    }
-
-    this.log('THE BOARD', 'Synthesizing editorial angles from the debate...', 'action', missionId);
-    const debateResult = await agentDebate(topic, activeContext, this.config.globalDirective, transcript, missionId || this.config.missionId);
+    this.log('THE BOARD', `Simulating high-friction persona exchange...`, 'action', missionId);
     
-    this.log('THE BOARD', 'Debate concluded. Angles presented for selection.', 'success', missionId);
+    const debateResult = await agentDebate(topic, activeContext, this.config.globalDirective, undefined, missionId || this.config.missionId);
+    
+    this.log('THE BOARD', 'Debate concluded and synthesized into curated angles.', 'success', missionId);
     
     return {
-      transcript,
+      transcript: debateResult.transcript,
       angles: debateResult.angles,
       context: activeContext
     };
@@ -78,7 +69,7 @@ export class EditorialOrchestrator {
     topic: string, 
     context: string, 
     lens: string, 
-    wordCount: string,
+    wordCount: string | number,
     missionId?: string
   ): Promise<{ article: GeneratedArticle, annotations: BlockAnnotation[] }> {
     const activeContext = await this.ensureContext(topic, context, missionId);

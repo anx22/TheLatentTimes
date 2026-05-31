@@ -5,8 +5,9 @@ import { BLOCK_REGISTRY } from './blocks/templates';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-import { Responsive } from 'react-grid-layout';
-import WidthProvider from 'react-grid-layout';
+import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 interface MagazineGridProps {
   layout: LayoutItem[];
@@ -19,8 +20,6 @@ export const MagazineGrid: React.FC<MagazineGridProps> = ({
   onLayoutChange, 
   onItemClick 
 }) => {
-  const ResponsiveGridLayout = useMemo(() => (WidthProvider as any)(Responsive), []);
-
   // Convert LayoutItem[] to react-grid-layout format
   const rglLayout = useMemo(() => layout.map(item => ({
     i: item.i,
@@ -56,7 +55,7 @@ export const MagazineGrid: React.FC<MagazineGridProps> = ({
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={100}
         draggableHandle=".grid-drag-handle"
-        onLayoutChange={handleLayoutChange}
+        onLayoutChange={handleLayoutChange as any}
         margin={[24, 24]}
       >
         {layout.map((item) => {

@@ -41,7 +41,7 @@ export class GitHubAdapter implements SignalAdapter {
         source: this.name,
         sourceId: this.id,
         url: repo.html_url,
-        content: repo.description,
+        content: repo.description || "",
         timestamp: new Date(repo.created_at).getTime() || Date.now(),
         sourceType: 'github',
         status: 'new'

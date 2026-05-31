@@ -19,11 +19,17 @@ export default defineSchema({
   sources: defineTable({
     name: v.string(), // e.g., "GitHub Trending", "TechCrunch"
     url: v.string(), // The RSS or API endpoint
-    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github")),
+    type: v.union(v.literal("rss"), v.literal("api"), v.literal("github"), v.literal("html_watch")),
+    pack: v.optional(v.string()), // AI_MODEL_FRONTIER, etc.
+    priority: v.optional(v.number()), // 1-5
+    trustTier: v.optional(v.string()), // primary, expert, media, etc.
+    rightsMode: v.optional(v.string()), // metadata_only, etc.
     lastFetchedAt: v.number(), // Timestamp of last successful fetch
     crawlFrequency: v.number(), // Minutes between crawls
     isActive: v.boolean(),
-  }).index("by_url", ["url"]),
+    notes: v.optional(v.string()),
+  }).index("by_url", ["url"])
+    .index("by_pack", ["pack"]),
 
   // 2. STORIES (The Clusters / Knowledge Graph)
   stories: defineTable({
@@ -48,6 +54,10 @@ export default defineSchema({
     timestamp: v.number(), // Unix timestamp
     status: v.union(v.literal("new"), v.literal("processing"), v.literal("archived")),
     sourceType: v.optional(v.string()), // e.g., 'rss', 'github', 'api'
+    sourcePack: v.optional(v.string()),
+    sourceTrustTier: v.optional(v.string()),
+    qualityScore: v.optional(v.number()),
+    hash: v.optional(v.string()), // For deduplication
     storyId: v.optional(v.id("stories")), // The cluster it belongs to
     embedding: v.optional(v.array(v.float64())), // The vector representation
     missionId: v.optional(v.id("missions")), // The mission that ingested this item
@@ -61,6 +71,7 @@ export default defineSchema({
   .index("by_timestamp", ["timestamp"])
   .index("by_url", ["url"]) // For hard deduplication
   .index("by_mission", ["missionId"])
+  .index("by_storyId", ["storyId"])
   .vectorIndex("by_embedding", {
     vectorField: "embedding",
     dimensions: 3072, // gemini-embedding-2 dimensions
@@ -136,4 +147,21 @@ export default defineSchema({
     content: v.any(), // Full IssueContent JSON
     published_at: v.number(),
   }).index("by_date", ["date"]),
+  // 7. WORKBENCH SESSIONS (Methodology 1: Staging Ground)
+  workbench_sessions: defineTable({
+    signals: v.array(v.id("signals")), // The selected signals from Zone 1
+    context: v.optional(v.string()), // The user's directive/context
+    status: v.union(v.literal("active"), v.literal("processing"), v.literal("completed")),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_updatedAt", ["updated_at"]),
+
+  // 8. STORY ANGLES (Methodology 1: Zone 2 Generated Component)
+  story_angles: defineTable({
+    workbenchId: v.id("workbench_sessions"),
+    title: v.string(), // Extracted angle, e.g., "The Economic Impact"
+    summary: v.string(), // Pitch or summary
+    selected: v.boolean(), // If the user clicked to advance this angle
+    created_at: v.number(),
+  }).index("by_workbench", ["workbenchId"]),
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, BookOpen, Calendar, Hash } from 'lucide-react';
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../frontendApi";
 
 interface ArchiveModalProps {
   onClose: () => void;

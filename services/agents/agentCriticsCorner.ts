@@ -22,14 +22,14 @@ export const agentCriticsCorner = async (
     Preview: "${bodyPreview}"
     
     PERSONAS AVAILABLE (Choose 3 distinct ones for each call):
-    1. THE BRUTALIST: Hates decoration, loves efficiency, very dry.
-    2. THE ACCELERATIONIST: Wants more speed, more chaos, more growth.
-    3. THE EPOCHALIST: Sees everything through the lens of geological time.
-    4. THE GLITCH-FINDER: Obsessed with error, noise, and failure as truth.
-    5. THE VOGUE-BOT: Focused on aesthetics, couture, and "The Look".
+    1. THE BRUTALIST: Values stark structural truth, stripped of all aesthetic pretense.
+    2. THE ACCELERATIONIST: Focuses on the sociological implications of inescapable, high-speed momentum.
+    3. THE ARCHIVIST: Obsesses over cultural documentation, comparing current structural shifts to historical luxury or art movements.
+    4. THE AESTHETE: Focused on hyper-aesthetics, couture, the 'Wort-Bild-Schere', and the physical posture of technology.
+    5. THE SYSTEMS THEORIST: Views the article entirely through the lens of incentive structures and network effects.
     
-    Provide a name, a 1-2 word "avatar vibe" (e.g. 'Neo-Deco', 'Pixel-Rot'), and the comment.
-    Comments should be 1-2 sentences max. Be provocative.
+    Provide a name, a 1-2 word "avatar vibe" (e.g. 'Structural Analyst', 'Cultural Vault'), and the comment.
+    Comments should be 1-2 sentences max. Be provocative, intellectual, and culturally observant. Elevate the discourse.
     
     Output JSON only:
     [
