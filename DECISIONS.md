@@ -30,6 +30,14 @@
 **Reason**: Completely eradicates the god-actions file. By splitting asynchronous logic from data-fetching and background schedules, individual action routines are highly readable (all under 200 lines), while maintaining perfect integration with Convex's type-safe code generation.
 
 ## [2026-05-31] Convex Write-Operations Clean-up & Absolute Modular Splitting
+> ⚠️ SUPERSEDED (2026-05-31): This split was REVERTED in commit `5399c67`.
+> Re-splitting `mutations.ts` into sub-files re-triggered the TypeScript
+> error TS2589 ("Type instantiation is excessively deep") via Convex's
+> generated types. `convex/newsroom/mutations.ts` is now a single flat
+> 534-LOC file again and must stay that way. The `/convex/newsroom/mutations/`
+> subdirectory described below does NOT exist. (The `actions.ts` split below
+> DID survive — only mutations was flattened.)
+
 **Problem**: The core `mutations.ts` file had originally grown into a massive monolith of write operations crossing wildly unrelated domains—including live telemetry, mission states, story clustering, drafting, workbench interactions, image saving, state persistence, publication, and seeding. This made it difficult to maintain and was highly intimidating for database auditing.
 
 **Choice**: Fully decoupled and divided `mutations.ts` into a clean, modular structure.

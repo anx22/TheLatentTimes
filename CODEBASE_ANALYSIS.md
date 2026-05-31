@@ -1,0 +1,190 @@
+# The Latent Times — Codebase-Analyse
+
+> Stand: 2026-05-31 · Branch `claude/intelligent-mayer-PHjEf` · HEAD `5399c67`
+> Erstellt als Bestandsaufnahme („Wo kommen wir her, wo funktioniert was, wo sind die Lücken").
+> Dies ist ein Analyse-Artefakt, kein Code-Change.
+
+---
+
+## 0. Tooling- & MCP-Status (was war erreichbar?)
+
+| Kanal | Status | Bemerkung |
+|---|---|---|
+| **Repo / Git / Dateisystem** | ✅ voll | Vollständige statische Analyse möglich |
+| **GitHub MCP** | ✅ verfügbar | History, PRs, Issues lesbar (`anx22/thelatenttimes`) |
+| **Convex MCP** | ❌ **nicht vorhanden** | Es gibt keinen offiziellen Convex-MCP-Server in dieser Umgebung. `convex-database` ist nur ein **lokaler Repo-Skill** (`/skills/custom_skills/`), kein MCP. → Live-DB, Env-Vars und Funktionsausführung **nicht prüfbar von hier** |
+| **Supabase MCP** | ⚠️ vorhanden, **irrelevant** | Generisches Umgebungs-Preset. Projekt nutzt Convex, nicht Supabase. Nicht angefasst |
+| **Vercel MCP** | ✅ vorhanden | Frontend-Deploy/Logs theoretisch prüfbar (Team-/Projekt-ID nötig) |
+| **Whiteboard/Diagramm-MCP** | ✅ vorhanden | Für visuelle Doku nutzbar |
+| **Live Convex-Deployment** | ❌ nicht erreichbar | Keine Deploy-Keys im Sandbox, kein `.env`. Modell-Aliasse, Cron-Läufe, Daten ungeprüft |
+
+**Folge:** Alles unten ist **statische Code-Wahrheit**. Aussagen über „läuft live" sind markiert als *(nicht verifizierbar von hier)*.
+
+---
+
+## 1. Was das Projekt ist
+
+**The Latent Times** — eine „AI-native Magazin-Engine". Vision (PRODUCT.md): „Vogue meets Wired meets The Matrix". Kein RSS-Reader, sondern ein agentisches Redaktions-Betriebssystem, das technische Signale → kulturelle Narrative → publiziertes Magazin verwandelt. Der Nutzer ist „Director", nicht passiver Leser.
+
+**5 Produkt-Räume:** THE WIRE (Intelligence-Terminal) · THE BULLPEN (Redaktions-Debatte) · THE DARKROOM (Visual-Atelier) · THE PRINTING PRESS (Layout-Engine) · THE MAGAZINE (lebendes Grid).
+
+---
+
+## 2. Tech-Stack (Ist-Zustand)
+
+- **Frontend:** React 18 + Vite 5 + TailwindCSS 3 + `motion` (Framer) + `react-grid-layout`
+- **Backend:** **Convex** (`^1.32`) — Realtime-DB, Vektorsuche, Actions, Crons, File-Storage
+- **KI:** Google Gemini via `@google/genai` (`latest`) — **ausschließlich serverseitig** in Convex-Actions
+- **Deployment:** Vercel (Frontend, SPA-Rewrite) + Convex Cloud (Backend + Crons)
+- **Sprache:** TypeScript (strict via tsc-Build), ESLint flat-config
+
+**LOC grob:** components ~4.157 · services ~2.904 · convex ~2.114 · hooks ~1.176 · contexts ~287 · lib ~38
+
+---
+
+## 3. Architektur: Thin-Client-Pattern
+
+Zentrale (und sauber umgesetzte) Entscheidung: **Kein API-Key im Browser-Bundle.**
+
+```
+Browser (React)                Convex Cloud                     Google
+─────────────                  ────────────                     ──────
+services/gemini.ts   ──action──►  convex/gemini.ts ("use node")  ──►  Gemini API
+(Thin Proxy)                      liest process.env.GEMINI_API_KEY
+   ▲                                   │
+   │ useQuery/useMutation              │ runMutation(recordTokenUsage)
+   └──────────────────────────────────┘
+        Convex Tabellen = Single Source of Truth
+```
+
+- `vite.config.ts` hat **bewusst keinen `define`-Block** → Key kann nicht leaken
+- `.env` (gitignored) enthält nur `VITE_CONVEX_URL`
+- Key lebt nur in Convex: `npx convex env set GEMINI_API_KEY …`
+- `.env` wurde aus der **kompletten Git-History per filter-repo gepurged** (61 Commits neu geschrieben)
+
+**Server-Transport** (`convex/gemini.ts`): `generateText` (mit Modell-Ladder + Pro-Cooldown), `generateImage`, `editImage`, `generateEmbedding` (mit Fallback), `searchTrend` (Google-Search-Grounding + Fallback).
+
+---
+
+## 4. Backend-Inventar (Convex)
+
+### 4.1 Tabellen (`convex/schema.ts`) — 10 Stück
+| Tabelle | Zweck | Besonderheit |
+|---|---|---|
+| `sources` | Crawl-Ziele | pack/priority/trustTier/rightsMode (optional) |
+| `stories` | Cluster / „Pillars" | centroid_embedding |
+| `signals` | Roh-Signale | **vectorIndex `by_embedding`, dim 3072** |
+| `drafts` | Artikel | `blocks` als `v.any()` JSON |
+| `agent_logs` | Chatter-Stream | by_mission |
+| `missions` | Execution-Threads | tokenUsage-Objekt, Observability-Anker |
+| `images` | Visuals | storageId → `_storage` |
+| `newsroom_state` | UI-Persistenz | key/data (`current`) |
+| `issues` | Publiziertes Archiv | `content` = full IssueContent JSON |
+| `workbench_sessions` / `story_angles` | Three-Zone-Pipeline | Methodology-1-Staging |
+
+### 4.2 Funktions-Module
+- `convex/newsroom/mutations.ts` — **flache 534-LOC-Datei**, 29 Mutations (Missions, Signals, Sources, Issues, Drafts, Workbench)
+- `convex/newsroom/queries.ts` — 19 Queries
+- `convex/newsroom/actions.ts` — **3-Zeilen Re-Export-Shim** → `actions/`
+  - `actions/clusteringActions.ts` (226) — Similarity, discoverStories, Cluster-Titel
+  - `actions/fetchActions.ts` (105) — RSS, GitHub, Feed-Probe
+  - `actions/autonomousActions.ts` (330) — kompletter autonomer Sweep
+- `convex/gemini.ts` (240) — KI-Transport
+- `convex/crons.ts` (36) — circadian 08/13/19 UTC + stündl. Cleanup
+- `convex/maintenance.ts`, `media.ts`, `testing.ts`, `seedData.ts`
+
+---
+
+## 5. Agenten-Layer
+
+**18 Client-Agenten** (`services/agents/`), jeder eine Datei, alle proxien über `services/gemini.ts`:
+Discovery (Scout, TargetedSearch, CulturalGrounding) · Deliberation (PersonaSpeak, Debate, Consensus, Synthesis) · Drafting (Columnist, Editor, RewriteBlock, RewriteSentence, Polisher) · Visual (ArtDirector, PromptEnhancer, Photographer) · Layout/Afterlife (LayoutDesigner, CriticsCorner, ConverseWithCritic). Zusätzlich `agentWorkbench`, `agentSeedExplorer`.
+
+**Orchestratoren:** `EditorialOrchestrator`, `AtelierEngine`, `PublicationOrchestrator`, `SignalBroker` (+ Adapter RSS/GitHub/Search, ScoringEngine, SourceRegistry mit 23 Quellen).
+
+⚠️ **Architektonische Doppelung:** Der autonome Cron (`autonomousActions.ts`) **re-implementiert** die gesamte Kette (Scout→Cluster→Debate→Columnist) serverseitig mit **inline-Prompts und direkter `GoogleGenAI`-Instanz** — er nutzt **nicht** die 18 `services/agents`. Zwei parallele Wahrheiten → Divergenzrisiko.
+
+---
+
+## 6. Frontend-Inventar
+
+- **Einstieg:** `index.tsx` → `App.tsx`. App rendert: Header + (Deko-)Ticker + entweder `MagazineGrid` (wenn Layout) oder `MainNewspaper` (Liste) + `NewsroomFloor`-Overlay (Ops).
+- **Newsroom-v2** (`components/newsroom-v2/`): TheWire, TheBullpen, TheDarkroom, PrintingPress, ThreeZonePipeline, AutonomousPipeline, ObservabilityDashboard, SignalSourcingBar.
+- **Block-Templates** (`components/blocks/templates/`): 18 Magazin-Bausteine (CoverStory, Glamour, MassiveHeadline, LargeQuote …) + Registry.
+- **State:** Contexts (Newsroom, Atelier, Parameter) + 6 Domain-Hooks (useNewsroomData/State/UIState, useEditorialAgents, useVisualAgents, usePublicationFlow).
+
+---
+
+## 7. Git-Evolution (woher kommen wir)
+
+- **Start:** 2026-02-12 — Google-AI-Studio-Genese (`feat(aistudio): …`, AIStudio global types, Key-Selection).
+- **Verlauf:** ~3,5 Monate, ~30+ Feature-Commits. Erkennbare Phasen:
+  1. **Auth/Login** (Feb) → später **entfernt** (heute Mock-Session)
+  2. **Newsroom-Modularisierung** (Mai): NewsroomContext, v2-Components, Hook-Decomposition (800-LOC-Hook gesplittet)
+  3. **Strukturierte Drafts** (DraftBlock-Arrays, satzgenaues Editing)
+  4. **Vektor-Clustering** + Dedup
+  5. **react-grid-layout** als AI-orchestriertes Magazin-Grid
+  6. **Three-Zone-Pipeline** + Legal-Shield (UrhG §23/44b)
+  7. **Phase 1/2b Cleanup** (KI-Transport serverseitig, Mocks raus, mutations geflattet)
+- **Doppelte Commits** in `git log --all` (z.B. zwei × „multi overhauls.. still buggy") = Artefakt des **filter-repo History-Rewrites** beim `.env`-Purge (alte + neue Refs koexistieren).
+- **Selbstbeschreibung der Commits:** „multi overhauls.. still buggy" — deckt sich mit „Patchwork, das stellenweise funktioniert".
+
+---
+
+## 8. Externe Konnektoren / Quellen
+
+23 Signal-Quellen in `seedData.ts` / `SourceRegistry.ts`, gruppiert in Packs:
+`AI_MODEL_FRONTIER` (OpenAI, HuggingFace, DeepMind, Google Research, Meta, Mistral) · `AI_RESEARCH` (arXiv cs.AI/cs.LG, HF Papers, BAIR) · `AI_DEV_SIGNAL` (NVIDIA, Lil'Log, vLLM, Simon Willison, GitHub Trending, HN) · `AI_LAW_POLICY` (EU, FTC) · `AI_BUSINESS` (TechCrunch, VentureBeat) · `AI_CULTURE` (WIRED, The Verge).
+Ingest-Typen: `rss`, `api`, `github`, `html_watch`. *(Live-Erreichbarkeit der Feeds nicht von hier prüfbar.)*
+
+---
+
+## 9. Was funktioniert vs. was nicht (Skip-&-Notiz)
+
+### ✅ Strukturell solide
+- Thin-Client / Key-Sicherheit (Bundle ist sauber)
+- Convex-Schema konsistent, Vektorindex korrekt (3072 via `lib/vector.ts` erzwungen)
+- Frontend-Hydration über `getLatestIssue`
+- Modell-Ladder + Rate-Limit-Cooldown im Transport
+
+### ⚠️ / ❌ Verdächtig, kaputt oder ungeprüft
+1. **`completeMission`-Bug (konkret, verifiziert):** `autonomousActions.ts:308` ruft `completeMission({ missionId, tokenUsage })` — aber die Mutation akzeptiert nur `{ missionId, resultId? }`. Convex-Argvalidierung **wirft** → der autonome Cron schlägt am **Schlussschritt jedes Laufs** fehl (Draft wird zwar vorher gespeichert, aber Mission endet als „failed"). Genau das, wovor der Session-Handoff warnte.
+2. **Modell-Aliasse:** `gemini-3-flash-preview`, `gemini-embedding-2`, `gemini-2.5-flash-image`. Das sind AI-Studio-Ära-Namen; ob sie im echten Deployment auflösen, ist **nicht von hier verifizierbar**. Die DECISIONS-Historie zeigt bereits 404-Kämpfe (`gemini-3.5-flash`). **Single Point of Failure** der ganzen Pipeline.
+3. **Keine Auth:** Login/Register/Reset existierten (Feb), sind raus. `App.tsx` nutzt hartkodierte Mock-Session (`editor@latent.times` / `dev-bypass-id`). Ops-Panel öffentlich.
+4. **Doku-Drift:** DECISIONS.md + NOW.md beschreiben `mutations.ts` als 5-Modul-Split unter `/convex/newsroom/mutations/` — **existiert nicht**; Datei ist flach (durch `5399c67` rückgängig gemacht wg. TS2589). Der actions-Split ist hingegen real.
+5. **Doppelte Pipeline** (siehe §5) — Wartungsfalle.
+6. **Ticker** konzeptionell „retired" (DECISIONS Signal-Convergence), aber `Ticker`-Component + `ticker:[]` in `getGenesisIssueContent` leben weiter.
+7. **`@ts-nocheck`** in `crons.ts`, `frontendApi.ts`, `autonomousActions.ts` — Typsicherheit dort abgeschaltet (bewusst, aber blinde Flecken).
+8. **`UsageTracker`** in `services/mission` ist No-Op-Shim (Telemetrie serverseitig migriert).
+
+---
+
+## 10. Katalog: Widersprüche, Lücken, offene Fragen
+
+### A. Verifizierte Bugs (sofort fixbar)
+- **A1** `completeMission`-tokenUsage-Mismatch → Cron failt am Ende. Fix: Argument entfernen (Token-Tracking läuft eh über `recordTokenUsage`).
+
+### B. Doku ↔ Code-Widersprüche
+- **B1** mutations-Split (5 Module) in DECISIONS/NOW dokumentiert, aber nicht im Code. → Doku korrigieren.
+- **B2** AGENTS.md sagt „All [agents] run client-side" — stimmt für die 18, aber der Cron dupliziert sie serverseitig. → präzisieren.
+
+### C. Nicht-von-hier-verifizierbar (brauchen Deployment-Zugang/Connector)
+- **C1** Lösen die Gemini-Modell-Aliasse im echten Deployment auf? Ist `GEMINI_API_KEY` gesetzt?
+- **C2** Welche der 23 RSS/API-Feeds liefern live (404-Quote)?
+- **C3** Laufen die Crons? Gibt es Daten in `signals`/`issues`?
+- **C4** Vercel-Deploy grün? (Team-/Projekt-ID nötig)
+
+### D. Strategische/Architektur-Fragen
+- **D1** Soll die serverseitige Cron-Pipeline auf die `services/agents` konsolidiert werden, oder bleibt die Doppelung bewusst (Browser vs. headless)?
+- **D2** Auth: bewusst entfernt (Single-User-Tool) oder soll Convex-Auth zurück?
+- **D3** Legacy `news_clusters`-Tabelle (in NOW.md als „purge"-Kandidat) — Status? (im Schema nicht (mehr) vorhanden)
+- **D4** Embedding-Dim 3072 (`gemini-embedding-2`) vs. Fallback `gemini-embedding-001` (768-dim) — Dim-Mismatch beim Fallback würde `assertEmbeddingDim` werfen. Beabsichtigt?
+
+---
+
+## 11. Empfohlene nächste Schritte (Vorschlag)
+1. **A1 fixen** (1-Zeilen-Change, beseitigt garantiertes Cron-Failure).
+2. **Connectors einrichten:** Convex-Deploy-Key + `VITE_CONVEX_URL` in die Session → dann C1–C3 live verifizieren.
+3. **Doku synchronisieren** (B1/B2) — Single Source of Truth herstellen.
+4. **Modell-Aliasse zentralisieren** in eine Konstante (`constants.ts`), damit Modellwechsel an einer Stelle passieren.
+5. **Architektur-Entscheid D1** treffen, bevor weiter an zwei Pipelines gebaut wird.

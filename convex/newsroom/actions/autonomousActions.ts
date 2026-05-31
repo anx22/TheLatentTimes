@@ -305,9 +305,12 @@ export const runScheduledAutonomousRun = action({
         }
       }
 
+      // completeMission only accepts { missionId, resultId? }. Token totals are
+      // accumulated separately via recordTokenUsage, so passing a tokenUsage arg
+      // here triggers a Convex argument-validation error and fails the mission at
+      // its final step every run. Keep the call to the validated signature.
       await ctx.runMutation(api.newsroom.mutations.completeMission, {
         missionId,
-        tokenUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
       });
 
     } catch (err: any) {

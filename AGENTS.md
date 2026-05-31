@@ -14,8 +14,12 @@ This project is an AI-native editorial engine ("Vogue meets Wired").
 - **The Designer**: Strategic layout and grid orchestration.
 
 ## Implemented Agents (18 — `services/agents/`)
-Each file exports a single agent function. All run client-side and call
-Gemini through `services/gemini.ts`. Authoritative list — keep in sync
+Each file exports a single agent function. These run client-side and call
+Gemini through `services/gemini.ts` (which proxies to the server-side
+transport in `convex/gemini.ts`). NOTE: the autonomous cron pipeline in
+`convex/newsroom/actions/autonomousActions.ts` re-implements the
+Scout→Cluster→Debate→Columnist chain server-side with inline prompts and a
+direct `GoogleGenAI` instance — it does NOT reuse these agent files. Authoritative list — keep in sync
 with `services/agents/index.ts`.
 
 ### Discovery & research
