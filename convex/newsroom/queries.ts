@@ -283,3 +283,14 @@ export const getSignal = query({
     return await ctx.db.get(args.id);
   },
 });
+
+// Fetch a single story by id. Needed by the autonomous cron, which used to look
+// the story up via getNewsClusters (hardcoded to limit=1) — that lookup missed
+// whenever the target story was not the single most-recent one, silently
+// skipping the entire drafting branch. Use a direct get instead.
+export const getStory = query({
+  args: { id: v.id("stories") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});

@@ -180,10 +180,12 @@ export const runScheduledAutonomousRun = action({
       if (newStoryCount > 0 && newStoryIds.length > 0) {
         const targetStoryId = newStoryIds[0];
         
-        // Retrieve newly created story cluster
-        const clusters: any[] = await ctx.runQuery(api.newsroom.queries.getNewsClusters, {});
-        const story = clusters.find(c => c._id === targetStoryId);
-        
+        // Retrieve the newly created story cluster directly by id. (Previously this
+        // used getNewsClusters, which is hardcoded to limit=1, so the lookup missed
+        // whenever the target pillar wasn't the single most-recent story — silently
+        // skipping the entire debate/columnist/draft branch and producing no article.)
+        const story: any = await ctx.runQuery(api.newsroom.queries.getStory, { id: targetStoryId });
+
         if (story) {
           await ctx.runMutation(api.newsroom.mutations.logMessage, {
             agentName: "SYSTEM",

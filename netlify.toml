@@ -1,0 +1,21 @@
+# Netlify build configuration for The Latent Times.
+#
+# The frontend reads import.meta.env.VITE_CONVEX_URL at build time (see index.tsx)
+# and has no fallback — if it is missing the site renders a "System Configuration
+# Error" screen. Rather than hardcoding the URL, we let the Convex CLI inject it:
+# `convex deploy --cmd` deploys the backend AND runs the frontend build with
+# VITE_CONVEX_URL pre-populated from the deployment behind CONVEX_DEPLOY_KEY.
+#
+# Requires the Netlify env var CONVEX_DEPLOY_KEY (build scope) to be set.
+[build]
+  command = "npx convex deploy --cmd-url-env-var-name VITE_CONVEX_URL --cmd 'npm run build'"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback so client-side routing / deep links resolve to index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
