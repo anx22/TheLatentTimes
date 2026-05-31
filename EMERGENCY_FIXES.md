@@ -92,26 +92,23 @@ umstellen. (Modelle funktionieren live — kein Crash, aber Wartungs-/Kostenrisi
   Ops-Panel mounten (offen, Refactor).
 **Aufwand:** Rest S–M.
 
-### EF-6 · Produktions-Leerzustände
-**Problem:** `issues = 0` live → öffentliche Seite zeigt „No Articles Published Yet". Für einen
-echten Launch braucht es mindestens eine kuratierte publizierte Ausgabe oder eine ansprechende
-Landing statt Leerzustand.
-**Fix:** Genesis-Issue mit echtem Inhalt seeden oder Landing-Fallback gestalten.
-**Aufwand:** S.
+### EF-6 · Produktions-Leerzustände  ✅ erledigt
+Bare „No Articles Published Yet"-Box ersetzt durch eine gebrandete „Genesis Issue is being
+composed"-Landing (`App.tsx`). (Optional weiter: echte erste Ausgabe kuratieren/seeden.)
 
 ---
 
 ## 🔴 P2 — Direkt nach Launch / Aufräumen
 
-- **EF-7 · Netlify-Hygiene:** verwaiste UI-Env-Vars entfernen (`VITE_CONVEX_URL` ohne Region —
-  von `netlify.toml` überschrieben; `CONVEX_DEPLOY_KEY` — ungenutzt). *(Mehrfach versucht; Netlify-MCP
-  liefert anhaltend HTTP 502. Funktional unkritisch, da `netlify.toml` gewinnt — nachzuholen, sobald
-  der Netlify-MCP wieder antwortet.)*
-- **EF-8 · `.env` in Alt-Historie:** Branches `claude/eloquent-planck-KFxPA` / `vercel/…` enthalten
-  ggf. noch `.env` in der History (enthielt nur `VITE_CONVEX_URL`, kein Geheimnis). Alt-Branches
-  schließen/löschen.
-- **EF-9 · `@ts-nocheck`-Inseln** (`crons.ts`, `frontendApi.ts`, `autonomousActions.ts`) — Typsicherheit
-  dort blind; mittelfristig auflösen.
+- **EF-7 · Netlify-Hygiene:** ✅ verwaiste UI-Env-Vars `VITE_CONVEX_URL` (nicht-regional) und
+  `CONVEX_DEPLOY_KEY` (ungenutzt) gelöscht. 🔴 Rest: `depl_key_claudecode` (write-fähiger Convex-
+  Dev-Deploy-Key, **non-secret** in Netlify gespeichert, vom Build nicht mehr genutzt) — löschen
+  oder rotieren+als-secret markieren. Sicherheits-/Kostenrelevant (EF-1-nah).
+- **EF-8 · Alt-Branches:** 🔴 `claude/eloquent-planck-KFxPA` (Ancestor von main → redundant) und
+  `vercel/setup-vercel-speed-insights-in-rwyfz2` (geschlossener Bot-PR) löschen. **Manuell nötig** —
+  der Managed-Git-Proxy lehnt Delete-Refspecs ab; per GitHub-UI entfernen.
+- **EF-9 · `@ts-nocheck`-Inseln:** ✅ `frontendApi.ts` entschärft (Typcheck wieder aktiv).
+  🔴 Rest: `crons.ts`, `autonomousActions.ts`, `clusteringActions.ts` (risikoreicher — `any`-lastig).
 - **EF-10 · Dev- vs. Prod-Deployment:** Öffentliche Seite hängt an einem **Dev**-Convex-Deployment
   (`dev:adamant-mastiff-745`). Für Produktion echtes Prod-Deployment + Prod-Deploy-Key + `convex deploy`
   im CI etablieren.
