@@ -15,6 +15,11 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Convex client URL (public, embedded in the bundle anyway). Must be the
+  # regional host — the non-regional adamant-mastiff-745.convex.cloud returns 404;
+  # adamant-mastiff-745.eu-west-1.convex.cloud is the live deployment. Set here in
+  # version control so the build is deterministic and not dependent on UI env vars.
+  VITE_CONVEX_URL = "https://adamant-mastiff-745.eu-west-1.convex.cloud"
 
 # SPA fallback so client-side routing / deep links resolve to index.html.
 [[redirects]]
