@@ -188,3 +188,55 @@ Ingest-Typen: `rss`, `api`, `github`, `html_watch`. *(Live-Erreichbarkeit der Fe
 3. **Doku synchronisieren** (B1/B2) — Single Source of Truth herstellen.
 4. **Modell-Aliasse zentralisieren** in eine Konstante (`constants.ts`), damit Modellwechsel an einer Stelle passieren.
 5. **Architektur-Entscheid D1** treffen, bevor weiter an zwei Pipelines gebaut wird.
+
+---
+
+## 12. Live-Verifikation (2026-05-31, via Netlify-MCP + Convex-CLI)
+
+Zugang selbst hergestellt: Convex-**Dev**-Deploy-Key aus Netlify-Env (`depl_key_claudecode`)
+→ Deployment `adamant-mastiff-745`. Read-only-Checks (keine Mutationen/Deploys ausgeführt).
+
+### Ergebnisse
+| Check | Ergebnis |
+|---|---|
+| **C1** `GEMINI_API_KEY` im Deployment | ✅ **gesetzt** — serverseitiger Transport hat seinen Key |
+| **Embeddings live** | ✅ funktionieren — Signals tragen echte 3072-dim Vektoren |
+| **Ingestion** | ✅ läuft — Sweep um 19:00 UTC: 202 Items entdeckt, 193 Signals committet, 29 Quellen aktiv |
+| **Clustering** | ✅ läuft — 3 „Pillars" gebildet, Story „The Ethics of the Incomputable" existiert |
+| `sources` / `missions` / `drafts` / `issues` | 29 / 1 / **0** / **0** |
+| **Autonomer Cron-Lauf** | ❌ **[failed]** mit `ArgumentValidationError: extra field 'tokenUsage'` in `completeMission` — **exakt Bug A1** |
+| **Öffentliche Netlify-Seite** | ❌ **nicht mit Backend verbunden** |
+
+### Befund I — A1 live bestätigt (Fix bereits committet)
+Der Mission-Error-String aus der DB ist wörtlich:
+> `ArgumentValidationError: Object contains extra field 'tokenUsage' … Validator: v.object({missionId, resultId?})`
+
+Der heutige Abend-Sweep ingestierte + clusterte erfolgreich und **starb dann am `completeMission`-Aufruf**.
+Der Fix in diesem Branch (Commit `80a39a1`) beseitigt genau das — ist aber **noch nicht live**
+(Netlify baut `main`; dieser Branch muss erst gemerged + neu deployed werden).
+
+### Befund II — Öffentliche Seite ist vom Backend getrennt 🔴
+- `thelatenttimes.netlify.app` → HTTP 200, aber das Bundle (`index-DDsk5iUg.js`) enthält
+  „System Configuration Error" + „VITE_CONVEX_URL" und **keine** `*.convex.cloud`-URL.
+- Ursache: `index.tsx` liest `import.meta.env.VITE_CONVEX_URL` (Build-Zeit, **kein Fallback**),
+  aber in Netlify ist **nur** der Deploy-Key gesetzt — **kein `VITE_CONVEX_URL`**, keine `netlify.toml`.
+- Folge: Die Live-Seite rendert den roten Konfigurationsfehler. Besucher sehen kein Magazin.
+- Fix-Optionen: (a) `VITE_CONVEX_URL=https://adamant-mastiff-745.convex.cloud` als Netlify-Env-Var,
+  oder (b) Build-Command auf `npx convex deploy --cmd 'npm run build'` (injiziert die URL automatisch).
+  ⚠️ Nebenbefund: Es wird ein **Dev**-Key (`dev:…`) statt Prod-Key für das öffentliche Deployment genutzt.
+
+### Befund III — Autonomes Drafting wird still übersprungen (neuer latenter Bug A2)
+Auch **nach** A1-Fix würde kein Draft entstehen: In `autonomousActions.ts` wird die Zielstory via
+`api.newsroom.queries.getNewsClusters` geladen — diese Query liefert aber **hartkodiert `limit = 1`**
+(`queries.ts:166`). `clusters.find(c => c._id === targetStoryId)` trifft daher meist nicht →
+der gesamte `if (story)`-Drafting-Block (Debate→Columnist→saveDraft) wird übersprungen.
+Beleg: Der Lauf erzeugte **genau 7 Logs** (Scout 3 / Board 2 / SYSTEM 2), **keine** Columnist-Zeile,
+und `drafts = 0`. → erklärt, warum trotz funktionierender Ingestion/Clustering nie ein Artikel entsteht.
+
+### Konsequenz für den Katalog
+- **A1** ✅ gefixt + live als Ursache bestätigt → muss nur noch nach `main` & redeployed werden.
+- **A2** (neu): `getNewsClusters` limit=1 vs. Story-Lookup im Cron → Drafting tot. Fix: Story per
+  `ctx.db.get(targetStoryId)` direkt holen statt über die limitierte Liste.
+- **Deployment** (neu, hohe Prio): `VITE_CONVEX_URL` in Netlify fehlt → öffentliche Seite blind.
+- C2 (Feed-404-Quote) noch offen — Ingestion liefert aber live 193 Signals, also grundsätzlich gesund.
+
