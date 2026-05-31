@@ -21,3 +21,36 @@ export const cleanupLogs = internalMutation({
     }
   },
 });
+
+/**
+ * One-off wipe of the regenerable pipeline tables.
+ *
+ * Keeps configuration (`sources`, `newsroom_state`); clears everything that
+ * can be produced again by re-running the pipeline. Invoke from CLI:
+ *   npx convex run maintenance:wipePipelineData
+ */
+export const wipePipelineData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const tables = [
+      "signals",
+      "stories",
+      "drafts",
+      "agent_logs",
+      "missions",
+      "images",
+      "issues",
+    ] as const;
+
+    const counts: Record<string, number> = {};
+    for (const table of tables) {
+      const rows = await ctx.db.query(table as any).collect();
+      for (const row of rows) {
+        await ctx.db.delete(row._id);
+      }
+      counts[table] = rows.length;
+    }
+    console.log("[WIPE] cleared pipeline tables:", counts);
+    return counts;
+  },
+});
