@@ -1,6 +1,16 @@
 
 # DECISIONS.md
 
+## [2026-05-31] Production Connection, Newsroom Soft Wall & Cost Normalization (web session)
+**Problem**: The public Netlify site was not wired to Convex (`VITE_CONVEX_URL` missing → config-error screen); the autonomous cron crashed at `completeMission` (A1) and never produced drafts (A2, story lookup via `getNewsClusters` limit=1); Convex read usage was extreme; the whole Ops surface and the Gemini endpoints were open to anonymous visitors; model aliases were scattered.
+**Choice**:
+1. **Connection/build**: pin the regional `VITE_CONVEX_URL` in `netlify.toml`; build with plain `npm run build` (the `convex deploy --cmd` wrapper 403'd on the dev key). Backend deployed separately.
+2. **Cron correctness**: drop the invalid `tokenUsage` arg to `completeMission` (A1); add a `getStory` query so the autonomous run finds its pillar by id (A2).
+3. **Read-usage**: strip `embedding`/`cultural_vectors` from `getSignals`/`getOrphanSignals`/`getSignal`; lower `getAgentLogs` default 300→50; remove the client-side circadian heartbeat that duplicated the Convex cron.
+4. **Soft wall**: password-only newsroom auth, verified server-side (`convex/auth.ts`, `NEWSROOM_PASSWORD`). Read-only for anonymous users is enforced at a **single** `NewsroomContext` choke-point (deny-by-default on every non-`set*` function) so it survives newsroom rebuilds. `useAuth()` fails closed.
+5. **Model aliases**: centralized in `convex/models.ts` + `constants.ts` (`MODELS`).
+**Reason**: Makes the app actually reachable and functioning end-to-end, stops the dominant Convex read-bandwidth cost, and gives a robust, refactor-proof access boundary without blocking the public magazine. Residual: the Convex actions remain directly callable by URL (soft wall is UI-level) — real per-user hardening tracked in `EMERGENCY_FIXES.md` (EF-1).
+
 ## [2026-05-31] Generative Semantics & Thematic Synthesis Engine
 **Problem**: The legacy semantic clustering approach (`discoverStories`) mapped signals strictly via mathematical cosine similarity on embeddings (e.g. Euclidean distance > `0.85`). This algorithm was too literal for a creative editorial engine. It grouped articles by vocabulary overlap (e.g. two articles about OpenAI) rather than cultural themes (e.g. connecting a technical breakthrough with a new policy shift).
 **Choice**: Ripped out the deterministic vector-distance thresholding matrix from `discoverStories`. Rewrote the pipeline to pipe up to 60 "orphan" signals directly to Gemini 3.5 Flash in a single generational sweep. We now prompt the Board persona to find non-obvious, creative macro-themes across loosely correlated signals to derive new theses dynamically.

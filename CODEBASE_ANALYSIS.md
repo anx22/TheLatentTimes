@@ -3,6 +3,11 @@
 > Stand: 2026-05-31 · Branch `claude/intelligent-mayer-PHjEf` · HEAD `5399c67`
 > Erstellt als Bestandsaufnahme („Wo kommen wir her, wo funktioniert was, wo sind die Lücken").
 > Dies ist ein Analyse-Artefakt, kein Code-Change.
+>
+> **Status-Update:** Die Abschnitte 1–11 sind die *ursprüngliche* Bestandsaufnahme. Viele dort als
+> „offen" markierte Befunde sind inzwischen behoben (Verbindung, Build, A1/A2, Read-Usage, fehlende
+> Auth via Read-only-Soft-Wall, Client-Doppel-Engine, Modell-Zentralisierung). Den aktuellen Stand
+> + die Roadmap siehe **Abschnitt 12–13** unten und **`EMERGENCY_FIXES.md`**.
 
 ---
 

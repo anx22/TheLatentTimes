@@ -85,11 +85,12 @@ umstellen. (Modelle funktionieren live — kein Crash, aber Wartungs-/Kostenrisi
 **Aufwand:** S–M.
 
 ### EF-5 · Weiteres Read/Compute-Sparpotenzial
-- `checkSemanticSimilarity`: eine **Vektorsuche pro ingestiertem Signal** (≈193/Sweep) → batchen
-  oder Schwelle/Sampling.
-- `getOrphanSignals` trägt noch Embeddings (aktuell nicht client-abonniert) → strippen, falls je genutzt.
-- `getAllDrafts`/`getMissions` reaktiv mit Defaults prüfen.
-**Aufwand:** S–M.
+- ✅ `getOrphanSignals` + `getSignal`: Embeddings/Vektoren gestrippt, Over-fetch `*5`→`*3` (erledigt).
+- 🔴 `checkSemanticSimilarity`: eine **Vektorsuche pro ingestiertem Signal** (≈193/Sweep) → batchen
+  oder Schwelle/Sampling (offen, größerer Eingriff).
+- 🔴 `NewsroomProvider` hängt an jeder öffentlichen Seite (~13 Live-Queries) → nur bei offenem
+  Ops-Panel mounten (offen, Refactor).
+**Aufwand:** Rest S–M.
 
 ### EF-6 · Produktions-Leerzustände
 **Problem:** `issues = 0` live → öffentliche Seite zeigt „No Articles Published Yet". Für einen
@@ -103,8 +104,9 @@ Landing statt Leerzustand.
 ## 🔴 P2 — Direkt nach Launch / Aufräumen
 
 - **EF-7 · Netlify-Hygiene:** verwaiste UI-Env-Vars entfernen (`VITE_CONVEX_URL` ohne Region —
-  von `netlify.toml` überschrieben; `CONVEX_DEPLOY_KEY` — ungenutzt). *(Aktuell durch Netlify-MCP-502
-  blockiert.)*
+  von `netlify.toml` überschrieben; `CONVEX_DEPLOY_KEY` — ungenutzt). *(Mehrfach versucht; Netlify-MCP
+  liefert anhaltend HTTP 502. Funktional unkritisch, da `netlify.toml` gewinnt — nachzuholen, sobald
+  der Netlify-MCP wieder antwortet.)*
 - **EF-8 · `.env` in Alt-Historie:** Branches `claude/eloquent-planck-KFxPA` / `vercel/…` enthalten
   ggf. noch `.env` in der History (enthielt nur `VITE_CONVEX_URL`, kein Geheimnis). Alt-Branches
   schließen/löschen.

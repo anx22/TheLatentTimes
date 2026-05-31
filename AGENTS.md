@@ -19,7 +19,9 @@ Gemini through `services/gemini.ts` (which proxies to the server-side
 transport in `convex/gemini.ts`). NOTE: the autonomous cron pipeline in
 `convex/newsroom/actions/autonomousActions.ts` re-implements the
 Scout→Cluster→Debate→Columnist chain server-side with inline prompts and a
-direct `GoogleGenAI` instance — it does NOT reuse these agent files. Authoritative list — keep in sync
+direct `GoogleGenAI` instance — it does NOT reuse these agent files. This Convex
+cron is now the **single** scheduler; the old client-side circadian heartbeat in
+`AutonomousPipeline.tsx` was removed (it duplicated the cron). Authoritative list — keep in sync
 with `services/agents/index.ts`.
 
 ### Discovery & research

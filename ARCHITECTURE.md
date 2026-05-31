@@ -1,10 +1,14 @@
 # The Latent Times: Architecture
 
 ## Stack
-- **Frontend**: React (Vite) + Tailwind CSS + Framer Motion.
-- **Backend**: Convex (Real-time DB, Vector Search).
-- **Intelligence**: Gemini (via standard genai SDK for server-side logic).
+- **Frontend**: React (Vite) + Tailwind CSS + Framer Motion. Deployed on **Netlify**.
+- **Backend**: Convex (Real-time DB, Vector Search, Actions, Crons). Deployed separately from the frontend.
+- **Intelligence**: Gemini, server-side only (Convex actions). Model aliases are centralized in `convex/models.ts` + `constants.ts` (`MODELS`) — never inline literals.
 - **Layout**: `react-grid-layout` orchestrated by agent metadata.
+
+## Access Model
+- **Soft wall**: the newsroom (Ops) is editable only after a server-verified password (`convex/auth.ts`, `NEWSROOM_PASSWORD`). Anonymous visitors get a **read-only** newsroom.
+- **Single choke-point** [HARD]: read-only is enforced in `NewsroomContext` (deny-by-default — every non-`set*` function becomes a no-op when not authed). Never gate per-button; new actions are gated automatically.
 
 ## Layer Rules
 - **Domain Decoupling** [HARD]: Agents live in `/services`, State logic in domain hooks. `App.tsx` is for layout only.

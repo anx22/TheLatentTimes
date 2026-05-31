@@ -35,7 +35,16 @@ Prerequisites: Node.js, a Convex account, a Google AI Studio API key.
    All agent calls run inside Convex actions (`convex/gemini.ts`), so the key
    never enters the browser bundle.
 
-4. Run the app:
+4. Set the newsroom editing password (Ops area is read-only without it):
+
+   ```bash
+   npx convex env set NEWSROOM_PASSWORD <choose-a-password>
+   ```
+
+   Verified server-side (`convex/auth.ts`); never ships in the bundle.
+   Anonymous visitors get a read-only newsroom.
+
+5. Run the app:
 
    ```bash
    npm run dev
@@ -43,3 +52,12 @@ Prerequisites: Node.js, a Convex account, a Google AI Studio API key.
 
 `npx convex dev` should keep running in a second terminal to push schema /
 function changes.
+
+## Deployment
+
+- **Frontend:** Netlify — build `npm run build` (see `netlify.toml`, which also
+  pins `VITE_CONVEX_URL`). The Netlify build does **not** deploy the backend.
+- **Backend:** Convex functions + crons. Deploy with a Convex deploy key
+  (`npx convex deploy` with a prod key, or `npx convex dev --once` for a dev
+  deployment). Backend env (`GEMINI_API_KEY`, `NEWSROOM_PASSWORD`) lives in the
+  Convex deployment via `npx convex env set`.
