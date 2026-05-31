@@ -249,17 +249,22 @@ export const getOrphanSignals = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 100;
-    
-    // Convex query filter for undefined fields can be tricky. 
+
+    // Convex query filter for undefined fields can be tricky.
     // We will query ordered by timestamp and filter in memory for those missing storyId.
     const signals = await ctx.db
       .query("signals")
       .withIndex("by_timestamp")
       .order("desc")
-      .take(limit * 5); // Take more to account for filtering
+      .take(limit * 3); // Over-fetch to account for in-memory filtering (was *5).
 
-    const orphans = signals.filter(s => !s.storyId);
-    return orphans.slice(0, limit);
+    // Strip embeddings/vectors — the only consumer (server-side clustering) uses
+    // id/title/content, never the vectors. Avoids shipping 3072-float arrays.
+    const orphans = signals
+      .filter((s) => !s.storyId)
+      .slice(0, limit)
+      .map(({ embedding, cultural_vectors, ...rest }: any) => rest);
+    return orphans;
   },
 });
 
@@ -290,7 +295,11 @@ export const getStoryAngles = query({
 export const getSignal = query({
   args: { id: v.id("signals") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const sig = await ctx.db.get(args.id);
+    if (!sig) return null;
+    // Drop the heavy vector fields; consumers only need scalar metadata.
+    const { embedding, cultural_vectors, ...rest } = sig as any;
+    return rest;
   },
 });
 
