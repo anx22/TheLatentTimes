@@ -107,11 +107,11 @@ export const useNewsroom = () => {
 import { AtelierProvider } from './AtelierContext';
 import { ParameterProvider } from './ParameterContext';
 
-export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void }> = ({ children, onPublish }) => {
+export const NewsroomProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void, isActive?: boolean }> = ({ children, onPublish, isActive = false }) => {
   return (
     <AtelierProvider>
       <ParameterProvider>
-        <NewsroomInternalProvider onPublish={onPublish}>
+        <NewsroomInternalProvider onPublish={onPublish} isActive={isActive}>
           {children}
         </NewsroomInternalProvider>
       </ParameterProvider>
@@ -154,8 +154,8 @@ const applyReadOnlyGuard = (state: any, canEdit: boolean): NewsroomContextType =
   return guarded as NewsroomContextType;
 };
 
-const NewsroomInternalProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void }> = ({ children, onPublish }) => {
-  const state = useNewsroomState(onPublish);
+const NewsroomInternalProvider: React.FC<{ children: React.ReactNode, onPublish: (item: MagazineItem, layout?: any[]) => void, isActive: boolean }> = ({ children, onPublish, isActive }) => {
+  const state = useNewsroomState(onPublish, isActive);
   const { canEdit } = useAuth();
   const value = applyReadOnlyGuard(state, canEdit);
 

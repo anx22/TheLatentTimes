@@ -36,10 +36,10 @@ const sanitizeAtelierForPersist = (atelierState: any) => {
   };
 };
 
-export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
+export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void, isActive: boolean = false) => {
   // 1. DOMAIN STATE
   const ui = useNewsroomUIState();
-  const data = useNewsroomData();
+  const data = useNewsroomData(isActive);
   const { atelierState, setAtelierState } = useAtelier();
   const params = useParameters();
   // Read-only sessions must not seed sources or persist shared UI state — that

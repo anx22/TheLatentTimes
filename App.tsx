@@ -175,7 +175,7 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>
-    <NewsroomProvider onPublish={handlePublishItem}>
+    <NewsroomProvider onPublish={handlePublishItem} isActive={showNewsroom}>
       <div className="min-h-screen bg-[#faf9f6] text-foreground font-sans selection:bg-accent selection:text-white pb-32">
          
          {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
