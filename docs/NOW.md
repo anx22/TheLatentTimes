@@ -25,7 +25,9 @@ dead (A1 cron crash + A2 story-lookup; both fixed, awaiting redeploy). Public-si
   for ESLint 10 + react-hooks v7 (not build-blocking).
 - **Endpoint hardening (EF-1 / S1):** Gemini actions publicly callable; soft wall is UI-only. → `T-1.0.1`.
 - **`@ts-nocheck` islands (EF-9):** `crons.ts`, `autonomousActions.ts`, `clusteringActions.ts`. → `T-2.5.2`.
-- **Alt-branch cleanup (EF-8):** delete `claude/eloquent-planck-KFxPA` + `vercel/…` via GitHub UI (manual).
+- **Alt-branch cleanup (EF-8):** `dev` ist der neue Standard-Branch (aus dem Rewrite-Stand erstellt). **Manuell via
+  GitHub-UI löschen** (Proxy blockt `git push --delete` mit 403, MCP hat kein Delete-Tool): `claude/intelligent-mayer-PHjEf`,
+  `claude/eloquent-planck-KFxPA`, `vercel/setup-vercel-speed-insights-in-rwyfz2`. **Nicht** `main`/`dev`.
 - **`NewsroomProvider` scope (S3):** ~13 live queries on every public page. → `T-1.2.7`.
 
 ## Backlog

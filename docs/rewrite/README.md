@@ -29,7 +29,7 @@
 - **Task-ID:** `T-<Akt>.<Slice>.<Seq>` → z.B. `T-1.1.2` (Akt 1, Slice 1, Task 2). IDs sind stabil, nie neu vergeben.
 - **Status-Legende:** `TODO` · `IN-PROGRESS` · `BLOCKED` · `REVIEW` · `DONE` · `PARKED` (bewusst zurückgestellt).
 - **Audit-Codes** (S1/A1/U1/C1…) referenzieren `REWRITE_MASTERPLAN.md §8` und den Original-Audit.
-- **Branch:** Entwicklung auf `claude/intelligent-mayer-PHjEf` (oder Nachfolger), nie direkt auf default.
+- **Branch:** Entwicklung immer auf `dev` (langlebiger Dev-Branch); `main` = Release. Nie direkt auf `main`.
 - **Keine Doku-Drift:** Plan und Code dürfen nie auseinanderlaufen — Doku-Update gehört in denselben Commit wie der Code.
 
 ## Prinzipien (Kurzform — Details im Masterplan §3)

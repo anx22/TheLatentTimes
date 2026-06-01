@@ -6,6 +6,11 @@
 
 ## Current — structural (keep full)
 
+### [2026-06-01] Dev-branch standard
+**Problem** → Ad-hoc per-session branches (`claude/intelligent-mayer-PHjEf`, `claude/eloquent-planck-KFxPA`, `vercel/…`) cluttered the repo; no standing development branch.
+**Choice** → All development happens on a single long-lived **`dev`** branch (created from the rewrite work at `9814813`); `main` stays the release branch. The 3 ad-hoc non-main branches are deleted via the **GitHub UI** — the managed git proxy blocks ref deletions (403) and the GitHub MCP exposes no delete-branch tool.
+**Reason** → One clear working branch; less clutter; predictable PR/release flow.
+
 ### [2026-06-01] Stack modernization (React 19 · Vite · Tailwind v4 · TS 6 · ESLint 10 · GSAP)
 **Problem** → Stack drifting toward old majors; `@google/genai` pinned to `"latest"` (non-reproducible); `lodash` a dead dependency; Framer Motion (`motion`) unreliable for the typography/micro-animation we want.
 **Choice** → Upgrade to current majors; pin `@google/genai`; **remove `lodash`** (0 imports) and **`motion`**; adopt **GSAP** as the animation layer (skill `skills/custom_skills/gsap`). Migrate the one motion file (`components/newsroom-v2/NewsroomUI.tsx`).
