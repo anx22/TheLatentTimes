@@ -1,7 +1,29 @@
-import React from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { LucideIcon, Target, ChevronRight, BarChart3, RefreshCw, Globe, Sparkles, Activity } from 'lucide-react';
-import { motion } from 'motion/react';
+import gsap from 'gsap';
 import { cn } from '../../lib/utils';
+
+/**
+ * GSAP entrance wrapper — replaces the former Framer Motion `motion.div`.
+ * Scoped to its own ref and auto-reverted on unmount (see skills/custom_skills/gsap).
+ * Animates FROM `from` to the element's natural rendered state.
+ */
+const Reveal: React.FC<React.PropsWithChildren<{
+  from?: gsap.TweenVars;
+  className?: string;
+  onClick?: () => void;
+}>> = ({ from, className, onClick, children }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ctx = gsap.context(() => {
+      gsap.from(el, { duration: 0.4, ease: 'power2.out', ...(from ?? { opacity: 0 }) });
+    }, ref);
+    return () => ctx.revert();
+  }, []);
+  return <div ref={ref} className={className} onClick={onClick}>{children}</div>;
+};
 
 /**
  * Newsroom Design Tokens (Standardized across V2)
@@ -154,9 +176,8 @@ export const SignalCard: React.FC<{
   isResonant?: boolean;
 }> = ({ item, onSelect, className, isResonant }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
+    <Reveal
+      from={{ opacity: 0, scale: 0.98 }}
       className={cn(
         "p-5 bg-white/[0.03] border border-zinc-700 hover:bg-white/[0.06] hover:border-zinc-700 transition-all cursor-default group border-l-[3px] relative overflow-hidden flex flex-col h-full min-h-[160px] shadow-sm",
         isResonant ? "border-l-[#ccff00] bg-[#ccff00]/5 shadow-[0_0_30px_rgba(204,255,0,0.03)]" : "border-l-zinc-800 hover:border-l-emerald-500",
@@ -215,7 +236,7 @@ export const SignalCard: React.FC<{
               </a>
           )}
       </div>
-    </motion.div>
+    </Reveal>
   );
 };
 
@@ -227,9 +248,8 @@ export const MagazineSignalCard: React.FC<{
   featured?: boolean;
 }> = ({ item, onSelect, onAnalyze, className, featured }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <Reveal
+      from={{ opacity: 0, y: 20 }}
       className={cn(
         "group relative overflow-hidden bg-zinc-900 border border-zinc-700 hover:border-zinc-600 transition-all flex flex-col",
         featured ? "md:col-span-2 md:row-span-2 p-8" : "p-6",
@@ -305,7 +325,7 @@ export const MagazineSignalCard: React.FC<{
           </a>
         )}
       </div>
-    </motion.div>
+    </Reveal>
   );
 };
 
@@ -315,15 +335,13 @@ export const BriefingCard: React.FC<{
   className?: string;
 }> = ({ draft, onSelect, className }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      whileHover={{ x: 5 }}
+    <Reveal
+      from={{ opacity: 0, x: -20 }}
+      onClick={() => onSelect(draft._id)}
       className={cn(
-        "p-6 bg-zinc-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all cursor-pointer group relative overflow-hidden",
+        "p-6 bg-zinc-900 border border-emerald-500/10 hover:border-emerald-500/30 transition-all hover:translate-x-[5px] cursor-pointer group relative overflow-hidden",
         className
       )}
-      onClick={() => onSelect(draft._id)}
     >
       <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/20 group-hover:bg-emerald-500 transition-colors" />
       <div className="flex justify-between items-start mb-4">
@@ -342,7 +360,7 @@ export const BriefingCard: React.FC<{
         <Sparkles className="w-3 h-3" />
         Status: Assets_Stored
       </div>
-    </motion.div>
+    </Reveal>
   );
 };
 

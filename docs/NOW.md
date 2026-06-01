@@ -17,8 +17,12 @@ We are executing the consolidated rewrite. **Authority for tasks/status is the t
 dead (A1 cron crash + A2 story-lookup; both fixed, awaiting redeploy). Public-site config fix applied.
 
 ## Tech Debt
+- **Verify `@google/genai` 2.x on Convex side:** frontend build excludes `convex/`, so the 2.x SDK use
+  in `convex/gemini.ts` (+ clustering/autonomous actions) is **unverified** here — check at `convex` deploy/codegen.
 - **Prod deployment (EF-10):** public site runs on a **DEV** Convex deployment (`dev:adamant-mastiff-745`).
   Stand up a real prod deployment + prod key + `convex deploy` in CI. → `T-1.0.4`.
+- **ESLint 10 config:** `npm run build` is green; `npm run lint` config (`eslint.config.js`) may need updates
+  for ESLint 10 + react-hooks v7 (not build-blocking).
 - **Endpoint hardening (EF-1 / S1):** Gemini actions publicly callable; soft wall is UI-only. → `T-1.0.1`.
 - **`@ts-nocheck` islands (EF-9):** `crons.ts`, `autonomousActions.ts`, `clusteringActions.ts`. → `T-2.5.2`.
 - **Alt-branch cleanup (EF-8):** delete `claude/eloquent-planck-KFxPA` + `vercel/…` via GitHub UI (manual).
@@ -31,6 +35,8 @@ dead (A1 cron crash + A2 story-lookup; both fixed, awaiting redeploy). Public-si
 - `chronological` methodology (U4): parked stub.
 
 ## Recently Completed (last sprint — durable record in `DECISIONS.md`)
+- [2026-06-01] **Stack modernized**: React 19, Vite 8, Tailwind v4, TS 6, ESLint 10, `@google/genai` 2.7 (pinned);
+  removed `lodash` + Framer Motion; **GSAP** adopted (1 file migrated, `gsap` skill added). `npm run build` green.
 - [2026-06-01] Rewrite consolidation: 4-pillar vision, audit, 13 decisions, implementation hub + doc restructure.
 - [2026-05-31] Production connection + Netlify build fix; cron A1 + drafting A2 fixed; read-usage cut ~90%.
 - [2026-05-31] Newsroom soft-wall auth (server-verified) + read-only guard; model aliases centralized.
