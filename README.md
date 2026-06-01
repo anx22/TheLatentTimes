@@ -55,7 +55,7 @@ The answer is being built in public.
 <div align="center">
 <img src="assets/screenshots/01-cover-explorations.png" width="880" alt="Four front-page design explorations for The Latent Times: White Index System, Synthetic Vogue Issue, Matrix Signals, and Clean Modernist" />
 <br/><br/>
-<sup><i>Four visual theses for the same revolution. From top-left: the cold authority of broadsheet newsprint ("Understand Signals. Shape Tomorrow.") · the dark paranoia of a Matrix issue ("Read Between Signals. See Beyond Noise.") · the golden weight of luxury editorial ("Behind the Now. Beyond the Next.") · the clean severity of Swiss modernism ("AI. Technology. Culture. Future."). The Art Director agent selects the visual thesis. The layout follows.</i></sup>
+<sup><i>Four theses for the same revolution. The Art Director picks.</i></sup>
 </div>
 
 <br/>
@@ -63,7 +63,7 @@ The answer is being built in public.
 <div align="center">
 <img src="assets/screenshots/04-modus-synthetic-sublime.jpg" width="660" alt="MODUS full cover — The Synthetic Sublime. Model in black structural architectural dress with red lips. Cover story: When the machine dreams of us, the result is no longer uncanny. It is perfection. Photography by V6.1, Styling by GPT-5. Editorial footer: We are entering the Golden Age of synthetic media." />
 <br/><br/>
-<sup><i><b>The Synthetic Sublime.</b> Cover story by the Columnist agent, visual direction by the Art Director. The model wears structural architecture; the machine dreams in couture. Photography: V6.1. Styling: GPT-5. The editorial: <b>"We are entering the Golden Age of synthetic media. Not as a tool, but as a material. The prompt is dead; the cursor is a conductor's baton."</b></i></sup>
+<sup><i>"The prompt is dead; the cursor is a conductor's baton."</i></sup>
 </div>
 
 <br/>
@@ -73,12 +73,12 @@ The answer is being built in public.
 <td width="60%" align="center" valign="top">
 <img src="assets/screenshots/02-modus-darkroom.jpg" width="100%" alt="MODUS Issue 04 — The Hallucination. Full editorial spread: breaking ticker with live signals, cover story The Synthetic Sublime with silver geometric armor figure, agent-attributed photography credits (Midjourney V6.1 ref Avedon, Prompt Stylist: Sarah Cohen), sidebar articles on Nano Banana Hacks, Kling 3 The Director, Hook Factories" />
 <br/><br/>
-<sup><i><b>The Darkroom in production.</b> Issue 04: "The Hallucination." The breaking ticker pulls live signals from The Wire. The Art Director has composed the lead visual — silver figure in geometric armor, ref. Avedon — and attributed every generative element: <i>Photography: Midjourney V6.1 · Prompting: Sarah Cohen, Prompt Stylist.</i> The sidebar briefs are placed by the agent grid. This is what the pipeline produces.</i></sup>
+<sup><i>Issue 04. Every element placed, attributed, and composed by agents.</i></sup>
 </td>
 <td width="40%" align="center" valign="top">
 <img src="assets/screenshots/03-modus-latent-space.jpg" width="100%" alt="MODUS Vol. 05 — The Latent Space. Black and white fashion photography: model in black coat against grey background. Caption: FIG. 1 — THE GHOST IN THE WEIGHTS. Sidebar: Nano Banana Hacks, Kling 3.0 Release, Agentic Personas." />
 <br/><br/>
-<sup><i><b>The Latent Space — Vol. 05.</b> "When artificial intelligence begins to hallucinate, it does not dream of sheep. It dreams of us." An editorial investigation into the new digital subconscious. The Photographer agent captions its own generative work: <i>FIG. 1 — THE GHOST IN THE WEIGHTS.</i></i></sup>
+<sup><i>"When AI hallucinates, it does not dream of sheep. It dreams of us."</i></sup>
 </td>
 </tr>
 </table>
@@ -90,7 +90,7 @@ The answer is being built in public.
 <div align="center">
 <img src="assets/screenshots/05-design-system.png" width="880" alt="The Latent Times complete design system: five front-page explorations (White Index, Synthetic Vogue, Signal Board, Matrix Signals, Archive Edition), frontend system with 12-column grid, dual typography scale, color system (Paper, Ink, Accent Crimson, Accent Emerald, Muted), imagery rules, four editorial manifestos (The Canon, The Voice, The Purpose, The Ethos), interaction principles, content architecture, agentic frontend engine, and design component snippets" />
 <br/><br/>
-<sup><i>The complete design grammar governing every agent-generated issue. <b>Five front-page directions</b>: White Index · Synthetic Vogue · Signal Board · Matrix · Archive. <b>Typography</b>: display serif at editorial scale + monospace for UI. <b>Color</b>: Paper <code>#FFFFE5</code> · Ink <code>#0A0A0A</code> · Accent Crimson <code>#D03140</code> · Accent Emerald <code>#1AF515</code> · Muted <code>#BABABA</code>. <b>Four manifestos</b>: The Canon (we canonize signals, not news) · The Voice (precision, not decoration) · The Purpose (to map the latent layer) · The Ethos (radical honesty, intellectual courage, aesthetic excellence). <b>Seven tonalities</b>: Prophetic · Philosophical · Aesthetic · Disruptive · Curational · Authoritative · Mysterious.</i></sup>
+<sup><i>Grid, type, color, manifesto. The grammar behind every issue.</i></sup>
 </div>
 
 ---
