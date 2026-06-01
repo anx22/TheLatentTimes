@@ -4,17 +4,22 @@
 // re-embed every existing signal (the vector index is fixed-dim).
 export const EXPECTED_EMBEDDING_DIM = 3072;
 
-let embeddingDimChecked = false;
-export const assertEmbeddingDim = (values: number[]): void => {
-  if (embeddingDimChecked) return;
-  embeddingDimChecked = true;
-  if (values.length !== EXPECTED_EMBEDDING_DIM) {
-    console.error(
-      `[EMBEDDING] Dimension mismatch: Gemini returned ${values.length}, ` +
-        `Convex schema expects ${EXPECTED_EMBEDDING_DIM}. ` +
-        `Update lib/vector.ts and convex/schema.ts and redeploy.`
+/**
+ * Hard guard (T-1.0.3 / audit C2). Throws on ANY dimension mismatch and on every
+ * call — a wrong-dim vector (e.g. the 768-dim `gemini-embedding-001` fallback)
+ * must never be returned or written, because the `by_embedding` vector index is
+ * fixed at EXPECTED_EMBEDDING_DIM and a mismatch silently corrupts it.
+ * Returns the values so callers can guard inline: `return assertEmbeddingDim(v)`.
+ */
+export const assertEmbeddingDim = (values: number[]): number[] => {
+  if (!Array.isArray(values) || values.length !== EXPECTED_EMBEDDING_DIM) {
+    throw new Error(
+      `[EMBEDDING] Dimension mismatch: got ${Array.isArray(values) ? values.length : typeof values}, ` +
+        `expected ${EXPECTED_EMBEDDING_DIM}. Refusing to use/store this vector — it would corrupt the ` +
+        `fixed-dim "by_embedding" index. Check MODELS.embed / MODELS.embedFallback in convex/models.ts.`
     );
   }
+  return values;
 };
 
 export const cosineSimilarity = (a: number[], b: number[]): number => {

@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { GoogleGenAI } from "@google/genai";
 import { MODELS } from "./models";
+import { assertEmbeddingDim } from "../lib/vector";
 
 /**
  * SERVER-SIDE GEMINI TRANSPORT
@@ -196,7 +197,7 @@ export const generateEmbedding = action({
         contents: args.text,
       });
       const values = response.embeddings?.[0]?.values;
-      if (values) return values;
+      if (values) return assertEmbeddingDim(values);
       throw new Error("No embedding returned");
     } catch (e: any) {
       // Fallback to embedding-001 — older but more widely available.
@@ -205,7 +206,7 @@ export const generateEmbedding = action({
         contents: args.text,
       });
       const values = response.embeddings?.[0]?.values;
-      if (values) return values;
+      if (values) return assertEmbeddingDim(values);
       throw new Error("No embedding returned from fallback");
     }
   },

@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 54 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 1 DONE
-**Nächster Task:** `T-1.0.3` (Embedding-Dim-Guard, code-only) — keine Abhängigkeiten. (`T-1.0.2` = Netlify-Dashboard, kein Repo-Change; `T-1.0.4` braucht Prod-Deploy-Key.)
+**Übersicht:** 58 Tasks · 53 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 2 DONE
+**Nächster Task:** `T-1.1.1` (Slice 1 „Ein Gehirn" — Agenten-/Orchestrierungs-Schicht extrahieren). Slice 0 abgeschlossen, soweit hier baubar (`T-1.0.2` = Netlify-Dashboard, manuell; `T-1.0.4` braucht Prod-Deploy-Key).
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | T-1.0.1 | Gemini-Actions absichern | DONE | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap. **Live verifiziert** auf `adamant-mastiff-745`: Negativ (Fremd-Token → `Unauthorized` abgelehnt) + Positiv (Passwort→Token-Mint→`generateText`="OK"). genai 2.x live OK, `sessions`-Tabelle deployed. |
 | T-1.0.2 | Netlify-Key-Hygiene | TODO | — | S4 |
-| T-1.0.3 | Embedding-Dim-Guard | TODO | — | C2 |
+| T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | TODO | — | A1/A3 |
 | T-1.1.2 | Cron reused Schicht | TODO | T-1.1.1 | A1 |
@@ -96,3 +96,6 @@
   Gate live getestet: Negativ (Fremd-Token abgelehnt) + Positiv (Passwort→Token→`generateText`="OK"). ⚠️ Hinweis:
   Live-Seite (Build aus `main`) sendet noch keinen Token → ihre Newsroom-Gemini-Calls brechen bis main den Token-
   Client hat (vom Nutzer akzeptiert; Dev-Deployment = de-facto-Prod, EF-10/T-1.0.4 offen).
+- 2026-06-01 — `T-1.0.3` → **DONE** (C2): `assertEmbeddingDim` von log-only/once-only auf echten Throw (jeder Call)
+  umgestellt; `convex/gemini.ts generateEmbedding` guardet beide Rückgabepfade (`../lib/vector` bündelt convex-seitig).
+  FE-Build + `convex dev --once` grün. → Slice 0 hier abgeschlossen; Slice-0→1-Grenze erreicht.
