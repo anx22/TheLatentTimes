@@ -11,7 +11,7 @@
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
 | T-1.0.1 | Gemini-Actions absichern | DONE | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap. **Live verifiziert** auf `adamant-mastiff-745`: Negativ (Fremd-Token → `Unauthorized` abgelehnt) + Positiv (Passwort→Token-Mint→`generateText`="OK"). genai 2.x live OK, `sessions`-Tabelle deployed. |
-| T-1.0.2 | Netlify-Key-Hygiene | TODO | — | S4 |
+| T-1.0.2 | Netlify-Key-Hygiene | BLOCKED | — | S4/EF-7 — Netlify-MCP-Origin liefert 502 (serverseitig down). Manuell im Netlify-Dashboard (Env-Vars): write-fähigen Convex-Dev-Key + non-regionalen `VITE_CONVEX_URL`-Dup + ungenutzten `CONVEX_DEPLOY_KEY` löschen. Build bleibt grün (netlify.toml pinnt `VITE_CONVEX_URL`). Retry via MCP später. |
 | T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | TODO | — | A1/A3 |
