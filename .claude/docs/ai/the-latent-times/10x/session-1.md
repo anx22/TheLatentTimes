@@ -1,228 +1,203 @@
 # 10x Analysis: The Latent Times — North Star vs. Umsetzung
-Session 1 | Date: 2026-06-01
+Session 1 | Date: 2026-06-01 | *Rev. 2 — Vision vom Gründer nachgeschärft*
 
 > Strategie-Dokument (keine Implementierung). Begleitet das Rewrite-Master-Dokument
 > (`/root/.claude/plans/ich-m-chte-erst-mal-sunny-nest.md`). Dort: *wie* aufräumen.
 > Hier: *wofür* — was verschenkt ist und was den Wert ver-10x-facht.
+> Begleitendes Entscheidungs-Quiz: `session-1-quiz.md`.
 
 ---
 
-## Current Value — was das Produkt heute *wirklich* ist
+## 0. Validierung: Vision-Doku vs. die Worte des Gründers
+Frage war: „Steht das nicht schon in der Produktvision?" — Antwort: **teilweise.** Die Doku
+beschreibt das *Magazin als Artefakt*; die eigentliche Vision (Erlebnis, Plattform, Community,
+Meta-Beweis) **lebt im Kopf, nicht im Repo.**
 
-**Dokumentierte Ambition** (`PRODUCT.md:3-7`):
-> „The Latent Times is an AI-native powerhouse for mainstream disruption. […] We don't
-> just report news; we transform technical signals into cultural movements." — Zielgruppe:
-> „Professional decision-makers, tech-futurists […] who value 'Lead Indicators' to stay
-> ahead of the curve."
+| Gründer-Vision (gesprochen) | Steht in der Doku? | Beleg / Lücke |
+|---|---|---|
+| „high-fashion, high-impact publication, AI als Kraft globaler Umbrüche" | ✅ ja | `PRODUCT.md:4` |
+| Nutzer als **Director**, der Agenten lenkt | ✅ ja (als Prinzip) | `PRODUCT.md:19` „Traceable Intent" |
+| „living, agentic workspace" — kein statisches UI | ✅ ja (als Keim) | `PRODUCT.md:24` |
+| Zielgruppe „digital mainstream" | ⚠️ nur als Wort | `PRODUCT.md:7` — keine **Community**-Mechanik |
+| **Chronik der KI-Revolution** (Makro/Meso/Tag-zu-Tag, „Geschichtsbücher") | ❌ nein | nirgends ausformuliert |
+| **Zuschauen** wie die Agenten den Betrieb schmeißen — als *Erlebnis* | ❌ nein | nur als Metapher, nie als Kern-Feature |
+| **Einflussnehmen** auf den laufenden Loop (Leser → Redaktion) | ❌ nein | „Director" ist Single-Operator, nicht Community |
+| **Social-Media-Adapter** (X/Reddit/Insta: Storys posten, in Threads eigene Artikel schreiben & antworten) | ❌ nein | komplette Distributions-Säule fehlt |
+| **Community-Input** (Links/Papers/Gedanken fließen in die Redaktion) | ❌ nein | kein Inbound-Kanal |
+| **Meta-Beweis**: voll-autonome Agenten-Workflows funktionieren in dieser Nische | ❌ nein | das *Warum hinter dem Warum* fehlt |
 
-**Gebauter Ist-Zustand:** Ein **Redaktions-Betriebssystem** für *eine* Person. Ein „Director"
-dirigiert Agenten von Signal → Cluster → Debatte → Bild → Grid. Der Output landet in einem
-read-only Magazin-Grid auf einer öffentlichen Netlify-Seite, die faktisch die Newsroom-UI im
-Lesemodus ist (`ARCHITECTURE.md:10` „Anonymous visitors get a read-only newsroom").
-
-**Die zentrale Diagnose in einem Satz:**
-> Wir haben die **Fabrik** gebaut, nicht das **Magazin**. Die North Star nennt eine *Publikation
-> für Entscheider*; der Code liefert ein *Werkzeug für einen Redakteur*. Es gibt keinen Leser,
-> keine Distribution, kein „Warum sollte jemand das abonnieren".
-
-Das ist kein Bug — es ist die größte verschenkte Hebelwirkung des Produkts.
-
-## The Question
-Was macht The Latent Times **10×** wertvoller — nicht 10 % politurschöner?
-Drei Antworten, die zusammen ein anderes Produkt ergeben:
-1. **Es muss einen Leser haben** (aus Fabrik wird Publikation).
-2. **Es muss seinen Namen einlösen** — *Latent* Times: den latenten Raum sichtbar machen.
-3. **Es muss seine Arbeit zeigen** — Provenienz als Vertrauens-Moat im KI-Slop-Zeitalter.
+**Konsequenz:** Die North Star muss von „eine Fabrik, die ein Magazin produziert" auf
+**vier Säulen** erweitert werden (siehe §6). Erst dann zeigen die 10x-Hebel in die richtige Richtung.
 
 ---
 
-## Verschenktes Potenzial (bereits gebaut, liefert ~0 Wert)
+## 1. Current Value — was das Produkt heute *wirklich* ist
+**Gebauter Ist-Zustand:** Ein **Redaktions-Betriebssystem für eine Person**. Ein Operator dirigiert
+Agenten Signal → Cluster → Debatte → Bild → Grid; der Output landet in einem read-only Magazin-Grid
+auf einer öffentlichen Seite, die faktisch die Newsroom-UI im Lesemodus ist (`ARCHITECTURE.md:10`).
+
+**Diagnose in einem Satz:** Wir haben die **Fabrik** gebaut — aber das Produkt ist gar nicht die
+Fabrik. Das Produkt ist **(a) das Schauspiel der arbeitenden Redaktion, (b) die Chronik der
+KI-Revolution, (c) eine Plattform, die sich selbst verteilt, (d) eine Community, die mitschreibt** —
+und als Fundament unter allem **(e) der Beweis, dass autonome Agenten das in dieser Nische können.**
+Nichts davon ist heute sichtbar.
+
+## 2. The Question
+Was macht The Latent Times **10×** wertvoller — nicht 10 % politurschöner? Vier Antworten, eine pro Säule:
+1. **Mach das Schauspiel zum Produkt** — die arbeitende Redaktion *ist* die Attraktion (zuschaubar + beeinflussbar).
+2. **Mach die Plattform autonom-verteilend** — Adapter bringen die Zeitung dorthin, wo die Menschen sind.
+3. **Mach den Namen wahr** — *Latent* Times: die Chronik der Revolution im latenten Raum sichtbar.
+4. **Mach die Arbeit beweisbar** — Provenienz als Vertrauens-Moat *und* als Beleg des Meta-Beweises.
+
+---
+
+## 3. Verschenktes Potenzial (bereits gebaut, liefert ~0 Wert)
 *Das billigste 10x: nicht neu bauen, sondern anschalten, was schon da ist.*
 
-| Asset (existiert im Code) | Liegt brach, weil… | Beleg |
-|---|---|---|
-| **Critics' Corner** — KI kritisiert Artikel | Kritik wird erzeugt, **erscheint nie im UI** | REWRITE1 „THE MAGAZINE"; `agentCriticsCorner` |
-| **18 Block-Templates** (CoverStory, Glamour, MassiveHeadline…) | Grid ist read-only, nur 4 Block-Typen real genutzt | REWRITE1 U8 |
-| **Embeddings / latenter Raum** | Nur intern fürs Clustern; nie für Menschen sichtbar — obwohl das Produkt *Latent* Times heißt | `schema.ts:77`, REWRITE1 C2 |
-| **18 Agenten / Personas** | Mehrere exportiert, nicht verdrahtet (`agentPersonaSpeak/SeedExplorer/LayoutDesigner`) | REWRITE1 A4 |
-| **Intent / „Director"-Provenienz** | Cluster-/Debatten-/Entscheidungs­spur wird berechnet, nie als Artefakt gezeigt | REWRITE1 „Traceable Intent" |
-| **Mission-Observability** | Telemetrie erfasst, Dashboard zeigt hartkodiert **0** | REWRITE1 C1 |
-| **Öffentliche Seite** | Existiert, ist aber nur der Newsroom im Lesemodus — kein Leserprodukt | `ARCHITECTURE.md:10` |
+| Asset (existiert im Code) | Liegt brach, weil… | Beleg | Bedient Säule |
+|---|---|---|---|
+| **Critics' Corner** — KI kritisiert Artikel | Kritik erzeugt, **erscheint nie im UI** | REWRITE1 „THE MAGAZINE" | Schauspiel |
+| **18 Agenten/Personas** im Loop | Mehrere exportiert, nicht verdrahtet | REWRITE1 A4 | Schauspiel |
+| **Bullpen-Debatte** | Nur *ein* JSON-Call, nicht als Vorgang erlebbar | REWRITE1 BULLPEN | Schauspiel |
+| **Mission-Observability** (was Agenten gerade tun) | Telemetrie erfasst, Dashboard zeigt **0** | REWRITE1 C1 | Schauspiel |
+| **Embeddings / latenter Raum** | Nur intern fürs Clustern; nie für Menschen sichtbar | `schema.ts:77` | Chronik |
+| **Intent/Director-Provenienz** | Cluster-/Debatten-/Entscheidungsspur berechnet, nie gezeigt | „Traceable Intent" | Vertrauen |
+| **18 Block-Templates** | Grid read-only, nur 4 Typen real | REWRITE1 U8 | (Visual) |
+| **Öffentliche Seite** | Nur Newsroom im Lesemodus — kein Leser-/Community-Produkt | `ARCHITECTURE.md:10` | Plattform |
+| **Ingestion-Registry** (RSS/GitHub/Search, 6 neue Quellen) | Nur Inbound *von Maschinen*, kein Inbound *von Menschen* | `NOW.md:23` | Community |
 
 ---
 
-## Massive Opportunities
+## 4. Massive Opportunities (neu abgeleitet — eine pro Säule + Fundament)
 
-### 1. Das Leserprodukt — „Publish, don't just produce"
-**What**: Aus dem Output ein echtes, abonnierbares Magazin machen: eine kuratierte Web-Ausgabe
-mit Erscheinungs-Rhythmus + ein wiederkehrender **„Lead Indicators"-Digest** (E-Mail/Web) für
-genau die in `PRODUCT.md:6-7` benannte Zielgruppe.
-**Why 10x**: Ohne Leser kompoundiert *nichts* anderes. Heute ist der einzige „Nutzer" der
-Operator selbst. Ein Leser verwandelt ein internes Tool in ein marktgerichtetes Produkt — und
-gibt allen anderen Features erst einen Adressaten.
-**Unlocks**: Distribution, Wiederkehr/Habit, Wort-zu-Mund, später Monetarisierung — die ganze
-Wachstumsschleife, die heute schlicht fehlt.
-**Effort**: High **Risk**: Cadence ohne redaktionelle Qualität = leeres Versprechen → bedingt Akt I.
+### M1. Spectator Newsroom — „Schau der KI beim Zeitungmachen zu" (Säule: Schauspiel)
+**What**: Die arbeitende Redaktion als *Front-Door-Erlebnis*: ein lebendiger Strom dessen, was die
+Agenten *gerade* tun — extrahieren, debattieren, eine Story in Layout & Druck bringen — als
+dauerhafter, leicht spielerischer Loop, dem man zuschaut.
+**Why 10x**: Kein Wettbewerber zeigt das. „Living, agentic workspace" (`PRODUCT.md:24`) wird vom
+Nebensatz zum **Hauptprodukt**. Es ist die Sache, die man Freunden zeigt („schau mal, die schreiben
+sich gerade gegenseitig nieder"). Die Assets (dormante Agenten A4, Bullpen, Missions C1) liegen schon da.
+**Unlocks**: Verweildauer, Wiederkehr, Wort-zu-Mund — und die Bühne, auf der Einflussnahme (M-Med) erst Sinn ergibt.
+**Effort**: Medium–High **Risk**: „Prozess-Theater" ohne Substanz, wenn die Debatte nur ein JSON-Call bleibt → bedingt echte Mehr-Runden-Debatte.
 **Score**: 🔥
 
-### 2. „The Latent Space" — den Namen einlösen
-**What**: Eine navigierbare semantische Karte: Wie rohe Signale zu Narrativen clustern, wie
-Narrative über Zeit driften, welche **schwachen/frühen Signale** aufsteigen („Lead Indicators").
-Die Embeddings dafür werden **heute schon berechnet** und weggeworfen.
-**Why 10x**: Das ist die wörtliche Verkörperung von „Authority over Aggregation" und „Lead
-Indicators to stay ahead" (`PRODUCT.md:6,16`). Es ist die Signature-Feature, die *kein*
-RSS-Reader und *keine* KI-Content-Farm hat.
-**Unlocks**: Ein Erlebnis, das süchtig macht (Exploration), und ein Datengraben: je mehr Monate
-Embedding-Historie, desto reicher die Karte — **nicht kopierbar**.
-**Effort**: Very High **Risk**: Kann zur hübschen Spielerei verkommen, wenn nicht an „warum ist
-das für mich relevant" gekoppelt.
+### M2. Agentische Distributions-Adapter — „Die Zeitung kommt zu den Menschen" (Säule: Plattform)
+**What**: Autonome Adapter, die auf X / Reddit / Instagram agieren: spannende Storys posten — und,
+nachdem sie relevante Threads/Artikel+Kommentare gefunden haben, **selbstständig einen eigenen Artikel
+zu diesem Gedankengang schreiben** und ihn als Kommentar + Link im Thread platzieren.
+**Why 10x**: Das ist die ur-Idee der Zeitung („Information zu den Leuten bringen") auf heute übersetzt —
+und ein Vertriebsmotor, der *selbst skaliert*. Niemand hat eine Redaktion, die ihre eigene Reichweite agentisch erarbeitet.
+**Unlocks**: Reichweite ohne Marketing-Budget, ständiger Inbound-Traffic, der Meta-Beweis *öffentlich sichtbar*.
+**Effort**: Very High **Risk**: Plattform-ToS / Spam-Wahrnehmung / Reputationsschaden bei schlechter Qualität → braucht Provenienz (M4) + Qualitäts-Gate als Voraussetzung.
+**Score**: 🔥 (kühnster Hebel, höchstes Risiko)
+
+### M3. The Latent Space — Chronik der Revolution (Säule: Chronik)
+**What**: Eine navigierbare Karte: wie Signale zu Narrativen clustern, wie Narrative über Zeit driften,
+welche schwachen Signale aufsteigen — auf **Makro-, Meso- und Tagesebene**. Die Embeddings dafür werden heute schon berechnet und weggeworfen.
+**Why 10x**: Löst den Namen ein, verkörpert „Authority over Aggregation" + „Lead Indicators" und macht
+aus Tagesnachrichten eine **fortlaufende Geschichte der KI-Revolution** — das einzige Medium, das die Umbrüche *kartographiert* statt sie nur zu melden.
+**Unlocks**: Süchtig-machende Exploration + ein **Datengraben**: je mehr Monate Historie, desto unkopierbarer.
+**Effort**: Very High **Risk**: Hübsche Spielerei ohne Relevanzkopplung.
 **Score**: 🔥 (der definierende strategische Bet)
 
-### 3. Provenienz als Produkt — „Glass-Box-Journalismus"
-**What**: Jeder veröffentlichte Artikel trägt eine prüfbare Kette: ingestierte Signale →
-Debatten-Transkript → redaktionelle Entscheidung → Atomic Claims/Evidence → finaler Text.
-Ein „Zeig die Arbeit"-Panel an jedem Artikel.
-**Why 10x**: In einer Welt voller KI-Slop ist **nachweisbare Herkunft der Moat**. Es realisiert
-„Traceable Intent" + „Honest by Default" + die Atomic-Claims/Legal-Logik (`DECISIONS.md`) in
-*einem* leserwirksamen Versprechen.
-**Unlocks**: Vertrauen als Differenzierung — und es ist verteidigbar, weil es nur funktioniert,
-wenn die *ganze* Pipeline ehrlich ist (siehe Wette 2 „Ehrlich per Default"). Schwer zu faken.
-**Effort**: High **Risk**: Erfordert „ein Gehirn" (Wette 1), sonst ist die Kette löchrig.
+### M4. Provenienz / Glass-Box — der Beweis (Säule: Vertrauen + Meta-Beweis)
+**What**: Jeder Artikel trägt eine prüfbare Kette: Signale → Debatten-Transkript → Entscheidung →
+Atomic Claims/Evidence → Text. Ein „Zeig die Arbeit"-Panel.
+**Why 10x**: In einer KI-Slop-Welt ist nachweisbare Herkunft der Moat — und sie ist zugleich der
+**öffentliche Beleg** des Meta-Ziels („autonome Agenten produzieren vertrauenswürdige Arbeit"). Realisiert
+„Traceable Intent" + „Honest by Default" + die Atomic-Claims/Legal-Logik (`DECISIONS.md`, `NOW.md:12`).
+**Unlocks**: Vertrauen als Differenzierung; Voraussetzung dafür, dass M2 *nicht* wie Spam wirkt.
+**Effort**: High **Risk**: Funktioniert nur bei „ein Gehirn" (sonst Kette löchrig).
 **Score**: 🔥
 
----
-
-## Medium Opportunities
-
-### 1. Critics' Corner sichtbar machen — der „lebende Organismus"
-**What**: Die bereits erzeugte KI-Kritik an Artikeln im Grid rendern; Artikel werden zu lebenden
-Objekten, die kritisiert/überarbeitet werden.
-**Why 10x**: Beinahe fertig gebaut (nur Rendering fehlt), aber differenzierend wie kaum etwas
-sonst — ein Magazin, das sich selbst öffentlich seziert.
-**Impact**: „THE MAGAZINE — The Living Organism" (`PRODUCT.md:14`) hört auf, Behauptung zu sein.
-**Effort**: Low–Medium **Score**: 🔥
-
-### 2. „Lead Indicators"-Digest als Habit-Artefakt
-**What**: Wiederkehrender, kuratierter Kurz-Digest der stärksten aufsteigenden Signale.
-**Why 10x**: Cadence = Gewohnheit. Der billigste Weg, aus einem Besuch ein Abo zu machen.
-Kraftmultiplikator auf Massive #1.
-**Effort**: Medium **Score**: 👍
-
-### 3. Echte Mehr-Runden-Debatte *als Lesestoff*
-**What**: Das Bullpen-Friktions-Transkript (Backlog „Board Debate v2", `NOW.md:43`) nicht nur als
-internen Schritt, sondern als konsumierbares „Wie dieser Artikel erstritten wurde".
-**Why 10x**: Der Prozess *ist* Content, den die Zielgruppe will. Verwandelt eine interne
-Mechanik in ein leserseitiges Allein­stellungs­merkmal.
-**Effort**: Medium–High **Score**: 👍
-
-### 4. Art-Direction-Profile + Moodboards
-**What**: „Glitch / Brutalist / Swiss Modernism"-Presets (Backlog `NOW.md:45`) + issue-übergreifende
-Bildsprache aus echten Moodboards.
-**Why 10x**: Macht „Visual Supremacy" (`PRODUCT.md:17`) vom Aspirationswort zum Motor; baut die
-heute fehlende kohärente Design-Identität auf.
-**Effort**: Medium **Score**: 👍
-
-### 5. Komponierbares Layout (18 Templates aktivieren)
-**What**: Aus dem read-only Grid eine echte Layout-Engine machen, die die vorhandenen 18 Templates nutzt.
-**Why 10x**: Schaltet brachliegende visuelle Kapazität frei (U8) und macht jede Ausgabe „a statement".
-**Effort**: Medium **Score**: 🤔
+### M5. Citizen Desk — die Community schreibt mit (Säule: Community)
+**What**: Leser steuern Gedanken / Links / wissenschaftliche Arbeiten bei; die Redaktion ingestiert sie
+in den Signal-Pool, debattiert sie und kann daraus — mit Quellen-Attribution — publizieren.
+**Why 10x**: Verwandelt Publikum in **Treibstoff** und erzeugt einen Netzwerkeffekt (mehr Beiträge →
+bessere Stories → mehr Beiträge). Macht „community-gerichtet" real statt zum Zielgruppenwort.
+**Unlocks**: Inbound jenseits von Maschinen-Feeds; Bindung; eine Bewegung statt eines Lesepublikums.
+**Effort**: High **Risk**: Moderation/Qualität/Missbrauch → braucht Provenienz + Gate.
+**Score**: 👍 (kompoundiert, aber nach Fundament)
 
 ---
 
-## Small Gems
-*Klein, aber treffen den Vertrauens- und Distributions-Nerv.*
+## 5. Medium & Small (Hebel, die die Säulen tragen)
 
-### 1. Ehrlicher Confidence-/Provenienz-Badge
-**What**: Schein-Confidence (`0.85+rand`) ersetzen durch echte Zahl: # Quellen / # Signale hinter der Story.
-**Why powerful**: Eine Anzeige tötet den Vertrauensbruch (U6) *und* etabliert das Provenienz-Thema.
-**Effort**: Low **Score**: 🔥
+### Medium
+- **Med1. Einfluss-Steuerung für Zuschauer** — Leser nudgen den Loop (Signal boosten, Thema vorschlagen,
+  in einer Debatte mitstimmen). Macht aus „zuschauen" „mitspielen". **Score 🔥** (aktiviert M1).
+- **Med2. Critics' Corner sichtbar** — die schon erzeugte KI-Kritik im Grid rendern; Artikel werden
+  lebende, sich überarbeitende Objekte. Fast fertig. **Score 🔥**
+- **Med3. Echte Mehr-Runden-Debatte als Lesestoff** — das Bullpen-Friktions-Transkript (`NOW.md:13,44`)
+  als konsumierbares „wie dieser Artikel erstritten wurde". Voraussetzung für M1. **Score 👍**
+- **Med4. Lead-Indicators-Digest** — wiederkehrendes Leser-Artefakt; Cadence = Gewohnheit; speist M2. **Score 👍**
+- **Med5. Art-Direction-Profile/Moodboards** (`NOW.md:46`) — „Visual Supremacy" vom Wort zum Motor. **Score 👍**
+- **Med6. Komponierbares Layout** — 18 Templates aktivieren (U8). **Score 🤔**
 
-### 2. „Why this story?"-Einzeiler pro Card
-**What**: Die ohnehin berechnete Cluster-Begründung an jeder Story zeigen.
-**Why powerful**: Verwandelt „noch ein KI-Artikel" in „kuratiert, mit Grund" — Mikro-Dosis Authority.
-**Effort**: Low **Score**: 🔥
-
-### 3. Echte Dashboard-Zahlen
-**What**: C1 fixen — `getDeepInsight` liefert reale statt hartkodierter 0-Metriken.
-**Why powerful**: Observability, die wir schon erfassen, endlich sichtbar; Glaubwürdigkeit im Ops.
-**Effort**: Low **Score**: 👍
-
-### 4. Teilbarer Ausgaben-Permalink + OG-Cards
-**What**: Jede Ausgabe/Story bekommt sauberen Link + Social-Preview.
-**Why powerful**: Billigster Distributions-Hebel — macht, dass Leser es weitererzählen.
-**Effort**: Low **Score**: 👍
-
-### 5. „Emerging Signal"-Badge
-**What**: Frühe/schwache Signale mit vorhandenen Daten als „Lead Indicator" markieren.
-**Why powerful**: Löst das Kernversprechen „stay ahead of the curve" mit einem Indikator ein.
-**Effort**: Low **Score**: 🤔
+### Small Gems (klein, treffen Vertrauens-/Distributions-Nerv)
+- **G1. Ehrlicher Confidence-/Provenienz-Badge** — Schein-Confidence (`0.85+rand`, U6) durch echte
+  Quellen-/Signalzahl ersetzen. Eine Anzeige kippt Vertrauensbruch in -beweis. **Score 🔥**
+- **G2. „Why this story?"-Einzeiler** — die ohnehin berechnete Cluster-Begründung zeigen. **Score 🔥**
+- **G3. „Live jetzt"-Aktivitätsindikator** — zeigt, dass die Redaktion *gerade arbeitet* (Mini-Vorstufe zu M1). **Score 👍**
+- **G4. Echte Dashboard-Zahlen** (C1 fixen). **Score 👍**
+- **G5. Teilbarer Permalink + OG-Cards** — billigster Distributions-Hebel, speist M2. **Score 👍**
+- **G6. „Emerging Signal"-Badge** — frühe Signale als Lead Indicator markieren. **Score 🤔**
 
 ---
 
-## Recommended Priority
+## 6. North Star — neu, vier Säulen (Vorschlag zur Diskussion)
+> **„The Latent Times ist die community-gerichtete Chronik der KI-Revolution — eine voll-autonome
+> Agenten-Redaktion, der man beim Zeitungmachen zuschaut und in die man eingreift, und die ihre Storys
+> selbst dorthin trägt, wo die Menschen sind. Sie beweist nebenbei, dass autonome Agenten in einer echten
+> Nische auf höchstem Niveau publizieren können."**
+
+**Die vier Säulen & ihr Mapping auf die drei Akte des Master-Dokuments:**
+| Säule | Kern-Hebel | Akt (Master-Doc) |
+|---|---|---|
+| **Schauspiel** (zuschauen + eingreifen) | M1 Spectator Newsroom, Med1 Einfluss, Med2/3 Debatte | Akt I (sichtbar) → Akt III (lebendig) |
+| **Chronik** (Latent Space) | M3 Karte der Revolution | Akt III |
+| **Vertrauen/Beweis** | M4 Provenienz/Glass-Box | Akt II („ein Gehirn") |
+| **Plattform** (Distribution + Community) | M2 Adapter, M5 Citizen Desk | **neu — vierter Strang** |
+
+**Wichtigste strukturelle Folge:** Distribution + Community (Säule 4) sind heute in **keinem** Akt
+verankert. Empfehlung: einen **Akt IV „Die Zeitung kommt zu den Menschen"** einführen (Adapter + Citizen
+Desk), bewusst *nach* dem Vertrauens-Fundament (M4), weil autonome Social-Agenten ohne Provenienz zu Spam werden.
+
+---
+
+## 7. Recommended Priority
 
 ### Do Now (Quick wins — meist „verschenkt" reaktivieren)
-1. **Ehrlicher Confidence-/Provenienz-Badge** (Gem 1) — kippt Vertrauensbruch in Vertrauensbeweis.
-2. **„Why this story?"-Einzeiler** (Gem 2) — Authority in einer Zeile.
-3. **Critics' Corner sichtbar** (Med 1) — fast fertig, maximale Differenzierung pro Aufwand.
-4. **Permalink + OG-Cards** (Gem 4) — erster echter Distributions-Hebel.
+1. **G1 Ehrlicher Badge** · **G2 Why-this-story** · **G3 Live-Indikator** — Vertrauen + erster Hauch „Schauspiel".
+2. **Med2 Critics' Corner sichtbar** — fast fertig, maximale Differenzierung pro Aufwand.
+3. **G5 Permalink/OG** — erster Distributions-Hebel.
 
 ### Do Next (High leverage)
-1. **Provenienz als Produkt** (Massive 3) — Vertrauens-Moat; verlangt „ein Gehirn" (Wette 1).
-2. **Leserprodukt + Lead-Indicators-Digest** (Massive 1 + Med 2) — gibt allem einen Adressaten.
+1. **M4 Provenienz/Glass-Box** — Vertrauens-Moat; Voraussetzung für M2 & M5 (braucht „ein Gehirn", Wette 1).
+2. **M1 Spectator Newsroom + Med1 Einfluss + Med3 echte Debatte** — das Kernerlebnis.
 
 ### Explore (Strategic bets)
-1. **The Latent Space** (Massive 2) — Risiko: Spielerei ohne Relevanzkopplung; Upside: definierendes,
-   nicht kopierbares Signature-Feature + Datengraben.
+1. **M2 Distributions-Adapter** — Risiko: Plattform-ToS/Spam; Upside: selbst-skalierender Vertriebsmotor + öffentlicher Meta-Beweis.
+2. **M3 The Latent Space** — Risiko: Spielerei; Upside: definierendes, unkopierbares Signature-Feature + Datengraben.
 
 ### Backlog (Good but not now)
-1. **Art-Direction-Profile/Moodboards** (Med 4) — nach Design-Identität aus Akt I.
-2. **Komponierbares Layout** (Med 5) — nach „Honest Magazine".
-3. **Debatte als Lesestoff** (Med 3) — baut auf echter Mehr-Runden-Debatte (Akt III).
+1. **M5 Citizen Desk** (nach Provenienz+Gate) · **Med4 Digest** · **Med5 Moodboards** · **Med6 Layout** · **G6 Emerging-Badge**.
 
 ---
 
-## North Star — geschärft (Vorschlag zur Diskussion)
-Die heutige North Star im Master-Dokument ist rein **produktionsseitig** (makellose Ausgabe →
-Motor → lebendiges Haus). Sie beschreibt *die Fabrik perfekt*, aber **vergisst den Leser und das
-Warum**. Vorschlag, das *Warum* davorzusetzen:
-
-> **„Entscheider sehen die Zukunft zuerst — in einem publizierten Magazin, das rohes Signal in
-> nachweisbare Lead Indicators verwandelt: jede Behauptung bis zur Quelle rückverfolgbar, jedes
-> Narrativ im latenten Raum beim Entstehen beobachtbar."**
-
-**Mapping auf die drei Akte des Master-Dokuments (kein Widerspruch, sondern Tiefenschärfe):**
-- **Akt I „Makellose Ausgabe"** → trägt jetzt zusätzlich die *Gems 1–4* + Critics' Corner: die
-  *erste* Ausgabe ist nicht nur intern makellos, sondern **leserwürdig & teilbar**.
-- **Akt II „Motor, dem man vertraut"** → wird zum Träger von **Provenienz als Produkt** (Massive 3):
-  „ein Gehirn" ist die technische Voraussetzung der lückenlosen Herkunftskette.
-- **Akt III „Lebendiges Redaktionshaus"** → erweitert um **The Latent Space** (Massive 2) und
-  **Debatte als Lesestoff** (Med 3): die Seele wird *leserseitig erlebbar*, nicht nur intern.
-- **Quer dazu, neu & fehlend:** **Distribution/Leserprodukt** (Massive 1) — heute in keinem Akt
-  verankert. Empfehlung: als expliziter vierter Strang oder als Leser-Schicht jedes Akts führen.
-
----
-
-## Questions
+## 8. Questions
 
 ### Answered
-- **Q**: Gibt es eine dokumentierte Leser-/Distributions-Vision? **A**: Nein — die Doku ist fast
-  vollständig nach innen (Newsroom-Tool) gerichtet; die öffentliche Seite ist der Newsroom im
-  Lesemodus (`ARCHITECTURE.md:10`). Das ist die größte verschenkte Hebelwirkung.
-- **Q**: Sind die Signature-Assets (Critics, latenter Raum, Provenienz) gebaut? **A**: Berechnet/
-  angelegt, aber nicht für Menschen sichtbar (siehe „Verschenktes Potenzial").
+- **Q**: Steht die Vision schon in der Doku? **A**: Magazin-Artefakt ja; Erlebnis/Plattform/Community/
+  Meta-Beweis **nein** (siehe §0). Die Vision lebt im Kopf, nicht im Repo.
+- **Q**: Sind die Schauspiel-Assets gebaut? **A**: Agenten/Debatte/Missions existieren, sind aber unsichtbar (§3).
 
-### Blockers (brauchen deine Entscheidung)
-- **Q**: Ist The Latent Times ein **Produkt für Leser** (Magazin/Abo) oder ein **Werkzeug für
-  Redakteure** (Newsroom)? Diese eine Antwort entscheidet, ob Massive 1 die #1-Priorität ist.
-- **Q**: Wer ist der konkrete erste Leser, und über welchen Kanal erreichen wir ihn (Web-Ausgabe,
-  E-Mail-Digest, Social)?
-- **Q**: „Lead Indicators" — vages Schlagwort oder vertraglich definiertes Feature (was *genau*
-  ist ein Lead Indicator, woran erkennt der Leser ihn)?
+### Blockers (brauchen deine Entscheidung → siehe Quiz)
+- **Q**: Reihenfolge der vier Säulen — zuerst **Schauspiel** (Bindung) oder zuerst **Plattform** (Reichweite)?
+- **Q**: Adapter **assistiert** (Mensch gibt jeden Post frei) oder **autonom** (im Rahmen von Guardrails)?
+- **Q**: Community-Input ab wann — früh (Treibstoff) oder erst nach Vertrauens-Fundament (Missbrauchsschutz)?
 
-## Next Steps
-- [ ] **Entscheiden**: Leserprodukt vs. internes Tool (Blocker #1) — steuert die gesamte Priorisierung.
-- [ ] **Definieren**: Was ist ein „Lead Indicator" konkret (Akzeptanzkriterium, leserseitig).
-- [ ] **Validieren**: Liefert die berechnete Critics'-Corner-/Cluster-Begründung genug Substanz,
-      um sie ungefiltert dem Leser zu zeigen? (kurzer Daten-Blick vor Med 1 / Gem 2)
-- [ ] **In Master-Doc spiegeln**: Distribution/Leser-Schicht als expliziten Strang ergänzen.
+## 9. Next Steps
+- [ ] **Quiz durchspielen** (`session-1-quiz.md`) — Feature für Feature Variante A/B/verwerfen entscheiden.
+- [ ] **Master-Doc updaten**: Akt IV „Distribution + Community" + Säulen-Modell einarbeiten.
+- [ ] **Definieren**: „Lead Indicator" konkret; Qualitäts-Gate für autonome Social-Posts.
