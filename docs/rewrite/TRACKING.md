@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 51 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 4 DONE
+**Übersicht:** 58 Tasks · 50 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 5 DONE
 **Nächster Task:** `T-1.1.1` (Slice 1 „Ein Gehirn" — Agenten-/Orchestrierungs-Schicht extrahieren). Slice 0 abgeschlossen, soweit hier baubar (`T-1.0.2` = Netlify-Dashboard, manuell; `T-1.0.4` braucht Prod-Deploy-Key).
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
@@ -15,7 +15,7 @@
 | T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | DONE | — | A1/A3 — `services/agents/modelClient.ts` (reine, transport-agnostische Schicht mit injizierbarem `ModelTransport` + `callJsonAgent`/`safeGenerateContent`/`Schemas`/`Type`). `services/gemini.ts` = Client-Adapter (injiziert Convex-Transport, re-exportiert). 20 Agenten → `./modelClient`; alle ohne React/DOM = convex-bündelbar. FE-Build grün. |
-| T-1.1.2 | Cron reused Schicht | TODO | T-1.1.1 | A1 |
+| T-1.1.2 | Cron reused Schicht | DONE | T-1.1.1 | A1/A3 — `autonomousActions` nutzt jetzt `EditorialOrchestrator` + geteilte Agenten (Debatte→Columnist→Editor) statt Inline-Prompts; injizierter Server-`ModelTransport` (GoogleGenAI + Token-Telemetrie); Embeddings via geteilte `generateEmbedding` (→ T-1.0.3-Guard greift auch im Cron). `convex dev --once` typecheckt+bündelt die ganze Schicht grün. Live-Editorial-Run bestätigt sich bei Autonomie-an (Super-Switch/Cron). |
 | T-1.1.3 | Freigabe-Queue (drafts.status) | TODO | T-1.1.2 | Wette 1 |
 | T-1.1.4 | Lauf-Deduplizierung | TODO | T-1.1.2 | A5 |
 | T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
@@ -108,3 +108,10 @@
   `services/gemini.ts` → Client-Adapter (injiziert gegateten Convex-Transport via `setModelTransport`, re-exportiert
   alles → Client-Importe unverändert). 20 Agenten von `'../gemini'` auf `'./modelClient'` umgebogen; alle rein
   (kein React/DOM) → convex-bündelbar. FE-Build grün. Nächst: `T-1.1.2` (Cron reused die Schicht statt Inline-Nachbau).
+- 2026-06-01 — `T-1.1.2` → DONE (A1/A3): `autonomousActions.ts` neu — injiziert einen Server-`ModelTransport`
+  (GoogleGenAI serverseitig, Token-Telemetrie via `ctx`) und treibt `EditorialOrchestrator` + die geteilten
+  Agenten statt der drei Inline-Prompts (Embed/Debatte/Columnist). Embeddings laufen durch die geteilte
+  `generateEmbedding` → T-1.0.3-Dim-Guard schützt jetzt auch Cron-Writes. **Die zweite Pipeline ist eliminiert
+  — ein Gehirn.** `convex dev --once` deployte + typecheckte die gesamte geteilte Schicht (Orchestrator + 20
+  Agenten) grün auf den Server. Offen: End-to-End-Live-Lauf bei Autonomie-an (Super-Switch/Cron; State-Blob
+  nicht per CLI getoggelt wg. Full-Replace-Clobber-Risiko). Nächst: `T-1.1.3` (Freigabe-Queue-UI) + `T-1.1.4` (Dedup).
