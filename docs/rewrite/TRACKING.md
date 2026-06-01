@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 53 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 2 DONE
+**Übersicht:** 58 Tasks · 52 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 3 DONE
 **Nächster Task:** `T-1.1.1` (Slice 1 „Ein Gehirn" — Agenten-/Orchestrierungs-Schicht extrahieren). Slice 0 abgeschlossen, soweit hier baubar (`T-1.0.2` = Netlify-Dashboard, manuell; `T-1.0.4` braucht Prod-Deploy-Key).
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
@@ -11,7 +11,7 @@
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
 | T-1.0.1 | Gemini-Actions absichern | DONE | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap. **Live verifiziert** auf `adamant-mastiff-745`: Negativ (Fremd-Token → `Unauthorized` abgelehnt) + Positiv (Passwort→Token-Mint→`generateText`="OK"). genai 2.x live OK, `sessions`-Tabelle deployed. |
-| T-1.0.2 | Netlify-Key-Hygiene | BLOCKED | — | S4/EF-7 — Netlify-MCP-Origin liefert 502 (serverseitig down). Manuell im Netlify-Dashboard (Env-Vars): write-fähigen Convex-Dev-Key + non-regionalen `VITE_CONVEX_URL`-Dup + ungenutzten `CONVEX_DEPLOY_KEY` löschen. Build bleibt grün (netlify.toml pinnt `VITE_CONVEX_URL`). Retry via MCP später. |
+| T-1.0.2 | Netlify-Key-Hygiene | DONE | — | S4/EF-7 — `depl_key_claudecode` (write-fähiger Convex-Key, `is_secret:false`/Klartext, vom Build ungenutzt) via Netlify-MCP gelöscht. Einzige Env-Var; keine weiteren Stray-Vars. Build unberührt (`VITE_CONVEX_URL` via `netlify.toml`). ⚠️ Key-Wert war exponiert → **rotieren empfohlen**. |
 | T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | TODO | — | A1/A3 |
@@ -99,3 +99,7 @@
 - 2026-06-01 — `T-1.0.3` → **DONE** (C2): `assertEmbeddingDim` von log-only/once-only auf echten Throw (jeder Call)
   umgestellt; `convex/gemini.ts generateEmbedding` guardet beide Rückgabepfade (`../lib/vector` bündelt convex-seitig).
   FE-Build + `convex dev --once` grün. → Slice 0 hier abgeschlossen; Slice-0→1-Grenze erreicht.
+- 2026-06-01 — `T-1.0.2` → **DONE** (S4/EF-7): Netlify-MCP (intermittierende 502, auf Retry erfolgreich) →
+  `depl_key_claudecode` (write-fähiger Klartext-Convex-Key, Build-ungenutzt) aus der Netlify-Env gelöscht;
+  es war die einzige Var. Build unberührt. Diagnose: MCP weder veraltet noch fehlbedient — transiente
+  Cloudflare-Origin-502 (Reads/Writes auf Retry ok). ⚠️ exponierten Key rotieren. **Slice 0 vollständig.**
