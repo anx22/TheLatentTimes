@@ -111,6 +111,17 @@ export const runScheduledAutonomousRun = action({
       return "skipped";
     }
 
+    // B. Honour the operator pause switch (U2). The Ops "Interrupt Flow" button
+    // writes this flag; while paused the circadian sweep must not run.
+    const control: any = await ctx.runQuery(
+      api.newsroom.queries.getNewsroomStateByKey,
+      { key: "autonomy_control" }
+    );
+    if (control?.paused === true) {
+      console.log("[SYSTEM] Background sweep skipped: autonomy paused by operator.");
+      return "paused";
+    }
+
     console.log("[SYSTEM] Global Autonomy Core activated. Commencing newsroom pipeline...");
 
     // Wire the shared agent layer to a server-side transport for this run.

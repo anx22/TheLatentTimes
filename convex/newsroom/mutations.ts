@@ -503,6 +503,23 @@ export const releaseDiscoveryLock = mutation({
   },
 });
 
+// ── AUTONOMY PAUSE (U2) ──────────────────────────────────────────────────────
+// The Ops "Interrupt Flow" / "Resume Core" button toggles this persistent flag.
+// The circadian cron (runScheduledAutonomousRun) reads it and skips a sweep while
+// paused. Stored under its own newsroom_state key so it never clobbers "current".
+export const setAutonomyPaused = mutation({
+  args: { paused: v.boolean() },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const row = await ctx.db
+      .query("newsroom_state")
+      .withIndex("by_key", (q) => q.eq("key", "autonomy_control"))
+      .unique();
+    if (row) await ctx.db.patch(row._id, { data: { paused: args.paused }, updated_at: now });
+    else await ctx.db.insert("newsroom_state", { key: "autonomy_control", data: { paused: args.paused }, updated_at: now });
+  },
+});
+
 // ── WORKBENCH ─────────────────────────────────────────────────────────────────
 
 export const createWorkbenchSession = mutation({

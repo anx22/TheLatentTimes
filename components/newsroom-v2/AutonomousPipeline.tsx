@@ -1,12 +1,19 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation } from 'convex/react';
 import { Activity, Zap, Layers, PauseCircle, PlayCircle, Terminal, FileText, Cpu, Network, ShieldAlert } from 'lucide-react';
 import { NewsroomContext } from '../../contexts/NewsroomContext';
+import { api } from '../../frontendApi';
 import { cn } from '../../lib/utils';
 import { SystemLog } from '../../types';
 
 export const AutonomousPipeline: React.FC = () => {
   const context = useContext(NewsroomContext);
-  const [enginePaused, setEnginePaused] = useState(false);
+  // Real, persistent pause switch (U2): the circadian Convex cron reads this flag
+  // and skips sweeps while paused. Was previously local-only state that paused
+  // nothing.
+  const autonomyControl = useQuery(api.newsroom.queries.getNewsroomStateByKey, { key: 'autonomy_control' });
+  const setAutonomyPaused = useMutation(api.newsroom.mutations.setAutonomyPaused);
+  const enginePaused = !!(autonomyControl as any)?.paused;
   const logEndRef = useRef<HTMLDivElement>(null);
   
   // Pipeline status tracking
@@ -94,7 +101,7 @@ export const AutonomousPipeline: React.FC = () => {
              </span>
           </div>
           <button 
-            onClick={() => setEnginePaused(!enginePaused)}
+            onClick={() => setAutonomyPaused({ paused: !enginePaused })}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 transition-colors"
           >
             {enginePaused ? <PlayCircle className="w-4 h-4 text-[#ccff00]" /> : <PauseCircle className="w-4 h-4 text-amber-500" />}
