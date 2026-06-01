@@ -228,10 +228,11 @@ const App: React.FC = () => {
          {/* Floating Toggle (Backup access) */}
          {!showNewsroom && session && (
              <div className="fixed bottom-6 right-6 z-50">
-                 <button 
+                 <button
                       onClick={() => setShowNewsroom(true)}
-                      className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-2xl hover:scale-110 transition-transform"
+                      className="bg-ink text-paper w-12 h-12 rounded-full flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.15em] shadow-2xl hover:scale-110 hover:bg-crimson transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson/40"
                       title="Open Redaktion"
+                      aria-label="Open newsroom"
                  >
                      Ops
                  </button>

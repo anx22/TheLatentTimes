@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 46 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 13 DONE
-**Nächster Task:** Slice 4 läuft — `T-1.4.0` DONE (Richtung: editoriale Grammatik, Flows erhalten). Baue `T-1.4.1` (Token-Fundament + Primitives) → `T-1.4.2` (Shell, sichtbarer Preview-Checkpoint). Offen in Slice 2 (rein technisch): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` BLOCKED.)
+**Übersicht:** 62 Tasks · 43 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 15 DONE
+**Nächster Task:** Slice 4 — Fundament+Shell editorial (T-1.4.1/1.4.2 DONE), `T-1.4.3` läuft (Bullpen+Darkroom als Vorzeige-Räume fertig). **`dev`-Preview-Checkpoint** für Mensch-Feedback vor Rollout der übrigen Räume. Offen in Slice 2 (rein technisch): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -29,9 +29,9 @@
 | T-1.2.8 | Pause/Resume echt | DONE | T-1.1.2 | U2 — `enginePaused` war reiner lokaler `useState` (kosmetisch). Jetzt persistenter Flag: `setAutonomyPaused`-Mutation → eigene `newsroom_state`-Zeile `autonomy_control`; Cron `runScheduledAutonomousRun` prüft `control.paused` → skippt Sweep. UI liest/schreibt via Convex-Hooks. Live-Round-Trip verifiziert (true→false). |
 | T-1.3.1 | Provenienz-Panel (light) | TODO | T-1.2.5, T-1.1.3 | Q11 A |
 | T-1.4.0 | Cockpit-UX-Audit + Richtung | DONE | — | G7 — Audit in `docs/rewrite/UI-AUDIT.md`. **Entscheid (Mensch):** Redesign unterwirft sich **kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Crimson/Emerald), bleibt aber **funktional auf vorhandenen Logiken & High-Level-Flows** (Step-Machine, Räume, Pipelines, Wiring unverändert). Fundament existiert teils schon (`tailwind.config.js`, Fonts in `index.html`). |
-| T-1.4.1 | Editorial-Token-Fundament + Primitives | TODO | T-1.4.0 | Tokens (Crimson/Emerald-Akzente ergänzen) + `NewsroomUI`-Primitives (Button/Label/Panel/Card + neuer EmptyState) auf die editoriale Grammatik umskinnen. Keystone. |
-| T-1.4.2 | Shell + Navigation umskinnen | TODO | T-1.4.1 | `App`-Shell + `NewsroomFloor` (Masthead, Tab-Nav, Orientierung/Breadcrumb, Error-Banner, Standby-Sackgasse fixen). Erste sichtbare Fläche → `dev`-Preview-Checkpoint. |
-| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | TODO | T-1.4.2 | Raum für Raum (Wire/ThreeZone, Bullpen, Darkroom, Press, AutonomousPipeline, Observability, SignalSourcingBar): Dichte/Responsivität/A11y/States fixen, Logik/Flows erhalten. |
+| T-1.4.1 | Editorial-Token-Fundament + Primitives | DONE | T-1.4.0 | Tokens in `tailwind.config.js` (ink/crimson/signal/hairline/paper-*) + `NewsroomUI` komplett umgeskinnt (Button/Label/Panel/Header/alle Cards) auf Paper/Ink/Crimson/Emerald + Playfair-Titel; neuer `EmptyState`-Primitive; Focus-Rings + aria. APIs/Logik 1:1. |
+| T-1.4.2 | Shell + Navigation umskinnen | DONE | T-1.4.1 | `NewsroomFloor` (Masthead „The Latent Times" Playfair, Tab-Nav mit Crimson-Unterstreichung + `aria-current`, Sub-Navbar, Log-Sidebar, Error-Banner, Bottom-Bar) + `NewsroomAuthBar` + App-„Ops"-Button editorial; Standby-Sackgasse → `EmptyState`+CTA; Purple/Orange-Raumfarben → Crimson (Restraint). Logik/Flows 1:1. |
+| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | IN-PROGRESS | T-1.4.2 | **Exemplare fertig:** `TheBullpen` + `TheDarkroom` editorial. **Offen:** Wire/`ThreeZonePipeline`, `PrintingPress`, `AutonomousPipeline`, `ObservabilityDashboard`, `SignalSourcingBar` — Dichte/Responsivität/A11y/States, Logik erhalten. |
 
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |

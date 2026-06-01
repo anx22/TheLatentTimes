@@ -12,17 +12,17 @@ export const TheDarkroom: React.FC = () => {
   return (
     <NewsroomPanel side="center" className="items-center justify-center p-12 text-center relative">
       <div className="max-w-md space-y-10 animate-in fade-in zoom-in-95 duration-700">
-        <div className="w-20 h-20 bg-emerald-500/5 border border-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-10 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
-          <ImageIcon className="w-10 h-10 text-emerald-500/70" />
+        <div className="w-20 h-20 bg-crimson/[0.06] border border-crimson/20 rounded-full flex items-center justify-center mx-auto mb-10">
+          <ImageIcon className="w-10 h-10 text-crimson" />
         </div>
-        
+
         <div className="space-y-4">
-          <NewsroomLabel type="header" className="tracking-[0.4em] text-emerald-500">The Darkroom</NewsroomLabel>
+          <NewsroomLabel type="header" className="tracking-[0.4em]">The Darkroom</NewsroomLabel>
           <div className="space-y-2 px-4">
-            <p className="text-zinc-500 font-serif italic text-base leading-relaxed">
+            <p className="text-ink-soft font-display italic text-base leading-relaxed">
               Developing high-fidelity synthetic assets for:
             </p>
-            <p className="text-zinc-200 font-bold uppercase tracking-widest text-[14px] leading-relaxed max-w-xs mx-auto">
+            <p className="text-ink font-semibold uppercase tracking-[0.18em] text-[14px] leading-relaxed max-w-xs mx-auto">
               {draft?.headline || 'No Draft Detected'}
             </p>
           </div>
@@ -47,13 +47,13 @@ export const TheDarkroom: React.FC = () => {
                 <div className="flex justify-center gap-6">
                   <button 
                     onClick={() => setStep('EDITORIAL_BOARD')}
-                    className="text-[10px] font-mono text-zinc-600 hover:text-white uppercase tracking-widest transition-colors"
+                    className="text-[10px] font-mono text-ink-faint hover:text-ink uppercase tracking-widest transition-colors"
                   >
                     [ Back to Bullpen ]
                   </button>
                   <button 
                     onClick={() => setStep('NEWS_TERMINAL')}
-                    className="text-[10px] font-mono text-zinc-600 hover:text-white uppercase tracking-widest transition-colors"
+                    className="text-[10px] font-mono text-ink-faint hover:text-ink uppercase tracking-widest transition-colors"
                   >
                     [ Back to Wire ]
                   </button>
@@ -74,7 +74,7 @@ export const TheDarkroom: React.FC = () => {
               </NewsroomButton>
               <button 
                 onClick={() => setStep('EDITORIAL_BOARD')}
-                 className="text-[10px] font-mono text-zinc-600 hover:text-white uppercase tracking-widest transition-colors"
+                 className="text-[10px] font-mono text-ink-faint hover:text-ink uppercase tracking-widest transition-colors"
               >
                  [ Return to Editorial Board ]
               </button>
