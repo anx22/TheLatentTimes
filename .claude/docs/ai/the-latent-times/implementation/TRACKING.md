@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 56 Tasks · 53 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 DONE
+**Übersicht:** 58 Tasks · 55 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 DONE
 **Nächster Task:** `T-1.0.1` (S1 Action-Auth, P0) — keine Abhängigkeiten.
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
@@ -13,6 +13,7 @@
 | T-1.0.1 | Gemini-Actions absichern | TODO | — | **S1/P0** |
 | T-1.0.2 | Netlify-Key-Hygiene | TODO | — | S4 |
 | T-1.0.3 | Embedding-Dim-Guard | TODO | — | C2 |
+| T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | TODO | — | A1/A3 |
 | T-1.1.2 | Cron reused Schicht | TODO | T-1.1.1 | A1 |
 | T-1.1.3 | Freigabe-Queue (drafts.status) | TODO | T-1.1.2 | Wette 1 |
@@ -42,6 +43,7 @@
 | T-2.3.2 | Personas differenziert | TODO | T-2.3.1 | — |
 | T-2.4.1 | Volle Provenienz-Kette | TODO | T-1.3.1 | Q11 |
 | T-2.5.1 | Validatoren (Rest v.any) | TODO | — | Schicht 5 |
+| T-2.5.2 | @ts-nocheck entfernen | TODO | T-1.1.2 | EF-9 |
 | T-2.6.1 | Signal-Cache | TODO | T-1.1.2 | S2 |
 | T-2.6.2 | Token-Telemetrie ehrlich | TODO | — | C5 |
 
@@ -82,3 +84,5 @@
 ---
 ## Änderungslog (Sessions tragen hier ein)
 - 2026-06-01 — Board initial angelegt aus REWRITE_MASTERPLAN + COVERAGE. Alle Tasks `TODO`/`BLOCKED`.
+- 2026-06-01 — +2 Tasks aus Alt-Datei-Extraktion: `T-1.0.4` Prod-Deployment (EF-10), `T-2.5.2` @ts-nocheck (EF-9).
+  EF-8 (Alt-Branches) → `NOW.md` Tech-Debt (manuell). CODEBASE_ANALYSIS/EMERGENCY_FIXES gelöscht.

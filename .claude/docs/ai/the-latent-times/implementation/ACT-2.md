@@ -37,6 +37,9 @@ jeder mit Intent-Trace.
 ## Slice 5 — Validated Boundaries (Rest) *(Schicht 5)*
 - **T-2.5.1 — Validatoren für `drafts.blocks`, `missions.metadata`, `newsroom_state.data`.** `v.any()` → Verträge.
   Files: `convex/schema.ts`, `types.ts`. **Acceptance:** Kein `v.any()` mehr an Kern-Objekten.
+- **T-2.5.2 — `@ts-nocheck`-Inseln entfernen *(EF-9)*.** Typcheck in `convex/crons.ts`, `autonomousActions.ts`,
+  `clusteringActions.ts` wiederherstellen (`any`-lastig). **Acceptance:** Kein `@ts-nocheck` mehr in diesen Dateien;
+  Build typsicher. **Note:** sinnvoll *nach* T-1.1.2 (autonomousActions wird ohnehin umgebaut).
 
 ## Slice 6 — Guardrails
 - **T-2.6.1 — Signal-Cache *(S2, Zero-Token)*.** Embeddings/Suchen cachen statt pro Signal neu. Files:

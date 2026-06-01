@@ -1,7 +1,9 @@
 # Implementation Hub — The Latent Times
-> **Für jede Session / jedes AI-Coding-Modell: hier starten.** Dies ist die untergeordnete,
-> ausführbare Ebene unter `REWRITE_MASTERPLAN.md` (Repo-Root). Der Masterplan sagt *was & warum*;
-> diese Mappe sagt *wie, in welcher Reihenfolge, und wie weit wir sind*.
+> **Echter Einstieg ist `AGENTS.md` (Repo-Root)** — das 5-Datei-Backbone
+> (AGENTS/PRODUCT/ARCHITECTURE/NOW/DECISIONS) ist die immer-aktive Schicht. **Dieser Hub ist das
+> untergeordnete Rewrite-Modul**, auf das `NOW.md` für Task-Status zeigt. Der Masterplan sagt
+> *was & warum*; diese Mappe sagt *wie, in welcher Reihenfolge, und wie weit wir sind*.
+> Eine Quelle pro Fakt: Vision → `PRODUCT.md`, Regeln → `ARCHITECTURE.md`, Rewrite-Tasks → `TRACKING.md`.
 
 ## Dokumentenkarte
 | Datei | Zweck | Wann lesen |

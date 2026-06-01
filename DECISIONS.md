@@ -1,6 +1,26 @@
 
 # DECISIONS.md
 
+## [2026-06-01] Rewrite consolidation — four-pillar North Star
+**Problem** → The real vision (spectator newsroom, AI-revolution chronicle, social distribution, community, meta-proof) lived in the founder's head, not the docs; `PRODUCT.md` only described the magazine artifact.
+**Choice** → Adopt a four-pillar North Star (Spectator · Chronicle · Trust/Proof · Platform), consolidated in `REWRITE_MASTERPLAN.md` with the 10x derivation + decision quiz in `.claude/docs/ai/the-latent-times/10x/`. `PRODUCT.md` updated to the canonical short form.
+**Reason** → A publication needs readers, distribution and a "why"; the factory alone is not the product.
+
+## [2026-06-01] Operating boundary — autonomous inside, human-gated outside [HARD]
+**Problem** → The reply-agent (autonomous, multi-platform article posting) was the boldest chosen feature but provenance the lightest safeguard → spam/reputation risk.
+**Choice** → The internal newsroom runs fully autonomous; everything outbound (social posts, thread replies, published-to-world) requires human approval. Full outbound autonomy is a future milestone after the paper proves itself. Recorded as a [HARD] rule in `ARCHITECTURE.md`.
+**Reason** → The world hates AI spam; outbound trust must be earned.
+
+## [2026-06-01] One brain first — canonical pipeline (decision Q13)
+**Problem** → Two parallel pipelines (client agents ↔ server cron) duplicate "truth"; provenance, adapters and the spectator view all need one source.
+**Choice** → Build the canonical, transport-agnostic agent/orchestration layer + approval queue as the first visible slice of Akt I; the cron reuses it. (Reuse: client agents already route through `api.gemini.generateText`; `drafts.status='review'` already is an approval queue.)
+**Reason** → No building on sand; one truth.
+
+## [2026-06-01] Documentation structure — 5-file backbone + rewrite submodule
+**Problem** → A new rewrite doc system overlapped the existing 5-file system (`NOW`↔`TRACKING`, `PRODUCT`↔vision) → drift risk (already seen: mutations split, Vercel/Netlify mislabel).
+**Choice** → Keep the 5-file system (AGENTS/PRODUCT/ARCHITECTURE/NOW/DECISIONS) as backbone; the rewrite hub (`REWRITE_MASTERPLAN` + `implementation/`) is a scoped submodule it points to. One source per fact: `NOW` points to `TRACKING` for rewrite tasks; `PRODUCT` is canonical vision. Extracted residual value from `CODEBASE_ANALYSIS.md` + `EMERGENCY_FIXES.md` (live baseline, EF-8/9/10) into NOW/ARCHITECTURE/TRACKING, then **deleted** both.
+**Reason** → Eliminate the overlap that causes documentation drift.
+
 ## [2026-05-31] Production Connection, Newsroom Soft Wall & Cost Normalization (web session)
 **Problem**: The public Netlify site was not wired to Convex (`VITE_CONVEX_URL` missing → config-error screen); the autonomous cron crashed at `completeMission` (A1) and never produced drafts (A2, story lookup via `getNewsClusters` limit=1); Convex read usage was extreme; the whole Ops surface and the Gemini endpoints were open to anonymous visitors; model aliases were scattered.
 **Choice**:

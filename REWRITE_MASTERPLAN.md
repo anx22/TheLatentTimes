@@ -176,6 +176,8 @@ Human-Gate auf autonom-im-Rahmen umgestellt werden. Bis dahin: Gate ist Pflicht.
 | **C3** | `drafts.storyId` als `v.string()` + `as any` | Mittel | Akt I/II |
 | **C4** | `getNewsClusters` hartkodiert `limit=1` | Mittel | Akt II |
 | **C5** | Token-Recording schluckt Fehler still | Niedrig | Akt II |
+| **EF-10** | Public site auf **Dev**-Convex-Deployment; kein Prod-Deploy/CI | P1 | Akt I (T-1.0.4) |
+| **EF-9** | `@ts-nocheck`-Inseln (`crons`/`autonomousActions`/`clusteringActions`) | Niedrig | Akt II (T-2.5.2) |
 | **Schicht 5** | Vision-Drift: `v.any()`-Grenzen, simulierte Debatte, fehlende Moodboards, unsichtbare Kritik | div. | Akte I–III |
 
 **Cross-Cutting-Wurzeln:** (1) zwei Wahrheiten → ein Gehirn · (2) UI↔DB-Desync → ehrliches UI ·

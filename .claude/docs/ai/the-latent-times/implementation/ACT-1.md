@@ -30,6 +30,12 @@ publiziert, **ohne ein einziges Schein-Element**, mit sichtbarer Provenienz.
 - **Acceptance:** Dim-Mismatch wirft/skippt statt zu schreiben; Log macht das sichtbar.
 - **Depends:** —
 
+### T-1.0.4 — Echtes Prod-Deployment *(EF-10, P1)*
+- **What:** Die öffentliche Seite hängt an einem **Dev**-Convex-Deployment (`dev:adamant-mastiff-745`). Echtes Prod-Deployment + Prod-Deploy-Key aufsetzen und `convex deploy` im CI etablieren (statt Dev-Key-Push).
+- **Files:** `netlify.toml`, Convex-Deployment-Config, CI.
+- **Acceptance:** Public site läuft gegen ein dediziertes Prod-Deployment; kein Dev-Key im Produktionspfad.
+- **Depends:** —
+
 ---
 
 ## Slice 1 — Ein Gehirn + Freigabe-Queue *(Wette 1; A1/A3/A5)*
