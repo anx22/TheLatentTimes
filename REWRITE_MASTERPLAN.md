@@ -184,8 +184,18 @@ Human-Gate auf autonom-im-Rahmen umgestellt werden. Bis dahin: Gate ist Pflicht.
 
 ---
 
-## 9. Verifikation / nächster Schritt
-Reine Analyse — keine Code-Änderung. Audit + Vision + Entscheidungen sind konsolidiert.
-**Nächster Schritt nach Freigabe:** **Akt I, Slice 1** (kanonisches Gehirn + Freigabe-Queue) als ersten
-ausführbaren Arbeitsblock detaillieren — konkrete Dateien, `callModel`-Interface-Schnitt,
-Queue-Schema, Akzeptanzkriterien — zusammen mit den P0/P1-Guardrails (S1, S4, C2).
+## 9. Ausführungs-Ebene (untergeordnete Doku)
+Dieser Masterplan ist **High-Level**. Die ausführbare Detail- & Tracking-Ebene liegt in
+`.claude/docs/ai/the-latent-times/implementation/` und ist session-übergreifend verbindlich:
+- **`README.md`** — Einstieg + Arbeitsprotokoll für jede Session/jedes Modell.
+- **`COVERAGE.md`** — North-Star→Task-Gegenprüfung + erkannte Lücken (G1–G6).
+- **`TRACKING.md`** — lebendes Board, 56 Tasks (`T-<Akt>.<Slice>.<Seq>`), Status/Abhängigkeiten.
+- **`ACT-1…4.md`** — Detail-Tasks mit echten Dateipfaden + Akzeptanzkriterien.
+
+**Nächster Schritt nach Freigabe:** `T-1.0.1` (S1 Action-Auth, P0) — und parallel die drei `BLOCKED`-
+Mensch-Entscheidungen klären: **T-1.2.0** Design-Baseline, **T-3.3.0** Identität/Governance, **T-4.0.1**
+Plattform-Wahl (siehe `COVERAGE.md`).
+
+## 10. Verifikation
+Reine Analyse — keine Code-Änderung. Audit + Vision + Entscheidungen + ausführbare Task-Ebene sind
+konsolidiert und gegen die North Star geprüft (Coverage ~90 %, 6 Lücken explizit benannt).
