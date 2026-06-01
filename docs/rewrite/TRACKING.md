@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 43 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 15 DONE
-**Nächster Task:** Slice 4 — Fundament+Shell editorial (T-1.4.1/1.4.2 DONE), `T-1.4.3` läuft (Bullpen+Darkroom als Vorzeige-Räume fertig). **`dev`-Preview-Checkpoint** für Mensch-Feedback vor Rollout der übrigen Räume. Offen in Slice 2 (rein technisch): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` BLOCKED.)
+**Übersicht:** 62 Tasks · 40 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 18 DONE
+**Nächster Task:** Technische Slice-2-Resttasks **abgeschlossen** (`T-1.2.3`/`T-1.2.6`/`T-1.2.7` DONE). **Redesign (Slice 4, `T-1.4.3`) gestoppt auf Mensch-Wunsch** — größerer Umbau kommt aus Parallel-Session; Cockpit-Redesign hier nicht weiterführen. Offen technisch: `T-1.2.4` (Schein-Metriken), `T-1.2.5` (Legal-Gate), `T-1.2.8` (Pause/Resume). (`T-1.2.0` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -21,7 +21,7 @@
 | T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
 | T-1.2.1 | Echte Metriken | DONE | — | C1 — `getDeepInsight` zählt jetzt echt: Stories via `collect` (klein), Signals via `take(501)`/"500+" (Embeddings → unbegrenztes Lesen teuer). Live: signals 280, narrativePillars 12, activeSources 29. |
 | T-1.2.2 | Darkroom-Bild propagieren | DONE | — | U1 — Root-Cause: `atelierState` (inkl. `currentImageBase64` + `history[].base64`, je mehrere MB) wurde komplett in `newsroom_state` persistiert → sprengt Convex' ~1-MB-Dokumentlimit → `saveNewsroomState` wirft → GESAMTE Persistenz (auch `imageId`) bricht still, daher „Bild propagiert nicht" nach Reload. Fix: `sanitizeAtelierForPersist` strippt Base64-Payloads vor dem Speichern; Asset überlebt via persistiertem `imageId`→`data.image` (Darkroom rendert bereits `image`). |
-| T-1.2.3 | Grid-Layout persistieren | TODO | T-1.2.6 | U5 |
+| T-1.2.3 | Grid-Layout persistieren | DONE | T-1.2.6 | U5. Neue Mutation `updateLatestIssueLayout` (patcht `content.layout`, via T-1.2.6 validiert). `MagazineGrid` persistiert nur auf `onDragStop`/`onResizeStop` (nicht beim Mount-Fire) und **nur für Editoren** (`canEdit` gegated Drag/Resize/Handle → kein Anon-Abuse). Reorder überlebt Reload via App-`getLatestIssue`. |
 | T-1.2.4 | Schein-Metriken entfernen | DONE | — | U6 — Approve-Flow (PrintingPress): Unsplash-Stockfoto, erfundener `score{}` & zwei Fake-Comments ("The Board"/"The Editor") raus; nutzt jetzt echtes Darkroom-Bild oder keins (`media_type`→'text'). Pipeline: Random-"Confidence" (`0.85+rand`) raus. `usePublicationFlow`: hartkodierter `score` raus. Ticker war bereits als dekorativ kommentiert. **Offen (Design):** `picsum`-Platzhalter greifen jetzt bei bildlosen Artikeln → typografische "kein Bild"-Behandlung im Design-Pass. |
 | T-1.2.5 | Legal-Gate koppeln | DONE | — | U3 — `runSimilarityAudit` loggte nur PASSED/FAILED, blockierte aber nichts. Jetzt hartes Gate in `usePublicationFlow.publish`: bei aktivierten Guardrails + Seed-Draft muss der UrhG-Audit gelaufen & ≥70% sein, sonst `setError` + Block (mit `recommendation`). Non-Seed-Drafts ungated (keine Quelle zum Kopieren); Toggle = explizites Opt-out. Deckt beide Publish-Pfade (`publish` + `executeFullPipeline`). |
 | T-1.2.6 | issues.content-Validator | DONE | — | Validated Boundaries. **Boundary-Validator** `convex/newsroom/issueContent.ts` statt strikter Table-Schema (gespeicherte Shape divergiert vom Typ → `ticker`-Feld; strikt würde Legacy-Patches brechen). Prüft kritischen Vertrag (`meta`/`cover`-Objekte, `items`/`layout`-Arrays mit `i,x,y,w,h`) an allen 3 Write-Stellen (`publishIssue`, `addItemToLatestIssue` Patch+Genesis). |

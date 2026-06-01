@@ -399,6 +399,22 @@ export const addItemToLatestIssue = mutation({
   },
 });
 
+/**
+ * Persist a layout-only reorder/resize of the latest issue's grid (T-1.2.3),
+ * so a manual rearrangement survives a reload instead of living in local state.
+ * Validated through the same issues.content boundary (T-1.2.6).
+ */
+export const updateLatestIssueLayout = mutation({
+  args: { layout: v.array(v.any()) },
+  handler: async (ctx, args) => {
+    const latestIssue = await ctx.db.query("issues").order("desc").first();
+    if (!latestIssue) return;
+    const nextContent = { ...latestIssue.content, layout: args.layout };
+    validateIssueContent(nextContent);
+    await ctx.db.patch(latestIssue._id, { content: nextContent });
+  },
+});
+
 export const addNewsCluster = mutation({
   args: {
     title: v.string(),
