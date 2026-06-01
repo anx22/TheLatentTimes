@@ -133,19 +133,55 @@ unsichtbare Fundament.
 
 ---
 
-## Antwort-Sammelblatt
-| # | Feature | A | B | Verwerfen | Notiz |
-|---|---|---|---|---|---|
-| Q1 | Spectator Newsroom | ☐ | ☐ | ☐ | |
-| Q2 | Einfluss-Steuerung | ☐ | ☐ | ☐ | |
-| Q3 | Critics' Corner sichtbar | ☐ | ☐ | ☐ | |
-| Q4 | Echte Debatte | ☐ | ☐ | ☐ | |
-| Q5 | Adapter: Storys posten | ☐ | ☐ | ☐ | |
-| Q6 | Reply-Agent (Artikel im Thread) | ☐ | ☐ | ☐ | |
-| Q7 | Citizen Desk | ☐ | ☐ | ☐ | |
-| Q8 | Lead-Indicators-Digest | ☐ | ☐ | ☐ | |
-| Q9 | Latent Space Karte | ☐ | ☐ | ☐ | |
-| Q10 | Makro/Meso/Tag-Ebenen | ☐ | ☐ | ☐ | |
-| Q11 | Provenienz/Glass-Box | ☐ | ☐ | ☐ | |
-| Q12 | Honest-by-Default | ☐ | ☐ | ☐ | |
-| Q13 | „Ein Gehirn" | ☐ | ☐ | ☐ | |
+## Antwort-Sammelblatt — *ausgefüllt 2026-06-01*
+| # | Feature | Entscheidung | Charakter |
+|---|---|---|---|
+| Q1 | Spectator Newsroom | **B — Cinematic Control Room** | maximales Erlebnis |
+| Q2 | Einfluss-Steuerung | **B — Co-Director Mode** | tiefe Beteiligung |
+| Q3 | Critics' Corner sichtbar | **B — Revisions-Schleife** | lebender Organismus |
+| Q4 | Echte Debatte | **A — intern** | Erlebnis, nicht publiziert |
+| Q5 | Adapter: Storys posten | **A — assistiert** | Mensch gibt frei |
+| Q6 | Reply-Agent (Artikel im Thread) | **B — Multi-Botschafter** | autonom, multi-plattform |
+| Q7 | Citizen Desk | **B — voller Desk** | Attribution + Debatte |
+| Q8 | Lead-Indicators-Digest | **A — Web/E-Mail** | klassischer Kanal |
+| Q9 | Latent Space Karte | **A — Leser-Karte** | öffentliches Signature-Feature |
+| Q10 | Makro/Meso/Tag-Ebenen | **B — Meta-Ausgaben** | schreibt eigene Geschichte |
+| Q11 | Provenienz/Glass-Box | **A — Lightweight** | Quellen + Claims |
+| Q12 | Honest-by-Default | **B — voller Sweep** | UI-weit ehrlich |
+| Q13 | „Ein Gehirn" | **B — kanonische Pipeline jetzt** | Fundament zuerst |
+
+---
+
+## Synthese der Entscheidungen
+
+**Muster:** Du baust die **maximalistische Version** von *Erlebnis* (Q1/Q2/Q3 alle B), *Community*
+(Q7 B), *Chronik* (Q9 A-Leser / Q10 B) — auf einem **bewusst solide vorab gebauten Kern** (Q13 B) —
+moderierst aber das **nach-außen-Risiko** an genau zwei Stellen (Q5 assistiert, Q8 klassischer Digest).
+
+**Innere Stimmigkeit (stark):** Q13 B ist die konsequente Folge des Rests. Cinematic Newsroom,
+Co-Director, autonome Adapter und Provenienz brauchen *eine Wahrheit* — also das kanonische Herzstück
+**zuerst** zu bauen, ist kohärent (auch wenn es vom „nur vertikale Slices, keine Fundament-Phase"-
+Prinzip des Master-Dokuments abweicht → **bewusste Roadmap-Änderung**, in §6/Akt-Struktur nachzuziehen).
+
+**Drei Spannungen, die wir bewusst auflösen sollten:**
+1. **🔴 Q6 (autonom, multi-plattform, eigene Artikel in fremde Threads) × Q11 (nur Lightweight-
+   Provenienz) × Q5 (Storys posten nur assistiert).** Das ist die **riskanteste Kombination** im ganzen
+   Set: das *gefährlichere* Verhalten (autonom ganze Artikel posten) ist mutiger gewählt als das
+   *harmlosere* (Storys posten), und gleichzeitig ist der Schutzmechanismus (Provenienz) der leichtere.
+   → Empfehlung: Für den **Q6-Pfad** entweder Provenienz auf **B (volle Spur)** heben *oder* Q6 anfangs
+   eng starten (eine Plattform, Freigabe), bis Vertrauen+Qualität bewiesen sind. **Vor Akt IV entscheiden.**
+2. **🟡 Q4 (Debatte intern) × Q1/Q2 (cinematic + Leser stimmen in Debatten mit).** Wenn Leser in
+   Debatten mitstimmen und alles cinematisch sichtbar ist, *ist* die Debatte de facto öffentlich —
+   „intern" heißt dann nur „nicht als eigener Artikel verpackt". Reconcilebar, aber benennen.
+3. **🟡 Q13 B (großer Vorab-Refactor) × Akt I „eine makellose Ausgabe zuerst".** B verschiebt Gewicht
+   nach vorn auf das Fundament. Das ist ok, solange Akt I nicht monatelang auf das Pipeline-Herzstück
+   wartet → Empfehlung: kanonische Pipeline + Freigabe-Queue als **erster Slice von Akt I**, nicht als
+   vorgeschaltete Phase ohne sichtbares Ergebnis.
+
+**Resultierende North-Star-Form:** Erlebnis-maximal, Community-offen, Chronik-öffentlich, auf solidem
+Kern — mit *einer* offenen Sicherheitsfrage (Spannung 1), die vor dem Bau von Akt IV zu klären ist.
+
+## Nächster Schritt
+- [ ] **Spannung 1 entscheiden** (Q6-Autonomie vs. Provenienz-Tiefe) — einzige echte Inkonsistenz.
+- [ ] **Master-Doc updaten**: Akt IV „Distribution + Community" + Q13-B-Fundament als erster Slice + die
+      13 Entscheidungen als verbindliche Richtungswahl einarbeiten.
