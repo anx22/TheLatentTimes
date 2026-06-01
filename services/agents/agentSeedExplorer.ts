@@ -1,6 +1,6 @@
 import { MODELS } from '../../constants';
 import { Type } from "@google/genai";
-import { safeGenerateContent, callJsonAgent, searchTrend } from "../gemini";
+import { safeGenerateContent, callJsonAgent, searchTrend } from "./modelClient";
 
 export interface Claim {
   claimText: string;

@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { searchTrend, callJsonAgent } from '../gemini';
+import { searchTrend, callJsonAgent } from './modelClient';
 import { ScoutedSignal, Source } from '../../types';
 
 export const agentScout = async (sources: Source[], noiseFilter: number, globalDirective?: string, missionId?: string): Promise<ScoutedSignal[]> => {

@@ -1,5 +1,5 @@
 import { GeneratedArticle } from '../../types';
-import { callJsonAgent, Schemas } from '../gemini';
+import { callJsonAgent, Schemas } from './modelClient';
 
 export const agentColumnist = async (topic: string, context: string, lens: string, wordCountTarget: string | number, globalDirective?: string, missionId?: string): Promise<GeneratedArticle> => {
   let lengthInstruction = "2-3 paragraphs";

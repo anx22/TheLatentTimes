@@ -1,5 +1,5 @@
 import { Signal } from '../../types';
-import { callJsonAgent, Schemas } from '../gemini';
+import { callJsonAgent, Schemas } from './modelClient';
 
 export const agentConsensus = async (items: Signal[], globalDirective?: string, missionId?: string): Promise<string> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';

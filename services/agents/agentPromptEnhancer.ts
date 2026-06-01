@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent } from './modelClient';
 
 export const agentPromptEnhancer = async (basePrompt: string, style: string, globalDirective?: string, missionId?: string): Promise<string> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';

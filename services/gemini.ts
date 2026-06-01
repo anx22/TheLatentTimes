@@ -1,29 +1,34 @@
-import { Type } from "@google/genai";
 import { ConvexReactClient } from "convex/react";
-import { AspectRatio, SearchResult } from "../types";
-import { MODELS } from "../constants";
+import { AspectRatio } from "../types";
 import { api } from "../convex/_generated/api";
 import { assertEmbeddingDim } from "../lib/vector";
+import { setModelTransport, type ModelTransport } from "./agents/modelClient";
 
 /**
- * CLIENT-SIDE GEMINI TRANSPORT
+ * CLIENT-SIDE GEMINI TRANSPORT (adapter)
  *
- * This file used to instantiate the Gemini SDK directly in the browser.
- * It now only proxies to Convex actions in `convex/gemini.ts`, so the
- * API key never reaches the bundle.
+ * The pure, transport-agnostic agent helpers now live in
+ * `services/agents/modelClient.ts` (so the Convex cron can reuse the same agent
+ * logic — rewrite T-1.1.1). This file is the BROWSER adapter: it implements the
+ * `ModelTransport` interface by proxying to the gated Convex actions in
+ * `convex/gemini.ts` (the API key never reaches the bundle) and injects it.
  *
- * The function signatures match the old API so the agent files do not
- * need to change.
- *
- * NOTE: A subset of agents (introduced by the AI Studio refactor) still
- * import `GoogleGenAI` directly with `process.env.GEMINI_API_KEY`. Those
- * bypass this transport and re-leak the key into the bundle. They should
- * be migrated to call the helpers here — tracked as Phase 2b.
+ * It re-exports the agent helpers so existing client imports `from '../gemini'`
+ * keep working unchanged.
  */
 
-// Re-export Type so agents can keep building responseSchemas with
-// `Type.STRING`, `Type.OBJECT`, etc. (Type is a plain enum — safe on client.)
-export { Type };
+// Re-export the agent-facing helpers (back-compat for client importers).
+export {
+  Type,
+  cleanAndParseJSON,
+  safeGenerateContent,
+  callJsonAgent,
+  generateImage,
+  editImage,
+  searchTrend,
+  generateEmbedding,
+  Schemas,
+} from "./agents/modelClient";
 
 // --- TRANSPORT INJECTION (set once at boot from index.tsx) ---
 let convex: ConvexReactClient | null = null;
@@ -42,213 +47,49 @@ const transport = (): ConvexReactClient => {
 
 // --- AUTH TOKEN INJECTION (set by AuthContext on login/boot) ---
 // The server-side Gemini actions are gated by a newsroom session token (T-1.0.1).
-// AuthContext keeps this in sync with the logged-in session; an empty token means
-// "not authenticated" and the server will reject the call.
 let authToken = "";
 export const setGeminiAuthToken = (token: string | null) => {
   authToken = token || "";
 };
 
-// --- HELPER: ROBUST JSON PARSER ---
-export const cleanAndParseJSON = (text: string | undefined): any => {
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    try {
-      const clean = text.replace(/```json\n?|```/g, "").trim();
-      return JSON.parse(clean);
-    } catch {
-      try {
-        const firstOpen = text.search(/[{[]/);
-        const lastClose = text.search(/[}\]](?!.*[}\]])/);
-        if (firstOpen !== -1 && lastClose !== -1) {
-          return JSON.parse(text.substring(firstOpen, lastClose + 1));
-        }
-      } catch {
-        console.warn("[Parser] JSON Parse Failed", text?.slice(0, 100));
-      }
-      return {};
-    }
-  }
-};
-
-// --- TEXT GENERATION (proxies to convex/gemini.ts > generateText) ---
-export const safeGenerateContent = async (params: {
-  model: string;
-  contents: any;
-  config?: any;
-  missionId?: string;
-}): Promise<{ text?: string; candidates?: any[]; usageMetadata?: any }> => {
-  return await transport().action(api.gemini.generateText, {
-    accessToken: authToken,
-    model: params.model,
-    contents: params.contents,
-    config: params.config,
-    missionId: params.missionId as any,
-  });
-};
-
-// --- JSON AGENT CALLER ---
-export const callJsonAgent = async <T>(
-  prompt: string,
-  schema: any,
-  fallback: T,
-  missionId?: string
-): Promise<T> => {
-  const response = await safeGenerateContent({
-    model: MODELS.text,
-    contents: prompt,
-    config: { responseMimeType: "application/json", responseSchema: schema },
-    missionId,
-  });
-  return cleanAndParseJSON(response.text) || fallback;
-};
-
-// --- SCHEMA REGISTRY: HARD-CODED SCHEMAS TO PREVENT HALLUCINATION ---
-export const Schemas = {
-  Columnist: {
-    type: Type.OBJECT,
-    properties: {
-      headline: { type: Type.STRING },
-      deck: { type: Type.STRING },
-      blocks: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.STRING },
-            type: { type: Type.STRING },
-            sentences: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  text: { type: Type.STRING },
-                },
-                required: ["id", "text"],
-              },
-            },
-            status: { type: Type.STRING },
-          },
-          required: ["id", "type", "sentences", "status"],
-        },
-      },
-      tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-      suggested_visual_prompt: { type: Type.STRING },
-    },
-    required: ["headline", "deck", "blocks", "tags", "suggested_visual_prompt"],
-  },
-  Editor: {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        id: { type: Type.STRING },
-        blockId: { type: Type.STRING },
-        sentenceId: { type: Type.STRING },
-        persona: { type: Type.STRING },
-        type: { type: Type.STRING },
-        comment: { type: Type.STRING },
-        suggestion: { type: Type.STRING },
-      },
-      required: ["id", "blockId", "type", "comment"],
-    },
-  },
-  Debate: {
-    type: Type.OBJECT,
-    properties: {
-      transcript: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            persona: { type: Type.STRING },
-            message: { type: Type.STRING },
-          },
-          required: ["persona", "message"],
-        },
-      },
-      angles: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.STRING },
-            persona: { type: Type.STRING },
-            headline: { type: Type.STRING },
-            headlineOptions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            angle: { type: Type.STRING },
-          },
-          required: ["id", "persona", "headline", "headlineOptions", "angle"],
-        },
-      },
-    },
-    required: ["transcript", "angles"],
-  },
-  Consensus: {
-    type: Type.OBJECT,
-    properties: {
-      consensus: { type: Type.STRING },
-      confidence: { type: Type.NUMBER },
-    },
-    required: ["consensus"],
+// --- Browser transport: proxy every model call to the gated Convex actions ---
+const clientTransport: ModelTransport = {
+  generateText: (params) =>
+    transport().action(api.gemini.generateText, {
+      accessToken: authToken,
+      model: params.model,
+      contents: params.contents,
+      config: params.config,
+      missionId: params.missionId as any,
+    }),
+  generateImage: (prompt, aspectRatio: AspectRatio, missionId) =>
+    transport().action(api.gemini.generateImage, {
+      accessToken: authToken,
+      prompt,
+      aspectRatio,
+      missionId: missionId as any,
+    }),
+  editImage: (base64Image, prompt, missionId) =>
+    transport().action(api.gemini.editImage, {
+      accessToken: authToken,
+      base64Image,
+      prompt,
+      missionId: missionId as any,
+    }),
+  searchTrend: (query, missionId) =>
+    transport().action(api.gemini.searchTrend, {
+      accessToken: authToken,
+      query,
+      missionId: missionId as any,
+    }),
+  generateEmbedding: async (text, missionId) => {
+    const values: number[] = await transport().action(
+      api.gemini.generateEmbedding,
+      { accessToken: authToken, text, missionId: missionId as any }
+    );
+    assertEmbeddingDim(values);
+    return values;
   },
 };
 
-// --- IMAGE GENERATION ---
-export const generateImage = async (
-  prompt: string,
-  aspectRatio: AspectRatio,
-  missionId?: string
-): Promise<string> => {
-  return await transport().action(api.gemini.generateImage, {
-    accessToken: authToken,
-    prompt,
-    aspectRatio,
-    missionId: missionId as any,
-  });
-};
-
-// --- IMAGE EDITING ---
-export const editImage = async (
-  base64Image: string,
-  prompt: string,
-  missionId?: string
-): Promise<string> => {
-  return await transport().action(api.gemini.editImage, {
-    accessToken: authToken,
-    base64Image,
-    prompt,
-    missionId: missionId as any,
-  });
-};
-
-// --- SEARCH GROUNDING ---
-export const searchTrend = async (
-  query: string,
-  missionId?: string
-): Promise<SearchResult & { isFallback?: boolean }> => {
-  return await transport().action(api.gemini.searchTrend, {
-    accessToken: authToken,
-    query,
-    missionId: missionId as any,
-  });
-};
-
-// --- EMBEDDING ---
-export const generateEmbedding = async (
-  text: string,
-  missionId?: string
-): Promise<number[]> => {
-  const values: number[] = await transport().action(
-    api.gemini.generateEmbedding,
-    { accessToken: authToken, text, missionId: missionId as any }
-  );
-  assertEmbeddingDim(values);
-  return values;
-};
+setModelTransport(clientTransport);

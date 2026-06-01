@@ -1,5 +1,5 @@
 import { GeneratedArticle, VisualConcept, ColorPalette } from '../../types';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent } from './modelClient';
 
 interface ArtDirectorOutput {
   concepts: VisualConcept[];

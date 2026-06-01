@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { GeneratedArticle } from "../../types";
-import { callJsonAgent } from "../gemini";
+import { callJsonAgent } from "./modelClient";
 
 export const agentPolisher = async (draft: GeneratedArticle, missionId?: string): Promise<GeneratedArticle> => {
   const prompt = `

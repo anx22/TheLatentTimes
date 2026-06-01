@@ -1,5 +1,5 @@
 import { Type } from '@google/genai';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent } from './modelClient';
 
 export const agentConverseWithCritic = async (
   articleTitle: string,

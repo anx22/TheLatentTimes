@@ -1,5 +1,5 @@
 import { MODELS } from '../../constants';
-import { safeGenerateContent } from '../gemini';
+import { safeGenerateContent } from './modelClient';
 
 export async function agentSynthesis(clusterTitle: string, items: { title: string; content?: string }[], missionId?: string): Promise<{ summary: string; keyEntities: string[] }> {
   const prompt = `

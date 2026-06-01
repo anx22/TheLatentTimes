@@ -1,5 +1,5 @@
 import { MODELS } from '../../constants';
-import { safeGenerateContent, searchTrend } from '../gemini';
+import { safeGenerateContent, searchTrend } from './modelClient';
 
 export const agentTargetedSearch = async (topic: string, globalDirective?: string, missionId?: string): Promise<{ context: string; grounded: boolean; urls: { title: string; url: string }[] }> => {
   const searchResult = await searchTrend(`latest technical details, documentation, and real-world developments regarding: ${topic}`);

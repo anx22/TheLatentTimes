@@ -1,5 +1,5 @@
 import { EditorialAngle } from '../../types';
-import { callJsonAgent, Schemas } from '../gemini';
+import { callJsonAgent, Schemas } from './modelClient';
 
 export const agentDebate = async (topic: string, context: string, globalDirective?: string, transcript?: { persona: string, message: string }[], missionId?: string): Promise<{ transcript: { persona: string, message: string }[], angles: EditorialAngle[] }> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';

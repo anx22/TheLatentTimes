@@ -1,5 +1,5 @@
 import { AspectRatio } from '../../types';
-import { generateImage, editImage } from '../gemini';
+import { generateImage, editImage } from './modelClient';
 
 export const agentPhotographer = async (
   prompt: string, 

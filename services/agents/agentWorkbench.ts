@@ -1,6 +1,6 @@
 import { MODELS } from '../../constants';
 import { Signal, SystemLog, StoryAngle } from '../../types';
-import { safeGenerateContent, cleanAndParseJSON } from '../gemini';
+import { safeGenerateContent, cleanAndParseJSON } from './modelClient';
 
 export const agentWorkbench = async (
     signals: Signal[],

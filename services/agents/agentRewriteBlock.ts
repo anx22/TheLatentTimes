@@ -1,6 +1,6 @@
 import { Type } from '@google/genai';
 import { DraftBlock } from '../../types';
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent } from './modelClient';
 
 export const agentRewriteBlock = async (
   block: DraftBlock, 

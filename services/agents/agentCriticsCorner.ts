@@ -1,4 +1,4 @@
-import { callJsonAgent } from '../gemini';
+import { callJsonAgent } from './modelClient';
 
 export interface PublicCriticComment {
   persona: string;

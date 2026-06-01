@@ -1,5 +1,5 @@
 import { MagazineItem, LayoutItem } from '../../types';
-import { callJsonAgent, Type } from '../gemini';
+import { callJsonAgent, Type } from './modelClient';
 
 export const agentLayoutDesigner = async (
   newItem: MagazineItem,

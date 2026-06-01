@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 52 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 3 DONE
+**Übersicht:** 58 Tasks · 51 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 4 DONE
 **Nächster Task:** `T-1.1.1` (Slice 1 „Ein Gehirn" — Agenten-/Orchestrierungs-Schicht extrahieren). Slice 0 abgeschlossen, soweit hier baubar (`T-1.0.2` = Netlify-Dashboard, manuell; `T-1.0.4` braucht Prod-Deploy-Key).
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
@@ -14,7 +14,7 @@
 | T-1.0.2 | Netlify-Key-Hygiene | DONE | — | S4/EF-7 — `depl_key_claudecode` (write-fähiger Convex-Key, `is_secret:false`/Klartext, vom Build ungenutzt) via Netlify-MCP gelöscht. Einzige Env-Var; keine weiteren Stray-Vars. Build unberührt (`VITE_CONVEX_URL` via `netlify.toml`). ⚠️ Key-Wert war exponiert → **rotieren empfohlen**. |
 | T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
-| T-1.1.1 | Agenten-Schicht extrahieren | TODO | — | A1/A3 |
+| T-1.1.1 | Agenten-Schicht extrahieren | DONE | — | A1/A3 — `services/agents/modelClient.ts` (reine, transport-agnostische Schicht mit injizierbarem `ModelTransport` + `callJsonAgent`/`safeGenerateContent`/`Schemas`/`Type`). `services/gemini.ts` = Client-Adapter (injiziert Convex-Transport, re-exportiert). 20 Agenten → `./modelClient`; alle ohne React/DOM = convex-bündelbar. FE-Build grün. |
 | T-1.1.2 | Cron reused Schicht | TODO | T-1.1.1 | A1 |
 | T-1.1.3 | Freigabe-Queue (drafts.status) | TODO | T-1.1.2 | Wette 1 |
 | T-1.1.4 | Lauf-Deduplizierung | TODO | T-1.1.2 | A5 |
@@ -103,3 +103,8 @@
   `depl_key_claudecode` (write-fähiger Klartext-Convex-Key, Build-ungenutzt) aus der Netlify-Env gelöscht;
   es war die einzige Var. Build unberührt. Diagnose: MCP weder veraltet noch fehlbedient — transiente
   Cloudflare-Origin-502 (Reads/Writes auf Retry ok). ⚠️ exponierten Key rotieren. **Slice 0 vollständig.**
+- 2026-06-01 — **Slice 1 gestartet.** `T-1.1.1` → DONE (A1/A3): reine `services/agents/modelClient.ts` extrahiert
+  (injizierbarer `ModelTransport`, `callJsonAgent`/`safeGenerateContent`/`Schemas`/`Type`/`cleanAndParseJSON`).
+  `services/gemini.ts` → Client-Adapter (injiziert gegateten Convex-Transport via `setModelTransport`, re-exportiert
+  alles → Client-Importe unverändert). 20 Agenten von `'../gemini'` auf `'./modelClient'` umgebogen; alle rein
+  (kein React/DOM) → convex-bündelbar. FE-Build grün. Nächst: `T-1.1.2` (Cron reused die Schicht statt Inline-Nachbau).
