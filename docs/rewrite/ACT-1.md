@@ -130,3 +130,27 @@ publiziert, **ohne ein einziges Schein-Element**, mit sichtbarer Provenienz.
 - **Files:** `components/MagazineGrid.tsx`/`components/ArticleDetail.tsx`, Datenherkunft aus `signals.storyId` + Legal-Claims (`ThreeZonePipeline`-Flow).
 - **Acceptance:** Jeder publizierte Artikel zeigt nachvollziehbar Quellen + Kernbehauptungen.
 - **Depends:** T-1.2.5, T-1.1.3
+
+---
+
+## Slice 4 — Operator Cockpit (UI/UX) *(Mensch-Priorität; Lücke G7)*
+> **Abgrenzung:** *nicht* das Zeitungs-Produkt-Design (T-1.2.0 / Akt III „Visual Supremacy") und *nicht* der
+> öffentliche Cinematic Newsroom (T-3.1.x, Zuschauer-Bühne). Hier geht es um die **Bedien-Oberfläche, mit der
+> der Operator täglich arbeitet** — Navigation, Informationshierarchie, Konsistenz, Zustände. Auf Mensch-Wunsch
+> aufgenommen, weil die Cockpit-UX im Masterplan zwischen Produkt-Design und Schauspiel durchfiel (COVERAGE G7).
+
+### T-1.4.0 — Cockpit-UX-Audit + Richtungsentscheid
+- **What:** Strukturierter Audit der Operator-UI: Navigation/IA (Raum-/Tab-Wechsel, `NewsroomFloor`), Informationshierarchie & Dichte, Three-Zone-Pipeline-Bedienung, `NewsroomUI`-Konsistenz (Buttons/Panels/Labels), Leer-/Lade-/Fehlerzustände, Responsivität, A11y-Basics. Schwächen priorisiert dokumentieren; konkrete Design-Richtung vorschlagen (an Brand/Screenshots ausgerichtet).
+- **Files:** read-only über `App.tsx`, `components/newsroom-v2/*`, `components/NewsroomUI*`, `contexts/*`.
+- **Acceptance:** Priorisierte Schwächenliste + Richtungsentscheid liegen vor; T-1.4.1+ werden daraus abgeleitet.
+- **Depends:** — *(kann sofort starten)*
+
+### T-1.4.1 — Shell, Navigation & Informationshierarchie *(aus T-1.4.0 abgeleitet)*
+- **What:** Konsistente App-Shell, klare Navigation zwischen Räumen/Ops-Tabs, lesbare Hierarchie/Dichte. Genaue Tasks nach Audit.
+- **Acceptance:** TBD nach T-1.4.0.
+- **Depends:** T-1.4.0
+
+### T-1.4.2 — Komponenten-/Token-Konsistenz + ehrliche Zustände *(aus T-1.4.0 abgeleitet)*
+- **What:** Vereinheitlichte Ops-Komponenten (über `NewsroomUI`), echte Leer-/Lade-/Fehlerzustände statt ad-hoc. Genaue Tasks nach Audit.
+- **Acceptance:** TBD nach T-1.4.0.
+- **Depends:** T-1.4.0

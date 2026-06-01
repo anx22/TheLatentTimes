@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 43 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 12 DONE
-**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.7` (S3 Provider-Scope) / `T-1.2.6` (issues-Validator) + `T-1.2.3` (U5 Grid-Persist). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
+**Übersicht:** 61 Tasks · 46 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 12 DONE
+**Nächster Task:** Neuer **Slice 4 — Operator Cockpit (UI/UX)** auf Mensch-Wunsch angelegt (G7); Start `T-1.4.0` (Cockpit-UX-Audit). Offen in Slice 2 (rein technisch, kein Input nötig): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -28,6 +28,9 @@
 | T-1.2.7 | NewsroomProvider-Scope | TODO | — | S3 |
 | T-1.2.8 | Pause/Resume echt | DONE | T-1.1.2 | U2 — `enginePaused` war reiner lokaler `useState` (kosmetisch). Jetzt persistenter Flag: `setAutonomyPaused`-Mutation → eigene `newsroom_state`-Zeile `autonomy_control`; Cron `runScheduledAutonomousRun` prüft `control.paused` → skippt Sweep. UI liest/schreibt via Convex-Hooks. Live-Round-Trip verifiziert (true→false). |
 | T-1.3.1 | Provenienz-Panel (light) | TODO | T-1.2.5, T-1.1.3 | Q11 A |
+| T-1.4.0 | Cockpit-UX-Audit + Richtung | TODO | — | **NEU (Mensch-Priorität, G7)** — Operator-/App-UI-Track. Audit der Bedien-UI + Richtungsentscheid. Abgegrenzt von Produkt-Design (T-1.2.0) + Cinematic Newsroom (T-3.1.x). |
+| T-1.4.1 | Shell/Navigation/Hierarchie | TODO | T-1.4.0 | NEU (G7) — aus Audit abgeleitet. |
+| T-1.4.2 | Komponenten-Konsistenz + Zustände | TODO | T-1.4.0 | NEU (G7) — aus Audit abgeleitet. |
 
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |

@@ -77,6 +77,11 @@
   OAuth, Rate-Limits, ToS-Konformität — eine **externe Abhängigkeit**, die früh geklärt werden muss
   (welche Plattform zuerst, welche Credentials). → **T-4.0.1 (Spike/Entscheidung)**, Status `BLOCKED` (braucht Mensch).
 - **G6 — `chronological`-Methodik (U4) bleibt PARKED.** Bewusst nicht abgebildet; im Backlog als Stub. Kein Defekt.
+- **G7 — Operator-/App-UI-Qualität (Bedien-Cockpit).** Der Masterplan verschmolz „Design" zu *Produkt-Design*
+  (T-1.2.0 / Visual Supremacy) und *öffentlichem Schauspiel* (Cinematic Newsroom T-3.1.x). Die **Bedien-Oberfläche,
+  mit der der Operator arbeitet** (Navigation, Hierarchie, Konsistenz, Zustände), war dazwischen **heimatlos** —
+  obwohl grundsätzliche Unzufriedenheit besteht. **Aktion:** eigener Track in Akt I. → **Slice 4 / T-1.4.x**
+  (Mensch-Priorität), Start mit Audit **T-1.4.0**.
 
 ## Fazit der Gegenprüfung
 North Star ist **zu ~90 % in Tasks abgebildet**. Sechs Punkte waren *nicht* automatisch gedeckt: drei echte
