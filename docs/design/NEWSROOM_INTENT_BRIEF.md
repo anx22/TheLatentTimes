@@ -1,5 +1,5 @@
 # The Latent Times — Newsroom Intent Brief
-*Für Claude Design · Stand 2026-06-01*
+*Für Claude Design · Stand 2026-06-01 · Rev 2*
 
 > **Ziel dieses Dokuments:** Nicht die UI vorschreiben. Die *Absicht* hinter jedem Raum so klar machen, dass das Design von selbst die richtigen Entscheidungen trifft.
 
@@ -15,154 +15,199 @@ Der Mensch, der diesen Raum betritt, ist **Chefredakteur einer Redaktion aus Mas
 
 ---
 
+## Die Räume — Eine Anmerkung zu Namen und Status
+
+**Namen sind nicht fix.** Die aktuellen Bezeichnungen (Wire, Bullpen, Darkroom, Printing Press) sind journalistische Metaphern aus der alten Zeitungswelt — "Old World → New World" ist die Tonalität. Kreative Umbenennungen sind willkommen, solange die Funktion klar bleibt.
+
+**Drei der vier Produktionsräume sind im MVP-Zustand:** Bullpen, Darkroom und Printing Press haben heute minimale Funktionen. Sie werden später massiv ausgebaut. Das Design soll *Raum für Wachstum lassen* — die Architektur überdauert den MVP.
+
+---
+
 ## Die Produktionslogik — der Fluss
 
 ```
-WELT              →   THE WIRE          →   THE BULLPEN       →   THE DARKROOM
-Signale kommen         Editorial-Agenda       Debatte + Angle        Visuals entstehen
-rein (laufend)         wird gesetzt           wird beschlossen
+WELT              →   SIGNAL-RAUM       →   DEBATTEN-RAUM     →   VISUELLER RAUM
+Signale kommen         Agenda setzen,         Angle debattieren,     Bild- und
+rein (laufend)         Signal auswählen       Entscheidung finden    Stimmung erzeugen
 
-         →   PRINTING PRESS       →   PUBLIZIERT
-              Layout + Freigabe         erst nach Menschenklick
-              Mensch gibt frei
+         →   PRODUKTIONS-/FREIGABE-RAUM       →   PUBLIZIERT
+              Layout + Menschenklick                erst nach Freigabe
 ```
 
-**Dieser Fluss ist der Dreh- und Angelpunkt des gesamten Newsrooms.** Jede Raumgestaltung muss diesen Fluss spürbar machen — wo bin ich im Prozess, was kommt als nächstes?
+**Dieser Fluss ist der Dreh- und Angelpunkt des gesamten Newsrooms.** Wo bin ich im Prozess? Was kam vorher, was kommt als nächstes? Das muss immer spürbar sein.
 
 ---
 
-## Die drei Betriebsmodi (Methodologien)
+## Die Betriebsmodi (Methodologien)
 
-### Three-Zone (manuell)
-Der Mensch führt die Produktion Schritt für Schritt. Er wählt im Wire ein Signal, schickt es in den Bullpen, überwacht die Debatte, initiiert die Visuals, löst das Layouting aus. Die Maschine führt aus, der Mensch dirigiert jeden Übergabepunkt.
-
-### Autonomous
-Die Maschine läuft allein. Der Cron-Job feuert dreimal täglich — Signale kommen rein, werden geclustert, debattiert, entworfen, layoutet. Das Ergebnis landet in der Freigabe-Queue. Der Mensch öffnet den Newsroom und findet fertige Entwürfe die auf sein Ja warten. Er schaut zu, greift selten ein, gibt am Ende frei.
-
-### Chronological *(parked)*
-Zeitbasierter Ansatz — noch nicht aktiv. Taucht als Option auf, tut aber nichts.
-
-**Die Wahl des Modus ist die wichtigste einzelne Einstellung im gesamten System.** Sie bestimmt ob der Mensch Dirigent ist oder Aufseher.
+> **Hinweis:** Die aktuellen drei Modi sind Work-in-Progress. Es werden mehr folgen. Die *Atome* (Agenten, Schritte, Übergaben) bleiben gleich — aber wie sie kombiniert, gesteuert und sequenziert werden, unterscheidet sich massgeblich. Das Design muss den Modus als **zentrale, sichtbare Einstellung** behandeln.
 
 ---
 
-## Die fünf Räume — Intent
+### Modus 1: Three-Zone (manuell, höchste Kontrolle)
 
-### THE WIRE — *Der Empfangsraum*
+**Charakter:** Der Mensch steuert jeden Übergabepunkt. Die Maschine führt aus, der Mensch entscheidet wann und wohin es weitergeht.
 
-**Was hier passiert:** Die Welt schickt Signale. Algorithmen, Paper, Breaking News, GitHub-Commits, RSS-Feeds — 193 Signale aus 23 Quellen laufen permanent rein. Hier entscheidet sich, welche davon es in die Redaktion schaffen.
+**Ablauf in drei physischen Zonen:**
+
+**Zone 1 — Signal Mosaic:**
+Der Mensch sichtet einen Pool von bis zu 20 aktuellen Signalen in einer dichten Übersicht. Er wählt manuell 3 bis N Signale aus, die er weiterverfolgen will. Optional markiert er eines als "Seed" — das Anker-Signal für Copyright-Compliance-Prüfungen. Mit "Send to Workbench" schickt er die Auswahl weiter.
+
+**Zone 2 — Semantic Workbench:**
+Ausgewählte Signale landen auf einem Arbeitstisch. Das System generiert mehrere "Story Angles" — verschiedene Blickwinkel auf die Geschichte. Optional läuft ein Legal-Compliance-Check: Atomare Behauptungen werden aus dem Seed-Signal extrahiert, unabhängige Quellen gesucht, ein Ähnlichkeits-Audit gegen den Seed-Artikel gemacht. Der Mensch gibt eine "Editorial Directive" (Fokus-Anweisung) ein, wählt Angles aus, und triggert das Drafting.
+
+**Zone 3 — Editorial Press:**
+Aus den ausgewählten Angles entstehen fertige Artikel-Entwürfe. Das System ruft Columnist-Agent und Editor-Agent auf. Entwürfe landen als Karten — bereit für weitere Bearbeitung oder direkt in die Freigabe-Queue.
+
+**Zusammenfassung:** Minutenlange, bewusste Arbeit. Jeder Schritt eine Entscheidung. Volle Transparenz und Kontrolle.
+
+---
+
+### Modus 2: Autonomous (vollautomatisch, kein Eingriff nötig)
+
+**Charakter:** Die Maschine läuft allein. Der Cron-Job feuert dreimal täglich (8h, 13h, 19h UTC). Der Mensch findet fertige Entwürfe wenn er den Newsroom öffnet.
+
+**Ablauf in vier Phasen:**
+
+**Phase 1 — Ingest (The Scout):**
+Alle aktiven Quellen werden abgefragt. Feeds werden geholt, GitHub-Trends abgerufen. Jedes neue Item bekommt ein Vektor-Embedding und wird auf Semantik-Duplikate geprüft. Neue, einzigartige Signale werden gespeichert.
+
+**Phase 2 — Discover (The Board):**
+Vektor-Clustering gruppiert verwandte Signale zu Story-Clustern. Cluster werden nach Resonanz gerankt (Signal-Dichte + semantische Kohärenz). Neue narrative Säulen werden identifiziert.
+
+**Phase 3 — Debate (The Boardroom):**
+Der am höchsten gerankte Cluster kommt in eine Mehr-Agenten-Debatte: verschiedene Personas diskutieren Blickwinkel, Friktion ist erwünscht. Ergebnis: ein Konsens-Angle als Redaktionsentscheidung.
+
+**Phase 4 — Draft (The Columnist):**
+Der Columnist-Agent schreibt auf Basis des Consensus-Angles einen vollständigen Artikel (ca. 400 Wörter). Der Entwurf landet mit Status `review` in der Freigabe-Queue — **ohne automatische Veröffentlichung**.
+
+**Zusammenfassung:** Der Mensch kommt, schaut was produziert wurde, und entscheidet ob es rausgeht. Autonome Maschine innen, menschliches Gate aussen. Immer.
+
+---
+
+### Modus 3: Chronological *(konzeptionell, noch nicht aktiv)*
+
+**Charakter:** Kein diskreter Artikel-Output, sondern ein lebendiger, fortlaufender Thread zu einem einzigen Thema.
+
+**Konzept:** Der Mensch wählt ein Wurzel-Thema. Das System überwacht laufend eingehende Signale die dazu passen und hängt sie chronologisch als Updates an einen lebenden Artikel an — wie ein Live-Ticker, der journalistisch verdichtet wird.
+
+*Noch kein Backend, noch kein UI. Taucht als Auswahlmöglichkeit auf.*
+
+---
+
+## Die vier Produktionsräume
+
+### SIGNAL-RAUM *(aktuell: "The Wire")*
+
+**Was hier passiert:** Die Welt schickt Signale. 193 Signale aus 23 Quellen — Algorithmen, Paper, Breaking News, GitHub-Commits, RSS-Feeds — laufen permanent rein. Hier entscheidet sich, welche davon es in die Redaktion schaffen.
 
 **Was die Person hier tut:**
-- Überblick gewinnen: Was ist gerade wichtig? Was resoniert?
-- Im Three-Zone-Modus: aktiv ein Signal auswählen und in den nächsten Raum schicken
-- Im Autonomous-Modus: beobachten, was die Maschine aufgreift
+- Im Three-Zone-Modus: aktiv Signale auswählen, Workbench befüllen, zur Debatte schicken
+- Im Autonomous-Modus: zuschauen, was die Maschine aufgreift, Cluster-Resonanz verfolgen, Pipeline-Status sehen
 
-**Das Wesentliche:** Das Signal — nicht die Quelle — ist die Haupteinheit. Quellen sind Konfiguration (Setup, kein Dauerfokus). Die Person schaut auf *was kommt rein*, nicht auf *woher es kommt*.
+**Wichtig:** Das *Signal* ist die Haupteinheit — nicht die Quelle. Quellen sind Konfiguration, kein Dauerfokus. Quellen-Setup gehört in ein Setup-Panel (hinter einem Klick), nicht in die Hauptfläche.
 
-**Output:** Ein ausgewähltes Signal/Thema geht in den Bullpen.
+**Output:** Signal(e) → Debatten-Raum.
 
 ---
 
-### THE BULLPEN — *Das Debattier-Zimmer*
+### DEBATTEN-RAUM *(aktuell: "The Bullpen")* · MVP
 
-**Was hier passiert:** Mehrere KI-Personas diskutieren: Welchen Angle nehmen wir? Was ist unsere Perspektive auf dieses Signal? Welche Geschichte steckt dahinter? Das ist keine nette Zusammenfassung — das ist Friktion, Widerspruch, echte Meinungsverschiedenheit.
+**Was hier passiert:** Mehrere KI-Personas diskutieren Blickwinkel, Thesen, redaktionelle Positionen — mit echter Friktion, nicht als Summary. Das ist kein Konsensmechanismus, das ist Widerspruch als Methode.
 
 **Was die Person hier tut:**
 - Zuschauen wie Agenten debattieren
-- Die Debatte lenken (Vorschläge, Vetos)
-- Den beschlossenen Angle akzeptieren oder ablehnen
+- Richtung beeinflussen
+- Ergebnis akzeptieren oder ablehnen
 
-**Das Wesentliche:** Die Debatte ist lebendig und soll *erlebt* werden. Es geht nicht um ein Ergebnis-Dropdown — es geht darum, die Maschine beim Denken zuzuschauen.
+**Jetzt (MVP):** Einfacher Debate-Durchlauf, ein Ergebnis. **Später:** Live-Streaming der Debatte, sichtbare Charaktere, mehrere Runden, Co-Director-Stimmen des Lesers.
 
-**Output:** Ein vereinbarter Editorial-Angle und eine Thesis gehen in die Entwurfsphase.
+**Output:** Angle + Thesis → Visueller Raum oder direkt Draft.
 
 ---
 
-### THE DARKROOM — *Das Visuelle Atelier*
+### VISUELLER RAUM *(aktuell: "The Darkroom")* · MVP
 
-**Was hier passiert:** Visuelle Identität des Artikels wird entwickelt. KI generiert Bilder, schlägt Farbpaletten vor, entwirft Stimmungsbilder. Hier bekommt die Story ihr Gesicht.
+**Was hier passiert:** Das visuelle Gesicht des Artikels entsteht. KI generiert Bilder, schlägt Farbpaletten vor, setzt Stimmungsbilder.
 
 **Was die Person hier tut:**
 - Generierte Bilder reviewen
-- Visual-Richtung akzeptieren oder neu generieren lassen
-- Das Art-Direction-Profil für den Artikel bestätigen
+- Richtung akzeptieren oder neu generieren lassen
 
-**Das Wesentliche:** Dunkelheit ist Absicht — dieser Raum ist buchstäblich ein Entwicklungsraum. Etwas entsteht. Das finale Visual ist der Output, nicht der Prozess.
+**Jetzt (MVP):** Bildgenerierung, Vorschau (aktuell buggy). **Später:** Art-Direction-Profile (Glitch/Brutalist/Swiss), Moodboards, Komponierbare Bildsprache.
 
-**Output:** Ein visuelles Asset + Art-Direction gehen in den Printing Press.
-
----
-
-### THE PRINTING PRESS — *Die Produktionshalle und der Freigabe-Punkt*
-
-**Was hier passiert:** Der fertige Entwurf trifft auf das Layout. Artikel werden in Magazine-Blöcke gesetzt, die Ausgabe wird zusammengesetzt. Und dann: der Mensch entscheidet ob es rausgeht.
-
-**Was die Person hier tut:**
-- Fertige Entwürfe reviewen (Headline, Deck, Body, Bild)
-- Den Layout-Vorschlag prüfen
-- **Freigeben oder ablehnen** — dieser Klick ist die einzige Veröffentlichungs-Handlung im System
-
-**Das Wesentliche:** Die Freigabe-Queue ist das Herzstück dieses Raums. Alles andere — Layout-Ansicht, Block-Grid — ist Kontext. Die Entscheidung `Freigeben / Überarbeiten / Ablehnen` ist die wichtigste Interaktion im gesamten Newsroom.
-
-**Regel:** Nichts geht ohne den menschlichen Freigabe-Klick live. Nie.
-
-**Output:** Publizierte Ausgabe oder zurück in Revision.
+**Output:** Visual Asset + Art-Direction → Produktions-/Freigabe-Raum.
 
 ---
 
-### THE OBSERVATORY — *Mission Control*
+### PRODUKTIONS- UND FREIGABE-RAUM *(aktuell: "The Printing Press")* · MVP
 
-**Was hier passiert:** Systemische Sicht auf alles. Wie viele Missionen laufen? Welche Agenten arbeiten? Token-Verbrauch, Latenz, Pipeline-Status, Fehler. Das ist die Vogelperspektive.
+**Was hier passiert:** Fertige Entwürfe kommen rein. Werden in Magazine-Blöcke gesetzt. Der Mensch gibt frei — oder nicht.
 
 **Was die Person hier tut:**
-- Systemgesundheit überwachen
-- Sehen ob die autonome Pipeline läuft oder steckt
-- Diagnosieren wenn etwas schief geht
+- Entwürfe reviewen (Headline, Deck, Body, Bild)
+- Layout-Vorschlag prüfen
+- **Freigeben, Überarbeiten oder Ablehnen**
 
-**Das Wesentliche:** Echte Zahlen oder gar nichts. Keine Fake-Confidence, keine erfundenen Balken. Wenn die Pipeline gerade nichts tut — dann zeigt das UI genau das.
+**Die Freigabe ist der heiligste Moment des gesamten Systems.** Dieser Klick ist die einzige Veröffentlichungs-Handlung. Nichts geht ohne ihn live.
+
+**Jetzt (MVP):** Basis-Layout-Ansicht, Freigabe-Queue wird im Rewrite gerade gebaut. **Später:** Komponierbares Layout, Art-Direction-Integration, Critics' Corner.
+
+**Output:** Publizierte Ausgabe — oder zurück in Revision.
+
+---
+
+## Das Diagnostik-Panel *(aktuell: "Observatory")*
+
+**Was das ist:** Kein Produktionsraum. Ein Blick unter die Haube — für den Operator und für die Entwicklung. System-Health, Mission-Status, Token-Verbrauch, Pipeline-Fehler, Agent-Aktivität.
+
+**Zugänglichkeit:** Prominent anwählbar (kein Versteck), aber kein Haupt-Raum im Produktionsfluss. Es ist ein Schraubenzieher-Panel — immer erreichbar, aber nicht der Fokus der täglichen Arbeit.
+
+**Wichtig:** Nur echte Daten. Wenn nichts läuft: zeigt es das. Kein Dashboard-Theater.
 
 ---
 
 ## Die Agenten — ihre journalistischen Rollen
 
-Die Maschine arbeitet nicht als monolithisches System. Es gibt Rollen — wie in einer echten Redaktion:
-
 | Rolle | Was er tut |
 |-------|-----------|
 | **Scout** | Durchsucht Quellen, bewertet Relevanz, erkennt Resonanz |
-| **Curator** | Gruppiert verwandte Signale zu Stories, schlägt Cluster vor |
+| **Curator / The Board** | Gruppiert verwandte Signale zu Stories, rankt Cluster |
 | **Editor** | Trifft redaktionelle Entscheidungen: Angle, Framing, Prio |
-| **Columnist / Persona** | Schreibt aus einer definierten Stimme/Perspektive |
+| **Columnist** | Schreibt den Artikel aus einer definierten Stimme/Perspektive |
 | **Critic** | Hinterfragt Entwürfe, deckt Schwächen auf, fordert Revision |
 | **Art Director** | Visuelle Entscheidungen: Bildstimmung, Farbe, Layout-Typ |
 | **Publisher** | Finale Qualitätsprüfung, Assembly, Übergabe an die Queue |
 
-**Diese Rollen sind sichtbar.** Im Talkback/Log ist immer erkennbar, welcher Agent gerade was tut. Die Maschine hat Charakter — das ist keine Black Box.
+Diese Rollen sind sichtbar. Im Activity-Log ist immer erkennbar, welcher Agent gerade was tut. Die Maschine hat Charakter — keine Black Box.
 
 ---
 
 ## Was der Newsroom kommunizieren muss (Design-Werte)
 
 **1. Ehrlichkeit vor Ästhetik.**
-Kein Element zeigt einen Wert der nicht aus echten Daten kommt. Leere States sind klar benannt. Eine offline Quelle zeigt "OFFLINE" — nicht einen vollen Balken.
+Kein Element zeigt einen Wert der nicht aus echten Daten kommt. Leere States sind klar benannt.
 
 **2. Der Fluss ist immer spürbar.**
 Man muss immer wissen: wo bin ich im Produktionsprozess? Was kam vorher, was kommt als nächstes?
 
 **3. Die Maschine hat Persönlichkeit.**
-Agenten haben Namen. Ihre Aktivität ist sichtbar. Das Gefühl: echte Charaktere arbeiten hier, kein anonymes System.
+Agenten haben Namen. Ihre Aktivität ist sichtbar. Echte Charaktere, kein anonymes System.
 
-**4. Der Mensch ist Herr über das Ausgang.**
+**4. Der Mensch ist Herr über den Ausgang.**
 Die Freigabe ist der heilige Moment. Sie muss sich so anfühlen.
 
 **5. Dichte ist kein Fehler.**
-Dieser Raum ist für Profis. Information darf kompakt sein. Nicht jedes Element braucht Erklärung.
+Dieser Raum ist für Profis. Information darf kompakt sein.
+
+**6. Raum für Wachstum.**
+Drei Räume sind heute MVP. Die visuelle Architektur muss wachsen können, ohne fundamental zu brechen.
 
 ---
 
 ## Was der Raum NICHT ist
 
 - Kein Dashboard für passive Beobachtung (man arbeitet hier)
-- Kein Source-Management-Tool (Quellen konfiguriert man einmalig — nicht im laufenden Betrieb)
+- Kein Source-Management-Tool (Quellen konfiguriert man hinter einem Klick)
 - Kein schöner Wrapper um eine API (die Maschine ist die Hauptfigur)
 - Kein System das man erklärt (man erlebt es)
