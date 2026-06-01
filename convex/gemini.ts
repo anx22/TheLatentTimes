@@ -2,7 +2,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { GoogleGenAI } from "@google/genai";
 import { MODELS } from "./models";
 
@@ -52,17 +52,31 @@ const recordUsage = async (
 };
 
 /**
+ * Auth/rate-limit gate for the public Gemini actions (T-1.0.1, S1/P0).
+ *
+ * These actions are publicly callable via the deployment URL, so without a gate
+ * anyone could run up unbounded model costs. Every handler calls this first: it
+ * validates the caller's newsroom session token and consumes one unit of its
+ * per-session rate budget, throwing (and thus rejecting the action) otherwise.
+ */
+const requireSession = async (ctx: any, accessToken: string): Promise<void> => {
+  await ctx.runMutation(internal.auth.consumeRateBudget, { token: accessToken });
+};
+
+/**
  * Try a sequence of models, falling back on rate limits.
  * Returns the raw GenerateContentResponse-like JSON (text + groundingMetadata).
  */
 export const generateText = action({
   args: {
+    accessToken: v.string(),
     model: v.string(),
     contents: v.any(),
     config: v.optional(v.any()),
     missionId: v.optional(v.id("missions")),
   },
   handler: async (ctx, args): Promise<any> => {
+    await requireSession(ctx, args.accessToken);
     const ladder = [
       args.model,
       MODELS.text,
@@ -111,11 +125,13 @@ export const generateText = action({
 
 export const generateImage = action({
   args: {
+    accessToken: v.string(),
     prompt: v.string(),
     aspectRatio: v.string(),
     missionId: v.optional(v.id("missions")),
   },
   handler: async (ctx, args): Promise<string> => {
+    await requireSession(ctx, args.accessToken);
     const client = getClient();
     const response = await client.models.generateContent({
       model: MODELS.image,
@@ -134,11 +150,13 @@ export const generateImage = action({
 
 export const editImage = action({
   args: {
+    accessToken: v.string(),
     base64Image: v.string(),
     prompt: v.string(),
     missionId: v.optional(v.id("missions")),
   },
   handler: async (ctx, args): Promise<string> => {
+    await requireSession(ctx, args.accessToken);
     const client = getClient();
     const base64Data = args.base64Image.replace(
       /^data:image\/\w+;base64,/,
@@ -165,10 +183,12 @@ export const editImage = action({
 
 export const generateEmbedding = action({
   args: {
+    accessToken: v.string(),
     text: v.string(),
     missionId: v.optional(v.id("missions")),
   },
-  handler: async (_ctx, args): Promise<number[]> => {
+  handler: async (ctx, args): Promise<number[]> => {
+    await requireSession(ctx, args.accessToken);
     const client = getClient();
     try {
       const response = await client.models.embedContent({
@@ -193,6 +213,7 @@ export const generateEmbedding = action({
 
 export const searchTrend = action({
   args: {
+    accessToken: v.string(),
     query: v.string(),
     missionId: v.optional(v.id("missions")),
   },
@@ -204,6 +225,7 @@ export const searchTrend = action({
     groundingUrls: { title: string; url: string }[];
     isFallback: boolean;
   }> => {
+    await requireSession(ctx, args.accessToken);
     const client = getClient();
     try {
       const response = await client.models.generateContent({

@@ -164,4 +164,17 @@ export default defineSchema({
     selected: v.boolean(), // If the user clicked to advance this angle
     created_at: v.number(),
   }).index("by_workbench", ["workbenchId"]),
+
+  // 9. SESSIONS (Auth gate for the cost-incurring Gemini actions — T-1.0.1)
+  // A server-issued opaque token, minted only after a successful password check
+  // (convex/auth.ts). Every public Gemini action consumes against it, which both
+  // rejects anonymous callers and enforces a simple per-session rate cap so the
+  // deployment URL cannot be turned into an unbounded billing tap.
+  sessions: defineTable({
+    token: v.string(), // Opaque random session token (crypto.randomUUID).
+    createdAt: v.number(),
+    expiresAt: v.number(), // Hard TTL — expired tokens are rejected and pruned.
+    windowStart: v.number(), // Start of the current rate-limit window.
+    windowCount: v.number(), // Gemini calls consumed in the current window.
+  }).index("by_token", ["token"]),
 });

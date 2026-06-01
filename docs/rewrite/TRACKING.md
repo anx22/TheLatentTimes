@@ -3,14 +3,14 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 55 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 DONE
-**Nächster Task:** `T-1.0.1` (S1 Action-Auth, P0) — keine Abhängigkeiten.
+**Übersicht:** 58 Tasks · 54 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 1 REVIEW · 0 DONE
+**Nächster Task:** `T-1.0.3` (Embedding-Dim-Guard, code-only) — keine Abhängigkeiten. (`T-1.0.2` = Netlify-Dashboard, kein Repo-Change; `T-1.0.4` braucht Prod-Deploy-Key.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
-| T-1.0.1 | Gemini-Actions absichern | TODO | — | **S1/P0** |
+| T-1.0.1 | Gemini-Actions absichern | REVIEW | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap; FE-Build grün, convex tsc 0 Fehler. Live-Deploy-Verifikation offen (kein CONVEX_DEPLOY_KEY). |
 | T-1.0.2 | Netlify-Key-Hygiene | TODO | — | S4 |
 | T-1.0.3 | Embedding-Dim-Guard | TODO | — | C2 |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
@@ -86,3 +86,8 @@
 - 2026-06-01 — Board initial angelegt aus REWRITE_MASTERPLAN + COVERAGE. Alle Tasks `TODO`/`BLOCKED`.
 - 2026-06-01 — +2 Tasks aus Alt-Datei-Extraktion: `T-1.0.4` Prod-Deployment (EF-10), `T-2.5.2` @ts-nocheck (EF-9).
   EF-8 (Alt-Branches) → `NOW.md` Tech-Debt (manuell). CODEBASE_ANALYSIS/EMERGENCY_FIXES gelöscht.
+- 2026-06-01 — `T-1.0.1` → REVIEW: Session-Token-Gate für die 5 Gemini-Actions (S1/P0). Passwort-Check mintet
+  jetzt ein Server-Token (`sessions`-Tabelle); jede Action ruft `consumeRateBudget` (Auth + 120/min-Cap).
+  Client (`services/gemini.ts` + `AuthContext`) hängt Token an. FE-Build grün, `tsc -p convex` 0 Fehler.
+  Cron-Pipeline ungestört (nutzt eigenen `GoogleGenAI`, nicht diese Actions). Struktur-Entscheidung → `docs/DECISIONS.md`.
+  Offen: Live-Deploy-Verifikation (CONVEX_DEPLOY_KEY war entgegen Übergabe NICHT in der Env).

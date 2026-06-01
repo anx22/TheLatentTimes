@@ -40,6 +40,15 @@ const transport = (): ConvexReactClient => {
   return convex;
 };
 
+// --- AUTH TOKEN INJECTION (set by AuthContext on login/boot) ---
+// The server-side Gemini actions are gated by a newsroom session token (T-1.0.1).
+// AuthContext keeps this in sync with the logged-in session; an empty token means
+// "not authenticated" and the server will reject the call.
+let authToken = "";
+export const setGeminiAuthToken = (token: string | null) => {
+  authToken = token || "";
+};
+
 // --- HELPER: ROBUST JSON PARSER ---
 export const cleanAndParseJSON = (text: string | undefined): any => {
   if (!text) return {};
@@ -72,6 +81,7 @@ export const safeGenerateContent = async (params: {
   missionId?: string;
 }): Promise<{ text?: string; candidates?: any[]; usageMetadata?: any }> => {
   return await transport().action(api.gemini.generateText, {
+    accessToken: authToken,
     model: params.model,
     contents: params.contents,
     config: params.config,
@@ -197,6 +207,7 @@ export const generateImage = async (
   missionId?: string
 ): Promise<string> => {
   return await transport().action(api.gemini.generateImage, {
+    accessToken: authToken,
     prompt,
     aspectRatio,
     missionId: missionId as any,
@@ -210,6 +221,7 @@ export const editImage = async (
   missionId?: string
 ): Promise<string> => {
   return await transport().action(api.gemini.editImage, {
+    accessToken: authToken,
     base64Image,
     prompt,
     missionId: missionId as any,
@@ -222,6 +234,7 @@ export const searchTrend = async (
   missionId?: string
 ): Promise<SearchResult & { isFallback?: boolean }> => {
   return await transport().action(api.gemini.searchTrend, {
+    accessToken: authToken,
     query,
     missionId: missionId as any,
   });
@@ -234,7 +247,7 @@ export const generateEmbedding = async (
 ): Promise<number[]> => {
   const values: number[] = await transport().action(
     api.gemini.generateEmbedding,
-    { text, missionId: missionId as any }
+    { accessToken: authToken, text, missionId: missionId as any }
   );
   assertEmbeddingDim(values);
   return values;

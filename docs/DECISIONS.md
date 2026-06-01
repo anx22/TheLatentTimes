@@ -21,6 +21,11 @@
 **Choice** → Internal newsroom runs fully autonomous; everything outbound (social posts, replies, published-to-world) requires human approval. Full outbound autonomy is a future milestone. Recorded [HARD] in `docs/ARCHITECTURE.md`.
 **Reason** → The world hates AI spam; outbound trust must be earned.
 
+### [2026-06-01] Gemini-action gate — session token + per-session rate cap (T-1.0.1, audit S1/P0)
+**Problem** → The five cost-incurring Gemini actions (`generateText/generateImage/editImage/generateEmbedding/searchTrend`) were public Convex actions callable by anyone with the deployment URL → unbounded model-billing exposure. The existing soft wall only stored a client-side boolean; it issued no token an action could verify, and Convex's `ctx.auth` is unused (no real auth provider).
+**Choice** → A successful `NEWSROOM_PASSWORD` check now **mints a server-issued session token** (new `sessions` table, logic hosted in the existing `convex/auth.ts`). Every Gemini action takes an `accessToken` arg and calls `internal.auth.consumeRateBudget` first, which validates the token (existence + 12h TTL) and enforces a fixed-window **per-session rate cap** (120 calls/min). The client (`services/gemini.ts` ← `AuthContext`) attaches the token to every call; `canEdit` is now derived from token presence (storage bumped `v1→v2`, so pre-token sessions must re-auth). Hosting in `auth.ts` (not a new module) lets the generated `api`/`dataModel` types resolve via `typeof` without a codegen run.
+**Reason** → Closes the P0 billing hole with the smallest real (non-theatrical) mechanism, reusing the existing password wall instead of inventing new infra. The autonomous cron is untouched — it uses its own inline `GoogleGenAI`, not these actions — so the gate adds no friction to the internal loop. Stays a deliberate soft wall (not hard per-user auth, tracked separately).
+
 ### [2026-06-01] One brain first — canonical pipeline (decision Q13)
 **Problem** → Two parallel pipelines (client agents ↔ server cron) duplicate "truth".
 **Choice** → Build the canonical, transport-agnostic agent/orchestration layer + approval queue as the first visible slice of Akt I; the cron reuses it. (Reuse: client agents already route through `api.gemini.generateText`; `drafts.status='review'` already is an approval queue.)

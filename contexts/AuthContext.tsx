@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAction } from 'convex/react';
 import { api } from '../frontendApi';
+import { setGeminiAuthToken } from '../services/gemini';
 
 /**
  * NEWSROOM AUTH (password-only soft wall).
@@ -12,8 +13,14 @@ import { api } from '../frontendApi';
  *
  * Robustness: `useAuth()` fails CLOSED (read-only) if used outside the provider,
  * so newsroom rebuilds can never accidentally grant edit rights.
+ *
+ * T-1.0.1: login now returns a server-issued session TOKEN (not just a boolean).
+ * The token is stored and injected into the Gemini transport so the cost-incurring
+ * model actions can verify the caller. `canEdit` is derived from token presence.
+ * Storage key is bumped to v2 — pre-token sessions are treated as logged-out and
+ * must re-authenticate to obtain a token.
  */
-const STORAGE_KEY = 'lt_news_auth_v1';
+const STORAGE_KEY = 'lt_news_auth_v2';
 
 interface AuthContextType {
   canEdit: boolean;
@@ -44,20 +51,26 @@ export const useAuth = (): AuthContextType => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const verify = useAction(api.auth.verifyNewsroomPassword);
 
-  const [canEdit, setCanEdit] = useState<boolean>(() => {
-    try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch { return false; }
+  const [token, setToken] = useState<string | null>(() => {
+    try { return localStorage.getItem(STORAGE_KEY) || null; } catch { return null; }
   });
   const [isVerifying, setIsVerifying] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Keep the Gemini transport's token in sync with the session (incl. on boot,
+  // so a restored token authenticates model calls without re-login).
+  useEffect(() => { setGeminiAuthToken(token); }, [token]);
+
+  const canEdit = !!token;
 
   const login = useCallback(async (password: string): Promise<boolean> => {
     setIsVerifying(true);
     setAuthError(null);
     try {
       const res: any = await verify({ password });
-      if (res?.ok) {
-        setCanEdit(true);
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch { /* ignore */ }
+      if (res?.ok && res?.token) {
+        setToken(res.token);
+        try { localStorage.setItem(STORAGE_KEY, res.token); } catch { /* ignore */ }
         return true;
       }
       setAuthError(
@@ -75,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [verify]);
 
   const logout = useCallback(() => {
-    setCanEdit(false);
+    setToken(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, []);
 
