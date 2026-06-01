@@ -6,8 +6,8 @@
 
 ## Current Focus — THE REWRITE
 We are executing the consolidated rewrite. **Authority for tasks/status is the tracking board, not this file.**
-- **Plan (what/why):** `REWRITE_MASTERPLAN.md` (4 pillars · 4 acts · 13 decisions).
-- **Tasks/Tracking:** `.claude/docs/ai/the-latent-times/implementation/TRACKING.md` (58 tasks).
+- **Plan (what/why):** `docs/rewrite/REWRITE_MASTERPLAN.md` (4 pillars · 4 acts · 13 decisions).
+- **Tasks/Tracking:** `docs/rewrite/TRACKING.md` (58 tasks).
 - **Now:** Akt I — „Eine makellose Ausgabe" auf kanonischem Kern. Next task **`T-1.0.1`** (S1 action auth, P0).
 - **Blocked (need human decision):** `T-1.2.0` design baseline · `T-3.3.0` identity/governance · `T-4.0.1` platform.
 

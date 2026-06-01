@@ -1,7 +1,7 @@
 # The Latent Times: Architecture
 
 ## Stack
-- **Frontend**: React (Vite) + Tailwind + Framer Motion. Deployed on **Netlify**.
+- **Frontend**: React 19 (Vite) + TailwindCSS v4 + **GSAP** (animation). Deployed on **Netlify**.
 - **Backend**: Convex (real-time DB, vector search, actions, crons). Deployed separately.
 - **Intelligence**: Gemini, **server-side only** (Convex actions). Model aliases centralized in
   `convex/models.ts` + `constants.ts` (`MODELS`) — never inline literals.

@@ -1,14 +1,14 @@
 # Implementation Hub — The Latent Times
 > **Echter Einstieg ist `AGENTS.md` (Repo-Root)** — das 5-Datei-Backbone
 > (AGENTS/PRODUCT/ARCHITECTURE/NOW/DECISIONS) ist die immer-aktive Schicht. **Dieser Hub ist das
-> untergeordnete Rewrite-Modul**, auf das `NOW.md` für Task-Status zeigt. Der Masterplan sagt
+> untergeordnete Rewrite-Modul**, auf das `docs/NOW.md` für Task-Status zeigt. Der Masterplan sagt
 > *was & warum*; diese Mappe sagt *wie, in welcher Reihenfolge, und wie weit wir sind*.
-> Eine Quelle pro Fakt: Vision → `PRODUCT.md`, Regeln → `ARCHITECTURE.md`, Rewrite-Tasks → `TRACKING.md`.
+> Eine Quelle pro Fakt: Vision → `docs/PRODUCT.md`, Regeln → `docs/ARCHITECTURE.md`, Rewrite-Tasks → `TRACKING.md`.
 
 ## Dokumentenkarte
 | Datei | Zweck | Wann lesen |
 |---|---|---|
-| `REWRITE_MASTERPLAN.md` (Root) | North Star, 4 Säulen, 4 Akte, 13 Entscheidungen, Leitprinzip | Einmal, zur Orientierung |
+| `REWRITE_MASTERPLAN.md` | North Star, 4 Säulen, 4 Akte, 13 Entscheidungen, Leitprinzip | Einmal, zur Orientierung |
 | `COVERAGE.md` | North-Star→Task-Matrix + **erkannte Lücken**. Der „ist alles abgebildet?"-Beweis | Vor Planungsänderungen |
 | `TRACKING.md` | **Lebendes Board** — eine Zeile pro Task, Status, Blocker | Bei jeder Session, **Pflicht-Update** |
 | `ACT-1…4.md` | Detail-Tasks pro Akt: Was, echte Dateien, Akzeptanzkriterien, Abhängigkeiten | Vor Implementierung eines Tasks |

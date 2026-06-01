@@ -39,5 +39,5 @@ to stay ahead — and a **community** that contributes thoughts, links and paper
 - AI-slop — highly curated, agent-peer-reviewed, provenance-backed. **We do not spam.**
 - A static interface — it is a living, agentic workspace.
 
-> Detailed strategy: `REWRITE_MASTERPLAN.md` (§1 four pillars) +
-> `.claude/docs/ai/the-latent-times/10x/` (vision derivation + decision quiz).
+> Detailed strategy: `docs/rewrite/REWRITE_MASTERPLAN.md` (§1 four pillars) +
+> `docs/rewrite/10x/` (vision derivation + decision quiz).

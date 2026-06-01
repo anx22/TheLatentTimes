@@ -5,7 +5,7 @@ Stand: 2026-06-01 · Status: **verbindliche Richtungswahl** (Analyse/Plan, keine
 > getrennte Stränge zusammen:
 > 1. **Audit** — schichtweiser Code-Audit (REWRITE1, 5 Schichten) → §8 Audit-Referenz
 > 2. **Hochlevel-Strategie** — drei systemische Brüche, drei Wetten → §4
-> 3. **10x-Vision** — vier Säulen (`.claude/docs/ai/the-latent-times/10x/session-1.md`) → §1
+> 3. **10x-Vision** — vier Säulen (`docs/rewrite/10x/session-1.md`) → §1
 > 4. **13 Entscheidungen** — Feature-Quiz (`…/10x/session-1-quiz.md`) → §5
 >
 > Es **ersetzt** die verstreute Plan-Notiz und ist ab jetzt der Bezugspunkt für jede Slice-Planung.
@@ -188,7 +188,7 @@ Human-Gate auf autonom-im-Rahmen umgestellt werden. Bis dahin: Gate ist Pflicht.
 
 ## 9. Ausführungs-Ebene (untergeordnete Doku)
 Dieser Masterplan ist **High-Level**. Die ausführbare Detail- & Tracking-Ebene liegt in
-`.claude/docs/ai/the-latent-times/implementation/` und ist session-übergreifend verbindlich:
+`docs/rewrite/` und ist session-übergreifend verbindlich:
 - **`README.md`** — Einstieg + Arbeitsprotokoll für jede Session/jedes Modell.
 - **`COVERAGE.md`** — North-Star→Task-Gegenprüfung + erkannte Lücken (G1–G6).
 - **`TRACKING.md`** — lebendes Board, 56 Tasks (`T-<Akt>.<Slice>.<Seq>`), Status/Abhängigkeiten.

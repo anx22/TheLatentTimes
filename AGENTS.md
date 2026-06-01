@@ -1,8 +1,9 @@
 # Agent Map — read this first
 
 AI-native editorial engine ("Vogue meets Wired meets The Matrix").
-**Vision** → `PRODUCT.md` · **Current focus** → `NOW.md` · **Why (structural)** → `DECISIONS.md`
-**Rewrite plan + tracking** → `REWRITE_MASTERPLAN.md` + `.claude/docs/ai/the-latent-times/implementation/`
+**Vision** → `docs/PRODUCT.md` · **Current focus** → `docs/NOW.md` · **Why (structural)** → `docs/DECISIONS.md`
+**Rewrite plan + tracking** → `docs/rewrite/REWRITE_MASTERPLAN.md` + `docs/rewrite/`
+**Where-is-what (token-efficient map)** → `docs/CODEBASE_MAP.md`
 
 ## The editorial chain (roles)
 Scout (discovery) → Board (debate/consensus) → Columnist (copy) → Editor (lint) →
@@ -20,8 +21,12 @@ Polisher (tone) → Photographer (assets) → Designer (layout).
 - Frontend: `App.tsx` → `components/newsroom-v2/*` (5 rooms) + `MagazineGrid`.
 
 ## Installed skills (`skills/custom_skills/`)
-`convex-database` · `grid-geometry` · `llm-orchestration` · `data-ingestion`.
+`convex-database` · `grid-geometry` · `llm-orchestration` · `data-ingestion` · `gsap` (animation).
+
+## Stack note
+Animations use **GSAP** (not Framer Motion — removed). Stack is modernized (React 19, Vite, Tailwind v4,
+TS 6) — see `docs/ARCHITECTURE.md` + `docs/DECISIONS.md`.
 
 ## Routing
-Feature → `PRODUCT.md` + `NOW.md` · Architecture → `ARCHITECTURE.md` + `NOW.md` ·
-Structural why → `DECISIONS.md` · Rewrite work → `implementation/TRACKING.md` · In doubt → start here.
+Feature → `docs/PRODUCT.md` + `docs/NOW.md` · Architecture → `docs/ARCHITECTURE.md` + `docs/NOW.md` ·
+Structural why → `docs/DECISIONS.md` · Rewrite work → `docs/rewrite/TRACKING.md` · In doubt → start here.

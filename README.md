@@ -4,9 +4,9 @@
 
 # The Latent Times
 
-AI-native magazine engine — React (Vite) + Convex + Gemini.
-See [PRODUCT.md](./PRODUCT.md), [ARCHITECTURE.md](./ARCHITECTURE.md),
-[AGENTS.md](./AGENTS.md), and [DECISIONS.md](./DECISIONS.md) for context.
+AI-native magazine engine — React 19 (Vite) + Convex + Gemini + GSAP.
+See [PRODUCT.md](./docs/PRODUCT.md), [ARCHITECTURE.md](./docs/ARCHITECTURE.md),
+[AGENTS.md](./AGENTS.md), and [DECISIONS.md](./docs/DECISIONS.md) for context.
 
 ## Run Locally
 
