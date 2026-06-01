@@ -97,6 +97,15 @@ export const checkSemanticSimilarity = action({
 export const discoverStories = action({
   args: { missionId: v.optional(v.id("missions")) },
   handler: async (ctx, args) => {
+    // Dedup guard (A5): client `discoverStories` and the cron can fire concurrently
+    // and produce duplicate story pillars. A short TTL lock lets only one run cluster
+    // at a time; everything below runs inside try/finally so the lock always releases.
+    const lock = await ctx.runMutation(api.newsroom.mutations.tryDiscoveryLock, {});
+    if (!lock.acquired) {
+      console.log("[discoverStories] Skipped — another discovery run holds the lock.");
+      return { processed: 0, newStories: 0, newStoryIds: [], skipped: true };
+    }
+    try {
     // 1. Fetch Orphans with High Innovation Potential
     const orphans = await ctx.runQuery(api.newsroom.queries.getOrphanSignals, { limit: 60 });
     
@@ -223,5 +232,8 @@ export const discoverStories = action({
 
     console.log(`[discoverStories] Clustering complete. Formed ${newStoriesCount} Pillars from ${processedCount} orphans.`);
     return { processed: processedCount, newStories: newStoriesCount, newStoryIds, debugClusters: clusters, debugIds: signalsForPrompt.map(s => s.id) };
+    } finally {
+      await ctx.runMutation(api.newsroom.mutations.releaseDiscoveryLock, {});
+    }
   },
 });

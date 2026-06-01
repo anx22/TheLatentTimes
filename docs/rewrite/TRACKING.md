@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 50 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 5 DONE
-**Nächster Task:** `T-1.1.1` (Slice 1 „Ein Gehirn" — Agenten-/Orchestrierungs-Schicht extrahieren). Slice 0 abgeschlossen, soweit hier baubar (`T-1.0.2` = Netlify-Dashboard, manuell; `T-1.0.4` braucht Prod-Deploy-Key).
+**Übersicht:** 58 Tasks · 48 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 7 DONE
+**Nächster Task:** `T-1.2.1` (Slice 2 „Honest Magazine" — echte Observability-Metriken, C1). Slice 0 + Slice 1 komplett. (`T-1.2.0` Design-Baseline ist BLOCKED — Mensch.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -16,8 +16,8 @@
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
 | T-1.1.1 | Agenten-Schicht extrahieren | DONE | — | A1/A3 — `services/agents/modelClient.ts` (reine, transport-agnostische Schicht mit injizierbarem `ModelTransport` + `callJsonAgent`/`safeGenerateContent`/`Schemas`/`Type`). `services/gemini.ts` = Client-Adapter (injiziert Convex-Transport, re-exportiert). 20 Agenten → `./modelClient`; alle ohne React/DOM = convex-bündelbar. FE-Build grün. |
 | T-1.1.2 | Cron reused Schicht | DONE | T-1.1.1 | A1/A3 — `autonomousActions` nutzt jetzt `EditorialOrchestrator` + geteilte Agenten (Debatte→Columnist→Editor) statt Inline-Prompts; injizierter Server-`ModelTransport` (GoogleGenAI + Token-Telemetrie); Embeddings via geteilte `generateEmbedding` (→ T-1.0.3-Guard greift auch im Cron). `convex dev --once` typecheckt+bündelt die ganze Schicht grün. Live-Editorial-Run bestätigt sich bei Autonomie-an (Super-Switch/Cron). |
-| T-1.1.3 | Freigabe-Queue (drafts.status) | TODO | T-1.1.2 | Wette 1 |
-| T-1.1.4 | Lauf-Deduplizierung | TODO | T-1.1.2 | A5 |
+| T-1.1.3 | Freigabe-Queue (drafts.status) | DONE | T-1.1.2 | Wette 1 — `PrintingPress` IST die Queue: zeigt nicht-publizierte Drafts, badged `review` als „Autonomous Draft", Approve (→`addItemToLatestIssue`+`updateDraftStatus 'published'`)/Reject (→`deleteDraft`) = bewusste Mensch-Klicks. Cron speist sie jetzt (T-1.1.2). ⚠️ Approve-Flow fabriziert noch Unsplash-Bild/Fake-Comments/Fake-Score → **U6/T-1.2.4**. |
+| T-1.1.4 | Lauf-Deduplizierung | DONE | T-1.1.2 | A5 — TTL-Lock (`tryDiscoveryLock`/`releaseDiscoveryLock`, key `discovery_lock`) zentral in `discoverStories` (beide Pfade); try/finally. Live getestet: acquire→true, gehalten→false, nach release→true. |
 | T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
 | T-1.2.1 | Echte Metriken | TODO | — | C1 |
 | T-1.2.2 | Darkroom-Bild propagieren | TODO | — | U1 |
@@ -115,3 +115,8 @@
   — ein Gehirn.** `convex dev --once` deployte + typecheckte die gesamte geteilte Schicht (Orchestrator + 20
   Agenten) grün auf den Server. Offen: End-to-End-Live-Lauf bei Autonomie-an (Super-Switch/Cron; State-Blob
   nicht per CLI getoggelt wg. Full-Replace-Clobber-Risiko). Nächst: `T-1.1.3` (Freigabe-Queue-UI) + `T-1.1.4` (Dedup).
+- 2026-06-01 — **Slice 1 KOMPLETT.** `T-1.1.3` → DONE: `PrintingPress` war bereits eine funktionierende
+  Freigabe-Queue (nicht-publizierte Drafts, Approve/Reject als Mensch-Klick) und wird durch T-1.1.2 jetzt mit
+  echten `review`-Drafts gespeist; Akzeptanz erfüllt. Approve-Flow-Unehrlichkeit (Unsplash/Fake-Comments/Score)
+  → U6/T-1.2.4 weitergetragen. `T-1.1.4` → DONE (A5): TTL-Discovery-Lock zentral in `discoverStories`, live
+  getestet (acquire/block/release). **Akt I: Slice 0 + Slice 1 fertig (7 DONE).** Nächst: Slice 2 „Honest Magazine".

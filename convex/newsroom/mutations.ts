@@ -472,6 +472,37 @@ export const deleteDraft = mutation({
   },
 });
 
+// ── DISCOVERY LOCK (A5) ─────────────────────────────────────────────────────────
+// Client `discoverStories` and the autonomous cron can fire concurrently and form
+// duplicate story pillars. A short TTL lock (stored under a dedicated newsroom_state
+// key, so it never clobbers "current") lets only one discovery run cluster at a time.
+export const tryDiscoveryLock = mutation({
+  args: { ttlMs: v.optional(v.number()) },
+  handler: async (ctx, args): Promise<{ acquired: boolean }> => {
+    const ttl = args.ttlMs ?? 3 * 60 * 1000;
+    const now = Date.now();
+    const row = await ctx.db
+      .query("newsroom_state")
+      .withIndex("by_key", (q) => q.eq("key", "discovery_lock"))
+      .unique();
+    if (row && ((row.data as any)?.expiresAt ?? 0) > now) return { acquired: false };
+    if (row) await ctx.db.patch(row._id, { data: { expiresAt: now + ttl }, updated_at: now });
+    else await ctx.db.insert("newsroom_state", { key: "discovery_lock", data: { expiresAt: now + ttl }, updated_at: now });
+    return { acquired: true };
+  },
+});
+
+export const releaseDiscoveryLock = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const row = await ctx.db
+      .query("newsroom_state")
+      .withIndex("by_key", (q) => q.eq("key", "discovery_lock"))
+      .unique();
+    if (row) await ctx.db.patch(row._id, { data: { expiresAt: 0 }, updated_at: Date.now() });
+  },
+});
+
 // ── WORKBENCH ─────────────────────────────────────────────────────────────────
 
 export const createWorkbenchSession = mutation({
