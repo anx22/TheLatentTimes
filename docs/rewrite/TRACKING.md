@@ -3,14 +3,14 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 54 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 1 REVIEW · 0 DONE
+**Übersicht:** 58 Tasks · 54 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 1 DONE
 **Nächster Task:** `T-1.0.3` (Embedding-Dim-Guard, code-only) — keine Abhängigkeiten. (`T-1.0.2` = Netlify-Dashboard, kein Repo-Change; `T-1.0.4` braucht Prod-Deploy-Key.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
-| T-1.0.1 | Gemini-Actions absichern | REVIEW | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap; FE-Build grün, convex tsc 0 Fehler. Live-Deploy-Verifikation offen (kein CONVEX_DEPLOY_KEY). |
+| T-1.0.1 | Gemini-Actions absichern | DONE | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap. **Live verifiziert** auf `adamant-mastiff-745`: Negativ (Fremd-Token → `Unauthorized` abgelehnt) + Positiv (Passwort→Token-Mint→`generateText`="OK"). genai 2.x live OK, `sessions`-Tabelle deployed. |
 | T-1.0.2 | Netlify-Key-Hygiene | TODO | — | S4 |
 | T-1.0.3 | Embedding-Dim-Guard | TODO | — | C2 |
 | T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
@@ -91,3 +91,8 @@
   Client (`services/gemini.ts` + `AuthContext`) hängt Token an. FE-Build grün, `tsc -p convex` 0 Fehler.
   Cron-Pipeline ungestört (nutzt eigenen `GoogleGenAI`, nicht diese Actions). Struktur-Entscheidung → `docs/DECISIONS.md`.
   Offen: Live-Deploy-Verifikation (CONVEX_DEPLOY_KEY war entgegen Übergabe NICHT in der Env).
+- 2026-06-01 — `T-1.0.1` → **DONE**: CONVEX_DEPLOY_KEY gesetzt; `convex dev --once` deployte 1df574c auf
+  `adamant-mastiff-745` (`sessions.by_token`-Index angelegt, Functions/Typecheck durch → genai 2.x live bestätigt).
+  Gate live getestet: Negativ (Fremd-Token abgelehnt) + Positiv (Passwort→Token→`generateText`="OK"). ⚠️ Hinweis:
+  Live-Seite (Build aus `main`) sendet noch keinen Token → ihre Newsroom-Gemini-Calls brechen bis main den Token-
+  Client hat (vom Nutzer akzeptiert; Dev-Deployment = de-facto-Prod, EF-10/T-1.0.4 offen).
