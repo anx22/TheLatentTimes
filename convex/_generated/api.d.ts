@@ -18,6 +18,7 @@ import type * as newsroom_actions from "../newsroom/actions.js";
 import type * as newsroom_actions_autonomousActions from "../newsroom/actions/autonomousActions.js";
 import type * as newsroom_actions_clusteringActions from "../newsroom/actions/clusteringActions.js";
 import type * as newsroom_actions_fetchActions from "../newsroom/actions/fetchActions.js";
+import type * as newsroom_issueContent from "../newsroom/issueContent.js";
 import type * as newsroom_mutations from "../newsroom/mutations.js";
 import type * as newsroom_queries from "../newsroom/queries.js";
 import type * as newsroom_seedData from "../newsroom/seedData.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "newsroom/actions/autonomousActions": typeof newsroom_actions_autonomousActions;
   "newsroom/actions/clusteringActions": typeof newsroom_actions_clusteringActions;
   "newsroom/actions/fetchActions": typeof newsroom_actions_fetchActions;
+  "newsroom/issueContent": typeof newsroom_issueContent;
   "newsroom/mutations": typeof newsroom_mutations;
   "newsroom/queries": typeof newsroom_queries;
   "newsroom/seedData": typeof newsroom_seedData;
