@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 61 Tasks · 46 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 12 DONE
-**Nächster Task:** Neuer **Slice 4 — Operator Cockpit (UI/UX)** auf Mensch-Wunsch angelegt (G7); Start `T-1.4.0` (Cockpit-UX-Audit). Offen in Slice 2 (rein technisch, kein Input nötig): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
+**Übersicht:** 62 Tasks · 46 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 13 DONE
+**Nächster Task:** Slice 4 läuft — `T-1.4.0` DONE (Richtung: editoriale Grammatik, Flows erhalten). Baue `T-1.4.1` (Token-Fundament + Primitives) → `T-1.4.2` (Shell, sichtbarer Preview-Checkpoint). Offen in Slice 2 (rein technisch): `T-1.2.6`/`T-1.2.3`/`T-1.2.7`. (`T-1.2.0` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -28,9 +28,10 @@
 | T-1.2.7 | NewsroomProvider-Scope | TODO | — | S3 |
 | T-1.2.8 | Pause/Resume echt | DONE | T-1.1.2 | U2 — `enginePaused` war reiner lokaler `useState` (kosmetisch). Jetzt persistenter Flag: `setAutonomyPaused`-Mutation → eigene `newsroom_state`-Zeile `autonomy_control`; Cron `runScheduledAutonomousRun` prüft `control.paused` → skippt Sweep. UI liest/schreibt via Convex-Hooks. Live-Round-Trip verifiziert (true→false). |
 | T-1.3.1 | Provenienz-Panel (light) | TODO | T-1.2.5, T-1.1.3 | Q11 A |
-| T-1.4.0 | Cockpit-UX-Audit + Richtung | TODO | — | **NEU (Mensch-Priorität, G7)** — Operator-/App-UI-Track. Audit der Bedien-UI + Richtungsentscheid. Abgegrenzt von Produkt-Design (T-1.2.0) + Cinematic Newsroom (T-3.1.x). |
-| T-1.4.1 | Shell/Navigation/Hierarchie | TODO | T-1.4.0 | NEU (G7) — aus Audit abgeleitet. |
-| T-1.4.2 | Komponenten-Konsistenz + Zustände | TODO | T-1.4.0 | NEU (G7) — aus Audit abgeleitet. |
+| T-1.4.0 | Cockpit-UX-Audit + Richtung | DONE | — | G7 — Audit in `docs/rewrite/UI-AUDIT.md`. **Entscheid (Mensch):** Redesign unterwirft sich **kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Crimson/Emerald), bleibt aber **funktional auf vorhandenen Logiken & High-Level-Flows** (Step-Machine, Räume, Pipelines, Wiring unverändert). Fundament existiert teils schon (`tailwind.config.js`, Fonts in `index.html`). |
+| T-1.4.1 | Editorial-Token-Fundament + Primitives | TODO | T-1.4.0 | Tokens (Crimson/Emerald-Akzente ergänzen) + `NewsroomUI`-Primitives (Button/Label/Panel/Card + neuer EmptyState) auf die editoriale Grammatik umskinnen. Keystone. |
+| T-1.4.2 | Shell + Navigation umskinnen | TODO | T-1.4.1 | `App`-Shell + `NewsroomFloor` (Masthead, Tab-Nav, Orientierung/Breadcrumb, Error-Banner, Standby-Sackgasse fixen). Erste sichtbare Fläche → `dev`-Preview-Checkpoint. |
+| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | TODO | T-1.4.2 | Raum für Raum (Wire/ThreeZone, Bullpen, Darkroom, Press, AutonomousPipeline, Observability, SignalSourcingBar): Dichte/Responsivität/A11y/States fixen, Logik/Flows erhalten. |
 
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |
