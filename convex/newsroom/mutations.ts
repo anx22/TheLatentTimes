@@ -1,6 +1,7 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { INITIAL_SOURCES, getGenesisIssueContent } from "./seedData";
+import { validateIssueContent } from "./issueContent";
 
 // ── MISSIONS ─────────────────────────────────────────────────────────────────
 
@@ -317,6 +318,7 @@ export const publishIssue = mutation({
     content: v.any(),
   },
   handler: async (ctx, args) => {
+    validateIssueContent(args.content);
     await ctx.db.insert("issues", { ...args, published_at: Date.now() });
   },
 });
@@ -370,8 +372,10 @@ export const addItemToLatestIssue = mutation({
         ];
       }
 
+      const nextContent = { ...content, items: newItems, layout: newLayout };
+      validateIssueContent(nextContent);
       await ctx.db.patch(latestIssue._id, {
-        content: { ...content, items: newItems, layout: newLayout },
+        content: nextContent,
       });
     } else {
       const initialLayout = [{
@@ -381,12 +385,14 @@ export const addItemToLatestIssue = mutation({
         data: args.item,
       }];
 
+      const genesisContent = getGenesisIssueContent(args.item, initialLayout);
+      validateIssueContent(genesisContent);
       await ctx.db.insert("issues", {
         vol: "VOL. 1.0",
         theme: "THE GENESIS ISSUE",
         date: new Date().toISOString(),
         editor: "SYSTEM",
-        content: getGenesisIssueContent(args.item, initialLayout),
+        content: genesisContent,
         published_at: Date.now(),
       });
     }

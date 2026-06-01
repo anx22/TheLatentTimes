@@ -255,6 +255,7 @@ export interface IssueContent {
   // Content Pools
   items?: MagazineItem[];
   layout?: LayoutItem[];
+  ticker?: unknown[]; // written by getGenesisIssueContent; tolerated at the boundary
   drops: DropArtifact[];
   edit: Array<{ category: string; title: string; desc: string }>;
   debates: DebateArtifact[];
