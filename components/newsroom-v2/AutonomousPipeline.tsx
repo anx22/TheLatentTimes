@@ -221,19 +221,15 @@ export const AutonomousPipeline: React.FC = () => {
                        <span className="text-[7px] text-zinc-600 uppercase font-mono">Resonance</span>
                        <div className="flex gap-0.5 mt-0.5">
                          {Array.from({ length: 5 }).map((_, idx) => (
-                           <div 
-                             key={idx} 
+                           <div
+                             key={idx}
                              className={cn(
-                               "w-1.5 h-1.5", 
+                               "w-1.5 h-1.5",
                                idx < ((c.articleCount || 1) > 5 ? 5 : (c.articleCount || 1)) ? "bg-[#ccff00]" : "bg-zinc-800"
-                             )} 
+                             )}
                            />
                          ))}
                        </div>
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-[7px] text-zinc-600 uppercase font-mono">Confidence</span>
-                       <span className="text-[9px] text-zinc-400 font-mono">{(0.85 + (Math.random() * 0.1)).toFixed(2)}</span>
                      </div>
                    </div>
                  </div>

@@ -127,7 +127,6 @@ export const usePublicationFlow = (
         hero_image_url: prep.hero_image_url!,
         status: 'published',
         featured_level: 'none',
-        score: { final: 8, recency: 10, trust: 8, novelty: 8, visual_fit: 9 },
         body: prep.body!,
         blocks: prep.blocks!,
         public_comments: publicComments

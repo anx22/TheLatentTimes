@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 47 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 8 DONE
-**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.2` (U1 Darkroom-Bild) / `T-1.2.4` (U6 Schein-Daten). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
+**Übersicht:** 58 Tasks · 46 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 9 DONE
+**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.2` (U1 Darkroom-Bild). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -22,7 +22,7 @@
 | T-1.2.1 | Echte Metriken | DONE | — | C1 — `getDeepInsight` zählt jetzt echt: Stories via `collect` (klein), Signals via `take(501)`/"500+" (Embeddings → unbegrenztes Lesen teuer). Live: signals 280, narrativePillars 12, activeSources 29. |
 | T-1.2.2 | Darkroom-Bild propagieren | TODO | — | U1 |
 | T-1.2.3 | Grid-Layout persistieren | TODO | T-1.2.6 | U5 |
-| T-1.2.4 | Schein-Metriken entfernen | TODO | — | U6 |
+| T-1.2.4 | Schein-Metriken entfernen | DONE | — | U6 — Approve-Flow (PrintingPress): Unsplash-Stockfoto, erfundener `score{}` & zwei Fake-Comments ("The Board"/"The Editor") raus; nutzt jetzt echtes Darkroom-Bild oder keins (`media_type`→'text'). Pipeline: Random-"Confidence" (`0.85+rand`) raus. `usePublicationFlow`: hartkodierter `score` raus. Ticker war bereits als dekorativ kommentiert. **Offen (Design):** `picsum`-Platzhalter greifen jetzt bei bildlosen Artikeln → typografische "kein Bild"-Behandlung im Design-Pass. |
 | T-1.2.5 | Legal-Gate koppeln | TODO | — | U3 |
 | T-1.2.6 | issues.content-Validator | TODO | — | Validated Boundaries |
 | T-1.2.7 | NewsroomProvider-Scope | TODO | — | S3 |

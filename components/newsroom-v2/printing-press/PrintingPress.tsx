@@ -21,15 +21,10 @@ export const PrintingPress: React.FC<{ onClose?: () => void }> = ({ onClose }) =
   const handleApprove = async (draft: any) => {
     setIsApproving(draft._id);
     try {
-      // High-fidelity curated visual assets for a sleek "Wired meets Vogue" aesthetic
-      const fallbackImages = [
-        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80", // Slate abstract
-        "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80", // Tech cyber neon
-        "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80", // Tech circuitry
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80"  // Fiber optic network
-      ];
-      const imgIdx = Math.abs(draft._id.charCodeAt(0) + draft._id.charCodeAt(1)) % fallbackImages.length;
-      const imgUrl = fallbackImages[imgIdx];
+      // Use the draft's real generated image if one exists (from the Darkroom
+      // flow); otherwise publish without a hero image rather than fabricating a
+      // stock photo. No invented editorial scores or fake reader comments either.
+      const heroImage = draft.hero_image_url || undefined;
 
       const blocksToInclude = draft.blocks && draft.blocks.length > 0 ? draft.blocks : [
         {
@@ -46,17 +41,12 @@ export const PrintingPress: React.FC<{ onClose?: () => void }> = ({ onClose }) =
         dek: draft.deck,
         published_at: new Date().toISOString(),
         tags: draft.tags || ["Autonomous"],
-        media_type: 'image',
-        hero_image_url: imgUrl,
+        media_type: heroImage ? 'image' : 'text',
+        hero_image_url: heroImage,
         status: 'published',
         featured_level: 'none',
-        score: { final: 9, recency: 10, trust: 9, novelty: 8, visual_fit: 9 },
         body: draft.body,
         blocks: blocksToInclude,
-        public_comments: [
-          { commenter: "The Board", comment: "Editorial consensus achieved. Quality benchmark met.", level: "success" },
-          { commenter: "The Editor", comment: "Draft successfully committed under independent sign-off.", level: "info" }
-        ]
       };
 
       // Push into database issues table
