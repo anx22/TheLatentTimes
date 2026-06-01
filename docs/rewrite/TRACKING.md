@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 48 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 7 DONE
-**Nächster Task:** `T-1.2.1` (Slice 2 „Honest Magazine" — echte Observability-Metriken, C1). Slice 0 + Slice 1 komplett. (`T-1.2.0` Design-Baseline ist BLOCKED — Mensch.)
+**Übersicht:** 58 Tasks · 47 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 8 DONE
+**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.2` (U1 Darkroom-Bild) / `T-1.2.4` (U6 Schein-Daten). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -19,7 +19,7 @@
 | T-1.1.3 | Freigabe-Queue (drafts.status) | DONE | T-1.1.2 | Wette 1 — `PrintingPress` IST die Queue: zeigt nicht-publizierte Drafts, badged `review` als „Autonomous Draft", Approve (→`addItemToLatestIssue`+`updateDraftStatus 'published'`)/Reject (→`deleteDraft`) = bewusste Mensch-Klicks. Cron speist sie jetzt (T-1.1.2). ⚠️ Approve-Flow fabriziert noch Unsplash-Bild/Fake-Comments/Fake-Score → **U6/T-1.2.4**. |
 | T-1.1.4 | Lauf-Deduplizierung | DONE | T-1.1.2 | A5 — TTL-Lock (`tryDiscoveryLock`/`releaseDiscoveryLock`, key `discovery_lock`) zentral in `discoverStories` (beide Pfade); try/finally. Live getestet: acquire→true, gehalten→false, nach release→true. |
 | T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
-| T-1.2.1 | Echte Metriken | TODO | — | C1 |
+| T-1.2.1 | Echte Metriken | DONE | — | C1 — `getDeepInsight` zählt jetzt echt: Stories via `collect` (klein), Signals via `take(501)`/"500+" (Embeddings → unbegrenztes Lesen teuer). Live: signals 280, narrativePillars 12, activeSources 29. |
 | T-1.2.2 | Darkroom-Bild propagieren | TODO | — | U1 |
 | T-1.2.3 | Grid-Layout persistieren | TODO | T-1.2.6 | U5 |
 | T-1.2.4 | Schein-Metriken entfernen | TODO | — | U6 |

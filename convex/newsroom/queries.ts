@@ -214,19 +214,22 @@ export const getDeepInsight = query({
   handler: async (ctx) => {
     const activeMissions = await ctx.db.query("missions").filter(q => q.eq(q.field("status"), "running")).collect();
     
-    // Instead of collecting the entire table and risking 'too many bytes read', 
-    // we take a sample/cap just to get a general idea or use a limited view.
-    const tickerCount = 0;
-    const storiesCount = 0;
-    
+    // Real counts (C1, was hardcoded 0). Stories are few + small → collect.
+    // Signals carry 3072-dim embeddings, so an unbounded read is expensive; cap the
+    // read at 501 and surface "500+" beyond that. (A sharded counter is the future
+    // optimization if the signal table grows large.)
+    const storiesCount = (await ctx.db.query("stories").collect()).length;
+    const signalsSample = await ctx.db.query("signals").take(501);
+    const signalsCount = signalsSample.length;
+
     const sources = await ctx.db.query("sources").take(50);
     const lastLogs = await ctx.db.query("agent_logs").order("desc").take(50);
     const recentDrafts = await ctx.db.query("drafts").order("desc").take(5);
 
     return {
       metrics: {
-        signals: tickerCount >= 500 ? "500+" : tickerCount,
-        narrativePillars: storiesCount >= 500 ? "500+" : storiesCount,
+        signals: signalsCount > 500 ? "500+" : signalsCount,
+        narrativePillars: storiesCount,
         activeSources: sources.filter(s => s.isActive).length,
         pendingMissions: activeMissions.length,
       },
