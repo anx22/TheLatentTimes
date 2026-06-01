@@ -10,7 +10,7 @@ export const usePublicationFlow = (
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
   const { mutations, setDraftId, draft, image, persistedState, latestIssue } = data;
-  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId } = ui;
+  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId, isLegalGuardrailsEnabled, seedArticle, similarityReport } = ui;
 
   const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
     if (!draft || !draft.blocks) return;
@@ -105,7 +105,24 @@ export const usePublicationFlow = (
       setError("Cannot publish: Draft or Image missing.");
       return;
     }
-    
+
+    // Legal gate (U3): when guardrails are on AND this draft was built from a
+    // seed source, the UrhG copy-distance audit must have actually passed before
+    // we publish. Previously the audit only logged PASSED/FAILED and never
+    // blocked anything. Drafts with no seed have no source to copy, so the gate
+    // does not apply; the guardrails toggle is the human's explicit opt-out.
+    if (isLegalGuardrailsEnabled && seedArticle) {
+      if (!similarityReport) {
+        setError("Legal gate: run the UrhG similarity audit before publishing a seed-based draft.");
+        return;
+      }
+      if (similarityReport.score < 70) {
+        addLog('THE COMPLIANCE', `Publication BLOCKED — UrhG safety distance ${similarityReport.score}% (FAILED).`, 'error');
+        setError(`Legal gate blocked publication: copycat safety distance ${similarityReport.score}% (< 70%). ${similarityReport.recommendation || 'Refine the draft to raise originality, then re-run the audit.'}`);
+        return;
+      }
+    }
+
     const mission = await missionRegistry.start('editorial', 'Final Publication');
     setActiveMissionId(mission.id);
     try {

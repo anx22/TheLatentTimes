@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 45 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 10 DONE
-**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.5` (U3 Legal-Gate) / `T-1.2.8` (U2 Pause). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
+**Übersicht:** 58 Tasks · 44 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 11 DONE
+**Nächster Task:** Slice 2 „Honest Magazine" läuft — als Nächstes `T-1.2.8` (U2 Pause) / `T-1.2.7` (S3 Scope). (`T-1.2.0` Design-Baseline BLOCKED — Mensch.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -23,7 +23,7 @@
 | T-1.2.2 | Darkroom-Bild propagieren | DONE | — | U1 — Root-Cause: `atelierState` (inkl. `currentImageBase64` + `history[].base64`, je mehrere MB) wurde komplett in `newsroom_state` persistiert → sprengt Convex' ~1-MB-Dokumentlimit → `saveNewsroomState` wirft → GESAMTE Persistenz (auch `imageId`) bricht still, daher „Bild propagiert nicht" nach Reload. Fix: `sanitizeAtelierForPersist` strippt Base64-Payloads vor dem Speichern; Asset überlebt via persistiertem `imageId`→`data.image` (Darkroom rendert bereits `image`). |
 | T-1.2.3 | Grid-Layout persistieren | TODO | T-1.2.6 | U5 |
 | T-1.2.4 | Schein-Metriken entfernen | DONE | — | U6 — Approve-Flow (PrintingPress): Unsplash-Stockfoto, erfundener `score{}` & zwei Fake-Comments ("The Board"/"The Editor") raus; nutzt jetzt echtes Darkroom-Bild oder keins (`media_type`→'text'). Pipeline: Random-"Confidence" (`0.85+rand`) raus. `usePublicationFlow`: hartkodierter `score` raus. Ticker war bereits als dekorativ kommentiert. **Offen (Design):** `picsum`-Platzhalter greifen jetzt bei bildlosen Artikeln → typografische "kein Bild"-Behandlung im Design-Pass. |
-| T-1.2.5 | Legal-Gate koppeln | TODO | — | U3 |
+| T-1.2.5 | Legal-Gate koppeln | DONE | — | U3 — `runSimilarityAudit` loggte nur PASSED/FAILED, blockierte aber nichts. Jetzt hartes Gate in `usePublicationFlow.publish`: bei aktivierten Guardrails + Seed-Draft muss der UrhG-Audit gelaufen & ≥70% sein, sonst `setError` + Block (mit `recommendation`). Non-Seed-Drafts ungated (keine Quelle zum Kopieren); Toggle = explizites Opt-out. Deckt beide Publish-Pfade (`publish` + `executeFullPipeline`). |
 | T-1.2.6 | issues.content-Validator | TODO | — | Validated Boundaries |
 | T-1.2.7 | NewsroomProvider-Scope | TODO | — | S3 |
 | T-1.2.8 | Pause/Resume echt | TODO | T-1.1.2 | U2 |
