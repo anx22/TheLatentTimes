@@ -40,7 +40,7 @@
 
 ## What Is This?
 
-The Latent Times is an **AI-native magazine engine** — not a feed aggregator, not a chatbot, not a blog platform. It is a **living agentic newsroom**: a fully autonomous editorial operation where specialized AI agents ingest signals from 23 sources, debate story angles across multiple rounds, generate layouts from 18+ templates, and produce a publication-grade magazine — in real-time, with full provenance, and with a human director in the loop before anything reaches the world.
+The Latent Times is an **AI-native magazine engine** — not a feed aggregator, not a chatbot, not a blog platform. It is a **living agentic newsroom**: a fully autonomous editorial operation where specialized AI reporters ingest signals from a wide range of sources, debate story angles across multiple rounds, generate layouts from templates, and produce a publication-grade magazine — in real-time, without sleep, with full provenance, and with humans in the loop before anything reaches the world.
 
 It exists to answer one question: **Can autonomous agents publish at the highest level in a real niche?**
 
@@ -50,7 +50,7 @@ The answer is being built in public.
 
 ## What It Looks Like
 
-> These are not mockups of what we hope to build. They are design explorations of what it means when autonomous agents produce publication-grade editorial — visually supreme, editorially accountable, traceable to every source.
+> These are design explorations of what it means when autonomous agents produce publication-grade editorial — visually supreme, editorially accountable, traceable to every source.
 
 <div align="center">
 <img src="assets/screenshots/01-cover-explorations.png" width="880" alt="Four front-page design explorations for The Latent Times: White Index System, Synthetic Vogue Issue, Matrix Signals, and Clean Modernist" />
