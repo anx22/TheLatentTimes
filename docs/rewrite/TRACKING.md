@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 35 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 23 DONE
-**Nächster Task:** **Slice 3 (`T-1.3.1` Provenienz-Panel) DONE** → Akt I inhaltlich bis auf Prod-Deploy + Cockpit-Redesign durch. **Redesign (Slice 4, `T-1.4.3`) gestoppt auf Mensch-Wunsch** (Parallel-Session). Empfohlene Folge: `T-1.0.4` (Prod-Deploy) · dann Akt-II-Kleinkorrekturen (`T-2.2.2`/`T-2.2.3`/`T-2.5.1`/`T-2.5.2`/`T-2.6.2`) · dann Explainable Wire (`T-2.1.1`→) + Debatte (`T-2.3.1`). (`T-1.2.0` BLOCKED.)
+**Übersicht:** 62 Tasks · 34 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 24 DONE
+**Nächster Task:** **Akt-II-Kleinkorrekturen DONE** (`T-2.2.2`/`T-2.2.3`/`T-2.5.1`/`T-2.5.2`/`T-2.6.2`). Akt I inhaltlich durch (außer `T-1.0.4` Prod-Deploy = **braucht Mensch/Convex-Zugänge** + gestopptem Cockpit-Redesign `T-1.4.3`). Nächste substanzielle Brocken: **Explainable Wire** `T-2.1.1`→`T-2.1.2`/`T-2.1.3` (deterministisches Clustern) + **echte Debatte** `T-2.3.1`. (`T-1.2.0`/`T-3.3.0`/`T-4.0.1` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -46,7 +46,7 @@
 | T-2.3.1 | Mehr-Runden-Debatte | TODO | T-1.1.1 | Q4 A |
 | T-2.3.2 | Personas differenziert | TODO | T-2.3.1 | — |
 | T-2.4.1 | Volle Provenienz-Kette | TODO | T-1.3.1 | Q11 |
-| T-2.5.1 | Validatoren (Rest v.any) | TODO | — | Schicht 5 |
+| T-2.5.1 | Validatoren (Rest v.any) | DONE | — | Schicht 5 — **Boundary-Validatoren** `convex/newsroom/contracts.ts` (wie T-1.2.6) statt strikter Table-Schemas: `drafts.blocks` (Array v. {id, sentences:[{id,text}]} — `type` bleibt freier String wg. „text"/LLM-Varianz; Vertrag deckt sich exakt mit `Schemas.Columnist`-required → kein Writer bricht), `missions.metadata` (Objekt, diagnostic-erweiterbar), `newsroom_state.data` (Objekt — polymorph über Keys `current`/`discovery_lock`/`autonomy_control`, strikt unmöglich). Verdrahtet in `saveDraft`/`startMission`/`saveNewsroomState`. Table bleibt bewusst `v.any()` (Extra-Feld-Toleranz). |
 | T-2.5.2 | @ts-nocheck entfernen | DONE | T-1.1.2 | EF-9 — `@ts-nocheck` raus aus `crons.ts` (sauber via getypte `api`/`internal`-Refs statt `makeFunctionReference`+`as any`), `clusteringActions.ts` (expliziter Handler-Returntyp bricht die `api`-Selbstreferenz-Zirkularität TS7022/7023 → löste alle 7 Folgefehler), `autonomousActions.ts` (war nach T-1.1.2-Umbau bereits typsicher, Direktive veraltet). convex codegen + tsc + build grün. (`testing.ts` nicht im Scope.) |
 | T-2.6.1 | Signal-Cache | TODO | T-1.1.2 | S2 |
 | T-2.6.2 | Token-Telemetrie ehrlich | DONE | — | C5 — `recordUsage`-Catch schluckt nicht mehr still: bei Fehler Best-Effort-`flagTelemetryGap` → `missions.tokenUsageIncomplete=true`; Dashboard zeigt „⚠ partial" statt einer still-falschen Summe als autoritativ. Generation wird nie geblockt (Telemetrie-only). |

@@ -2,6 +2,7 @@ import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { INITIAL_SOURCES, getGenesisIssueContent } from "./seedData";
 import { validateIssueContent } from "./issueContent";
+import { validateDraftBlocks, validateMissionMetadata, validateNewsroomStateData } from "./contracts";
 
 // ── MISSIONS ─────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ export const startMission = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
+    validateMissionMetadata(args.metadata);
     return await ctx.db.insert("missions", {
       ...args,
       status: "running",
@@ -306,6 +308,7 @@ export const saveNewsroomState = mutation({
     key: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    validateNewsroomStateData(args.data);
     const key = args.key ?? "current";
     const existing = await ctx.db
       .query("newsroom_state")
@@ -500,6 +503,7 @@ export const saveDraft = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    validateDraftBlocks(args.blocks);
     const recent = await ctx.db.query("drafts")
       .filter(q => q.eq(q.field("headline"), args.headline))
       .order("desc").first();
