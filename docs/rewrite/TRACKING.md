@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 37 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 21 DONE
+**Übersicht:** 62 Tasks · 36 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 22 DONE
 **Nächster Task:** **Slice 3 (`T-1.3.1` Provenienz-Panel) DONE** → Akt I inhaltlich bis auf Prod-Deploy + Cockpit-Redesign durch. **Redesign (Slice 4, `T-1.4.3`) gestoppt auf Mensch-Wunsch** (Parallel-Session). Empfohlene Folge: `T-1.0.4` (Prod-Deploy) · dann Akt-II-Kleinkorrekturen (`T-2.2.2`/`T-2.2.3`/`T-2.5.1`/`T-2.5.2`/`T-2.6.2`) · dann Explainable Wire (`T-2.1.1`→) + Debatte (`T-2.3.1`). (`T-1.2.0` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
@@ -42,7 +42,7 @@
 | T-2.1.4 | Dormante Agenten verdrahten | TODO | — | A4 |
 | T-2.2.1 | centroid_embedding befüllen | TODO | T-2.1.1 | Lücke G4 |
 | T-2.2.2 | getNewsClusters-Limit | DONE | — | C4 — `const limit=1` → `args.limit ?? 20`. Einziger Aufrufer (Wire) bekam still nur 1 Cluster; Cron nutzt längst `getStory`. Stories sind wenige → Default 20 günstig. |
-| T-2.2.3 | drafts.storyId typisieren | TODO | — | C3 |
+| T-2.2.3 | drafts.storyId typisieren | DONE | — | C3 — `drafts.storyId` `v.string()`→`v.id("stories")` + `saveDraft`-Arg getypt, `as any` raus. Werte verifiziert real: Cron-`targetStoryId` durch `getStory({id:v.id("stories")})` bewiesen, UI nutzt `selectedStoryId`. tsc/build grün (Hook-`data` ist `any` → keine FE-Brüche; Laufzeit-FK greift). |
 | T-2.3.1 | Mehr-Runden-Debatte | TODO | T-1.1.1 | Q4 A |
 | T-2.3.2 | Personas differenziert | TODO | T-2.3.1 | — |
 | T-2.4.1 | Volle Provenienz-Kette | TODO | T-1.3.1 | Q11 |

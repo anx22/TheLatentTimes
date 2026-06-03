@@ -80,7 +80,7 @@ export default defineSchema({
 
   // 2. DRAFTS (The Article)
   drafts: defineTable({
-    storyId: v.optional(v.string()),
+    storyId: v.optional(v.id("stories")), // C3 (T-2.2.3): real FK, not a loose string
     missionId: v.optional(v.id("missions")), // The research/editorial mission
     headline: v.string(),
     deck: v.string(),

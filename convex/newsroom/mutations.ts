@@ -489,7 +489,7 @@ export const updateNewsCluster = mutation({
 
 export const saveDraft = mutation({
   args: {
-    storyId: v.optional(v.string()),
+    storyId: v.optional(v.id("stories")),
     missionId: v.optional(v.id("missions")),
     headline: v.string(),
     deck: v.string(),
@@ -508,7 +508,7 @@ export const saveDraft = mutation({
     const { storyId, ...rest } = args;
     return await ctx.db.insert("drafts", {
       ...rest,
-      storyId: storyId as any,
+      storyId,
       status: args.status as "draft" | "review" | "published",
       created_at: Date.now(),
       updated_at: Date.now(),
