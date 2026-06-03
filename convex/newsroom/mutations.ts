@@ -465,6 +465,17 @@ export const addNewsCluster = mutation({
     cultural_context: v.optional(v.string()),
     missionId: v.optional(v.id("missions")),
     centroid_embedding: v.optional(v.array(v.float64())),
+    intentTrace: v.optional(v.object({
+      method: v.string(),
+      threshold: v.number(),
+      avgSimilarity: v.number(),
+      seedSignalId: v.optional(v.id("signals")),
+      members: v.array(v.object({
+        signalId: v.id("signals"),
+        title: v.string(),
+        similarity: v.number(),
+      })),
+    })),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("stories", {

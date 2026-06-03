@@ -41,6 +41,19 @@ export default defineSchema({
     cultural_context: v.optional(v.string()), // Broad philosophical/cultural link
     missionId: v.optional(v.id("missions")), // The execution thread that produced this story
     centroid_embedding: v.optional(v.array(v.float64())), // The representative vector of the pillar
+    // Intent-trace (T-2.1.3): the explainable, reproducible reason these signals
+    // were grouped — deterministic embedding correlation, not an LLM guess.
+    intentTrace: v.optional(v.object({
+      method: v.string(),        // e.g. "embedding-cosine-leader"
+      threshold: v.number(),     // cosine cut-off used to group
+      avgSimilarity: v.number(), // mean member-to-seed cosine
+      seedSignalId: v.optional(v.id("signals")),
+      members: v.array(v.object({
+        signalId: v.id("signals"),
+        title: v.string(),
+        similarity: v.number(),  // cosine of this member to the seed
+      })),
+    })),
   }).index("by_lastUpdatedAt", ["lastUpdatedAt"])
     .index("by_mission", ["missionId"]),
 

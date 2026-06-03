@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 34 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 24 DONE
-**Nächster Task:** **Akt-II-Kleinkorrekturen DONE** (`T-2.2.2`/`T-2.2.3`/`T-2.5.1`/`T-2.5.2`/`T-2.6.2`). Akt I inhaltlich durch (außer `T-1.0.4` Prod-Deploy = **braucht Mensch/Convex-Zugänge** + gestopptem Cockpit-Redesign `T-1.4.3`). Nächste substanzielle Brocken: **Explainable Wire** `T-2.1.1`→`T-2.1.2`/`T-2.1.3` (deterministisches Clustern) + **echte Debatte** `T-2.3.1`. (`T-1.2.0`/`T-3.3.0`/`T-4.0.1` BLOCKED.)
+**Übersicht:** 62 Tasks · 30 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 28 DONE
+**Nächster Task:** **Explainable-Wire-Slice DONE** (`T-2.1.1`/`T-2.1.2`/`T-2.1.3` + `T-2.2.1` centroid). Akt II Slice 1+2 damit weitgehend durch (offen: `T-2.1.4` dormante Agenten). Nächste Brocken: **echte Mehr-Runden-Debatte** `T-2.3.1`/`T-2.3.2` (Q4 A) · `T-2.4.1` Provenienz-Kette · `T-2.6.1` Signal-Cache. Offen Mensch: `T-1.0.4` Prod-Deploy. (`T-1.2.0`/`T-3.3.0`/`T-4.0.1` BLOCKED; `T-1.4.3` gestoppt.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -36,11 +36,11 @@
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
-| T-2.1.1 | Deterministisches Gruppieren | TODO | T-1.1.2 | A2 |
-| T-2.1.2 | LLM nur Benennen | TODO | T-2.1.1 | A2 |
-| T-2.1.3 | Intent-Trace-Artefakt | TODO | T-2.1.1 | Traceable Intent |
+| T-2.1.1 | Deterministisches Gruppieren | DONE | T-1.1.2 | A2 — `discoverStories` ersetzt generatives LLM-Grouping durch **deterministisches Leader-Clustering** über Embedding-Kosinus (`cosineSimilarity`, Schwelle 0.74) auf Orphans mit Embedding. Reproduzierbar (stabile Timestamp-Reihenfolge + feste Schwelle). `getOrphanSignals` liefert Embeddings via `includeEmbeddings`-Flag. |
+| T-2.1.2 | LLM nur Benennen | DONE | T-2.1.1 | A2 — `synthesizeWithGemini` (war tot) benennt jetzt jede **deterministische** Gruppe (title/summary); kein LLM entscheidet mehr Mitgliedschaft. |
+| T-2.1.3 | Intent-Trace-Artefakt | DONE | T-2.1.1 | Traceable Intent — `stories.intentTrace` (method/threshold/avgSimilarity/seedSignalId/members[{signalId,title,similarity}]) bei jedem Cluster gespeichert + via `getNewsClusters` abrufbar (anzeigbar). Reiche Wire-Darstellung → Akt III (T-3.1.x). |
 | T-2.1.4 | Dormante Agenten verdrahten | TODO | — | A4 |
-| T-2.2.1 | centroid_embedding befüllen | TODO | T-2.1.1 | Lücke G4 |
+| T-2.2.1 | centroid_embedding befüllen | DONE | T-2.1.1 | Lücke G4 — beim deterministischen Cluster-Bau wird der Zentroid (Mittel der Member-Embeddings) berechnet & in `stories.centroid_embedding` gespeichert (Basis für Latent-Space-Karte). |
 | T-2.2.2 | getNewsClusters-Limit | DONE | — | C4 — `const limit=1` → `args.limit ?? 20`. Einziger Aufrufer (Wire) bekam still nur 1 Cluster; Cron nutzt längst `getStory`. Stories sind wenige → Default 20 günstig. |
 | T-2.2.3 | drafts.storyId typisieren | DONE | — | C3 — `drafts.storyId` `v.string()`→`v.id("stories")` + `saveDraft`-Arg getypt, `as any` raus. Werte verifiziert real: Cron-`targetStoryId` durch `getStory({id:v.id("stories")})` bewiesen, UI nutzt `selectedStoryId`. tsc/build grün (Hook-`data` ist `any` → keine FE-Brüche; Laufzeit-FK greift). |
 | T-2.3.1 | Mehr-Runden-Debatte | TODO | T-1.1.1 | Q4 A |
@@ -127,6 +127,12 @@
 - 2026-06-03 — **Slice 2 technische Resttasks DONE:** `T-1.2.6` (issues.content-Boundary-Validator), `T-1.2.7`
   (NewsroomProvider-Scope via `"skip"`), `T-1.2.3` (Grid-Layout persistieren, editor-gated). Redesign (`T-1.4.3`)
   auf Mensch-Wunsch gestoppt (Parallel-Session übernimmt).
+- 2026-06-03 — **Akt-II-Kleinkorrekturen DONE:** `T-2.2.2` (Cluster-Limit), `T-2.6.2` (ehrliche Token-Telemetrie),
+  `T-2.2.3` (drafts.storyId FK), `T-2.5.2` (@ts-nocheck raus), `T-2.5.1` (Boundary-Validatoren contracts.ts).
+- 2026-06-03 — **Explainable-Wire-Slice DONE:** `T-2.1.1` deterministisches Leader-Clustering (Embedding-Kosinus
+  0.74) ersetzt generatives LLM-Grouping in `discoverStories`; `T-2.1.2` `synthesizeWithGemini` benennt nur noch;
+  `T-2.1.3` `stories.intentTrace` gespeichert + via `getNewsClusters` abrufbar; `T-2.2.1` Zentroid befüllt. Cron
+  clustert jetzt reproduzierbar/erklärbar. convex codegen + tsc + build grün.
 - 2026-06-03 — **Slice 3 DONE:** `T-1.3.1` Glass-Box-Provenienz v1. `ArticleProvenance`-Snapshot (sources+claims)
   am Item beim Publish; Path 1 echte Seed/Independent-Quellen + atomare Claims, Path 2 (autonom) Server-Ableitung
   aus Story-Signals (Claims leer = ehrlich). Panel in `ArticleDetail` ersetzt fabrizierte „Technical Specs",

@@ -194,6 +194,9 @@ export const getNewsClusters = query({
       status: story.status,
       cultural_context: story.cultural_context,
       missionId: story.missionId,
+      // Intent-trace (T-2.1.3) so the Wire can show *why* signals were grouped.
+      // (centroid_embedding is deliberately omitted — 3072 floats, not for clients.)
+      intentTrace: story.intentTrace,
       articleCount: 0,
     }));
   },
@@ -252,7 +255,7 @@ export const getDeepInsight = query({
 
 // 22. GET ORPHAN TICKER ITEMS
 export const getOrphanSignals = query({
-  args: { limit: v.optional(v.number()) },
+  args: { limit: v.optional(v.number()), includeEmbeddings: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 100;
 
@@ -264,13 +267,14 @@ export const getOrphanSignals = query({
       .order("desc")
       .take(limit * 3); // Over-fetch to account for in-memory filtering (was *5).
 
-    // Strip embeddings/vectors — the only consumer (server-side clustering) uses
-    // id/title/content, never the vectors. Avoids shipping 3072-float arrays.
-    const orphans = signals
-      .filter((s) => !s.storyId)
-      .slice(0, limit)
-      .map(({ embedding, cultural_vectors, ...rest }: any) => rest);
-    return orphans;
+    const orphans = signals.filter((s) => !s.storyId).slice(0, limit);
+
+    // Deterministic clustering (T-2.1.1) needs the vectors; every other consumer
+    // does not, so by default we strip the 3072-float arrays to keep payloads small.
+    if (args.includeEmbeddings) {
+      return orphans.map(({ cultural_vectors, ...rest }: any) => rest);
+    }
+    return orphans.map(({ embedding, cultural_vectors, ...rest }: any) => rest);
   },
 });
 
