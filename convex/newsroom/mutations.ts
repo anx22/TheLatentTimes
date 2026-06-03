@@ -341,13 +341,41 @@ export const addItemToLatestIssue = mutation({
   args: {
     item: v.any(),
     layout: v.optional(v.any()),
+    storyId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Provenance enrichment (T-1.3.1): if the item carries no provenance yet but
+    // names its source story, derive a real source list from that story's
+    // signals. Claims stay empty for autonomous drafts (none were extracted) —
+    // honest by default, no fabrication.
+    let item = args.item;
+    if (args.storyId && !item?.provenance) {
+      const signals = await ctx.db
+        .query("signals")
+        .withIndex("by_storyId", (q) => q.eq("storyId", args.storyId as any))
+        .take(12);
+      if (signals.length > 0) {
+        item = {
+          ...item,
+          provenance: {
+            sources: signals.map((s) => ({
+              name: s.source,
+              url: s.url,
+              kind: "signal",
+              trustTier: s.sourceTrustTier,
+            })),
+            claims: [],
+            capturedAt: new Date().toISOString(),
+          },
+        };
+      }
+    }
+
     const latestIssue = await ctx.db.query("issues").order("desc").first();
 
     if (latestIssue) {
       const content = latestIssue.content;
-      const newItems = [args.item, ...(content.items || [])];
+      const newItems = [item, ...(content.items || [])];
 
       let newLayout = args.layout || content.layout || [];
 
@@ -356,13 +384,13 @@ export const addItemToLatestIssue = mutation({
         const blockType = newLayout.length === 0 ? "CoverStory" : (blockOptions[newLayout.length % blockOptions.length]);
 
         const newItemLayout = {
-          i: args.item.id,
+          i: item.id,
           x: 0, y: 0,
           w: 12,
           h: blockType === "CoverStory" ? 6 : 4,
           blockType,
-          headline: args.item.title,
-          data: args.item,
+          headline: item.title,
+          data: item,
         };
 
         const shiftY = newItemLayout.h;
@@ -379,13 +407,13 @@ export const addItemToLatestIssue = mutation({
       });
     } else {
       const initialLayout = [{
-        i: args.item.id, x: 0, y: 0, w: 12, h: 6,
+        i: item.id, x: 0, y: 0, w: 12, h: 6,
         blockType: "CoverStory",
-        headline: args.item.title,
-        data: args.item,
+        headline: item.title,
+        data: item,
       }];
 
-      const genesisContent = getGenesisIssueContent(args.item, initialLayout);
+      const genesisContent = getGenesisIssueContent(item, initialLayout);
       validateIssueContent(genesisContent);
       await ctx.db.insert("issues", {
         vol: "VOL. 1.0",

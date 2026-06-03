@@ -81,11 +81,24 @@ export const MagazineGrid: React.FC<MagazineGridProps> = ({
         {layout.map((item) => {
           const Template = BLOCK_REGISTRY[item.blockType]?.component || BLOCK_REGISTRY['SmallArticle'].component;
           
+          const prov = item.data?.provenance;
+          const provCount = prov ? prov.sources.length + prov.claims.length : 0;
+
           return (
             <div key={item.i} className="group overflow-hidden bg-white border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-500">
               {editable && (
                 <div className="grid-drag-handle absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 cursor-move transition-opacity">
                   <div className="w-4 h-4 bg-black/10 rounded-full flex items-center justify-center text-[8px] font-bold">⠿</div>
+                </div>
+              )}
+
+              {provCount > 0 && (
+                <div
+                  className="absolute bottom-2 left-2 z-10 pointer-events-none flex items-center gap-1 bg-white/85 backdrop-blur-sm border border-zinc-200 px-1.5 py-0.5 text-[7px] font-mono uppercase tracking-wider text-zinc-500"
+                  title={`${prov!.sources.length} sources · ${prov!.claims.length} claims`}
+                >
+                  <span className="text-zinc-300">◇</span>
+                  {prov!.sources.length}s · {prov!.claims.length}c
                 </div>
               )}
               

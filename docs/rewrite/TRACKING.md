@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 40 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 18 DONE
-**Nächster Task:** Technische Slice-2-Resttasks **abgeschlossen** (`T-1.2.3`/`T-1.2.6`/`T-1.2.7` DONE). **Redesign (Slice 4, `T-1.4.3`) gestoppt auf Mensch-Wunsch** — größerer Umbau kommt aus Parallel-Session; Cockpit-Redesign hier nicht weiterführen. Offen technisch: `T-1.2.4` (Schein-Metriken), `T-1.2.5` (Legal-Gate), `T-1.2.8` (Pause/Resume). (`T-1.2.0` BLOCKED.)
+**Übersicht:** 62 Tasks · 39 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 19 DONE
+**Nächster Task:** **Slice 3 (`T-1.3.1` Provenienz-Panel) DONE** → Akt I inhaltlich bis auf Prod-Deploy + Cockpit-Redesign durch. **Redesign (Slice 4, `T-1.4.3`) gestoppt auf Mensch-Wunsch** (Parallel-Session). Empfohlene Folge: `T-1.0.4` (Prod-Deploy) · dann Akt-II-Kleinkorrekturen (`T-2.2.2`/`T-2.2.3`/`T-2.5.1`/`T-2.5.2`/`T-2.6.2`) · dann Explainable Wire (`T-2.1.1`→) + Debatte (`T-2.3.1`). (`T-1.2.0` BLOCKED.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -27,7 +27,7 @@
 | T-1.2.6 | issues.content-Validator | DONE | — | Validated Boundaries. **Boundary-Validator** `convex/newsroom/issueContent.ts` statt strikter Table-Schema (gespeicherte Shape divergiert vom Typ → `ticker`-Feld; strikt würde Legacy-Patches brechen). Prüft kritischen Vertrag (`meta`/`cover`-Objekte, `items`/`layout`-Arrays mit `i,x,y,w,h`) an allen 3 Write-Stellen (`publishIssue`, `addItemToLatestIssue` Patch+Genesis). |
 | T-1.2.7 | NewsroomProvider-Scope | DONE | — | S3. `isActive`-Flag (= `showNewsroom`) durch `NewsroomProvider`→`useNewsroomState`→`useNewsroomData` gefädelt; alle 11 Live-Queries via Convex-`"skip"` deaktiviert solange Ops zu. Öffentliche Seite liest Context nicht (verifiziert) + hat eigene `getLatestIssue` in `App.tsx`. Auto-Seed durch `dbSourcesResult!==undefined`-Guard geschützt. |
 | T-1.2.8 | Pause/Resume echt | DONE | T-1.1.2 | U2 — `enginePaused` war reiner lokaler `useState` (kosmetisch). Jetzt persistenter Flag: `setAutonomyPaused`-Mutation → eigene `newsroom_state`-Zeile `autonomy_control`; Cron `runScheduledAutonomousRun` prüft `control.paused` → skippt Sweep. UI liest/schreibt via Convex-Hooks. Live-Round-Trip verifiziert (true→false). |
-| T-1.3.1 | Provenienz-Panel (light) | TODO | T-1.2.5, T-1.1.3 | Q11 A |
+| T-1.3.1 | Provenienz-Panel (light) | DONE | T-1.2.5, T-1.1.3 | Q11 A — **Glass-Box v1.** Serialisierbarer `ArticleProvenance`-Snapshot (sources+claims) am Item, beim Publish erfasst — nie fabriziert. Path 1 (ThreeZone): echte Seed-/Independent-Quellen + atomare Claims aus `usePublicationFlow`. Path 2 (PrintingPress/autonom): Server (`addItemToLatestIssue`) leitet Quellen aus den Story-Signals ab (`storyId`), Claims leer (ehrlich). Panel in `ArticleDetail` (ersetzt fabrizierte „Technical Specs") + dezenter `Ns·Mc`-Indikator auf Grid-Karten. Beide Pfade tragen provenance via `agentLayoutDesigner`/Server ins `layout[].data` → überlebt Reload. |
 | T-1.4.0 | Cockpit-UX-Audit + Richtung | DONE | — | G7 — Audit in `docs/rewrite/UI-AUDIT.md`. **Entscheid (Mensch):** Redesign unterwirft sich **kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Crimson/Emerald), bleibt aber **funktional auf vorhandenen Logiken & High-Level-Flows** (Step-Machine, Räume, Pipelines, Wiring unverändert). Fundament existiert teils schon (`tailwind.config.js`, Fonts in `index.html`). |
 | T-1.4.1 | Editorial-Token-Fundament + Primitives | DONE | T-1.4.0 | Tokens in `tailwind.config.js` (ink/crimson/signal/hairline/paper-*) + `NewsroomUI` komplett umgeskinnt (Button/Label/Panel/Header/alle Cards) auf Paper/Ink/Crimson/Emerald + Playfair-Titel; neuer `EmptyState`-Primitive; Focus-Rings + aria. APIs/Logik 1:1. |
 | T-1.4.2 | Shell + Navigation umskinnen | DONE | T-1.4.1 | `NewsroomFloor` (Masthead „The Latent Times" Playfair, Tab-Nav mit Crimson-Unterstreichung + `aria-current`, Sub-Navbar, Log-Sidebar, Error-Banner, Bottom-Bar) + `NewsroomAuthBar` + App-„Ops"-Button editorial; Standby-Sackgasse → `EmptyState`+CTA; Purple/Orange-Raumfarben → Crimson (Restraint). Logik/Flows 1:1. |
@@ -124,3 +124,10 @@
   echten `review`-Drafts gespeist; Akzeptanz erfüllt. Approve-Flow-Unehrlichkeit (Unsplash/Fake-Comments/Score)
   → U6/T-1.2.4 weitergetragen. `T-1.1.4` → DONE (A5): TTL-Discovery-Lock zentral in `discoverStories`, live
   getestet (acquire/block/release). **Akt I: Slice 0 + Slice 1 fertig (7 DONE).** Nächst: Slice 2 „Honest Magazine".
+- 2026-06-03 — **Slice 2 technische Resttasks DONE:** `T-1.2.6` (issues.content-Boundary-Validator), `T-1.2.7`
+  (NewsroomProvider-Scope via `"skip"`), `T-1.2.3` (Grid-Layout persistieren, editor-gated). Redesign (`T-1.4.3`)
+  auf Mensch-Wunsch gestoppt (Parallel-Session übernimmt).
+- 2026-06-03 — **Slice 3 DONE:** `T-1.3.1` Glass-Box-Provenienz v1. `ArticleProvenance`-Snapshot (sources+claims)
+  am Item beim Publish; Path 1 echte Seed/Independent-Quellen + atomare Claims, Path 2 (autonom) Server-Ableitung
+  aus Story-Signals (Claims leer = ehrlich). Panel in `ArticleDetail` ersetzt fabrizierte „Technical Specs",
+  Indikator auf Grid-Karten. tsc + convex codegen + build grün.

@@ -202,6 +202,9 @@ export interface MagazineItem {
     // Editorial Enrichment
     editorial_summary?: string;
     public_comments?: Array<{ persona: string; avatar_vibe: string; comment: string; replies?: Array<{ user: string; ai: string }> }>;
+
+    // Provenance (Glass-Box, T-1.3.1) — captured at publish, never fabricated.
+    provenance?: ArticleProvenance;
 }
 
 export interface LayoutItem {
@@ -336,5 +339,29 @@ export interface EvidencePack {
   independentSourcesCount: number;
   synthesizedEvidence: string;
   sources: Array<{ title: string; url: string }>;
+}
+
+// --- PROVENANCE (Glass-Box, T-1.3.1) ---
+// A serializable snapshot persisted on a published article so every dispatch can
+// show, traceably, which sources it drew on and which atomic claims it rests on.
+export interface ProvenanceSource {
+  name: string;
+  url?: string;
+  kind: 'seed' | 'independent' | 'signal';
+  trustTier?: string;
+}
+
+export interface ProvenanceClaim {
+  text: string;
+  sourceName?: string;
+  sourceUrl?: string;
+  confidence?: number;
+  claimType?: string;
+}
+
+export interface ArticleProvenance {
+  sources: ProvenanceSource[];
+  claims: ProvenanceClaim[];
+  capturedAt: string;
 }
 

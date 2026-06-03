@@ -49,9 +49,11 @@ export const PrintingPress: React.FC<{ onClose?: () => void }> = ({ onClose }) =
         blocks: blocksToInclude,
       };
 
-      // Push into database issues table
+      // Push into database issues table. Pass the source story so the server can
+      // attach a provenance snapshot from its signals (T-1.3.1) — autonomous
+      // drafts carry no atomic claims, but their sources are real and traceable.
       if (mutations.addItemToLatestIssue) {
-        await mutations.addItemToLatestIssue({ item: newItem });
+        await mutations.addItemToLatestIssue({ item: newItem, storyId: draft.storyId });
       }
 
       // Update source draft document status to published

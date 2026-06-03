@@ -1,5 +1,5 @@
 import { agentRewriteBlock, agentRewriteSentence, agentCriticsCorner, agentLayoutDesigner, agentPromptEnhancer } from '../services/agents';
-import { MagazineItem } from '../types';
+import { MagazineItem, ArticleProvenance, ProvenanceSource, ProvenanceClaim, Claim } from '../types';
 
 export const usePublicationFlow = (
   data: any,
@@ -10,7 +10,7 @@ export const usePublicationFlow = (
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
   const { mutations, setDraftId, draft, image, persistedState, latestIssue } = data;
-  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId, isLegalGuardrailsEnabled, seedArticle, similarityReport } = ui;
+  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId, isLegalGuardrailsEnabled, seedArticle, similarityReport, extractedClaims, evidencePack } = ui;
 
   const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
     if (!draft || !draft.blocks) return;
@@ -134,6 +134,33 @@ export const usePublicationFlow = (
 
       const publicComments = await agentCriticsCorner(draft.headline, draft.deck, draft.body.substring(0, 500), mission.id);
 
+      // Provenance snapshot (T-1.3.1): the real seed + independent sources and the
+      // atomic claims this draft was built on. Never fabricated — only what the
+      // ThreeZone flow actually gathered. Absent fields stay absent (honest).
+      const provenanceSources: ProvenanceSource[] = [];
+      if (seedArticle) {
+        provenanceSources.push({
+          name: seedArticle.source || seedArticle.sourcePack || 'Seed source',
+          url: seedArticle.url,
+          kind: 'seed',
+          trustTier: seedArticle.sourceTrustTier,
+        });
+      }
+      for (const s of evidencePack?.sources || []) {
+        if (s?.title || s?.url) provenanceSources.push({ name: s.title || s.url, url: s.url, kind: 'independent' });
+      }
+      const provenanceClaims: ProvenanceClaim[] = (extractedClaims || []).map((c: Claim) => ({
+        text: c.claimText,
+        sourceName: c.sourceName,
+        sourceUrl: c.sourceUrl,
+        confidence: c.confidence,
+        claimType: c.claimType,
+      }));
+      const provenance: ArticleProvenance | undefined =
+        (provenanceSources.length || provenanceClaims.length)
+          ? { sources: provenanceSources, claims: provenanceClaims, capturedAt: new Date().toISOString() }
+          : undefined;
+
       const newItem: MagazineItem = {
         id: Math.random().toString(36).substring(7),
         title: prep.title!,
@@ -146,7 +173,8 @@ export const usePublicationFlow = (
         featured_level: 'none',
         body: prep.body!,
         blocks: prep.blocks!,
-        public_comments: publicComments
+        public_comments: publicComments,
+        ...(provenance ? { provenance } : {}),
       };
 
       const currentLayout = latestIssue?.content?.layout || [];
