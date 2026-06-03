@@ -16,13 +16,14 @@ export const NewsroomAuthBar: React.FC = () => {
 
   if (canEdit) {
     return (
-      <div className="flex items-center gap-2 border border-[#ccff00]/30 bg-[#ccff00]/5 px-3 py-1.5">
-        <ShieldCheck className="w-3.5 h-3.5 text-[#ccff00]" />
-        <span className="font-mono text-[9px] uppercase tracking-widest text-[#ccff00] font-bold">Redaktion</span>
+      <div className="flex items-center gap-2 border border-signal/40 bg-signal/[0.06] px-3 py-1.5">
+        <ShieldCheck className="w-3.5 h-3.5 text-signal" />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-signal font-bold">Redaktion</span>
         <button
           onClick={logout}
           title="Abmelden"
-          className="ml-1 text-zinc-500 hover:text-white transition-colors"
+          aria-label="Abmelden"
+          className="ml-1 text-ink-faint hover:text-ink transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
         </button>
@@ -34,11 +35,11 @@ export const NewsroomAuthBar: React.FC = () => {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 border border-amber-500/40 bg-amber-500/5 px-3 py-1.5 hover:bg-amber-500/10 transition-colors"
+        className="flex items-center gap-2 border border-crimson/40 bg-crimson/[0.06] px-3 py-1.5 hover:bg-crimson/[0.12] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson/40"
         title="Im Read-only-Modus. Einloggen, um Aktionen auszuführen."
       >
-        <Lock className="w-3.5 h-3.5 text-amber-500" />
-        <span className="font-mono text-[9px] uppercase tracking-widest text-amber-500 font-bold">Read-only · Login</span>
+        <Lock className="w-3.5 h-3.5 text-crimson" />
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-crimson font-bold">Read-only · Login</span>
       </button>
     );
   }
@@ -58,16 +59,17 @@ export const NewsroomAuthBar: React.FC = () => {
         value={pw}
         onChange={(e) => setPw(e.target.value)}
         placeholder="Newsroom-Passwort"
-        className="bg-black border border-zinc-700 focus:border-[#ccff00] outline-none px-3 py-1.5 text-[11px] font-mono text-white w-44"
+        aria-label="Newsroom-Passwort"
+        className="bg-paper border border-hairline focus:border-crimson outline-none px-3 py-1.5 text-[11px] font-mono text-ink w-44"
       />
       <button
         type="submit"
         disabled={isVerifying || !pw}
         className={cn(
-          "px-3 py-1.5 text-[9px] font-mono uppercase tracking-widest font-bold border transition-colors",
+          "px-3 py-1.5 text-[9px] font-mono uppercase tracking-[0.2em] font-bold border transition-colors",
           isVerifying || !pw
-            ? "border-zinc-700 text-zinc-600"
-            : "border-[#ccff00]/50 text-[#ccff00] hover:bg-[#ccff00]/10"
+            ? "border-hairline text-ink-faint"
+            : "border-ink text-paper bg-ink hover:bg-crimson hover:border-crimson"
         )}
       >
         {isVerifying ? '…' : 'Einloggen'}
@@ -75,12 +77,13 @@ export const NewsroomAuthBar: React.FC = () => {
       <button
         type="button"
         onClick={() => { setOpen(false); setPw(''); }}
-        className="text-zinc-600 hover:text-white transition-colors"
+        aria-label="Abbrechen"
+        className="text-ink-faint hover:text-ink transition-colors"
       >
         <X className="w-4 h-4" />
       </button>
       {authError && (
-        <span className="font-mono text-[9px] text-red-400 max-w-[180px] truncate" title={authError}>{authError}</span>
+        <span className="font-mono text-[9px] text-crimson max-w-[180px] truncate" title={authError}>{authError}</span>
       )}
     </form>
   );

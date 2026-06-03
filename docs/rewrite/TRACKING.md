@@ -3,8 +3,8 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 58 Tasks · 48 TODO · 0 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 7 DONE
-**Nächster Task:** `T-1.2.1` (Slice 2 „Honest Magazine" — echte Observability-Metriken, C1). Slice 0 + Slice 1 komplett. (`T-1.2.0` Design-Baseline ist BLOCKED — Mensch.)
+**Übersicht:** 62 Tasks · 30 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 28 DONE
+**Nächster Task:** **Explainable-Wire-Slice DONE** (`T-2.1.1`/`T-2.1.2`/`T-2.1.3` + `T-2.2.1` centroid). Akt II Slice 1+2 damit weitgehend durch (offen: `T-2.1.4` dormante Agenten). Nächste Brocken: **echte Mehr-Runden-Debatte** `T-2.3.1`/`T-2.3.2` (Q4 A) · `T-2.4.1` Provenienz-Kette · `T-2.6.1` Signal-Cache. Offen Mensch: `T-1.0.4` Prod-Deploy. (`T-1.2.0`/`T-3.3.0`/`T-4.0.1` BLOCKED; `T-1.4.3` gestoppt.)
 **Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
 
 ## Akt I — Makellose Ausgabe
@@ -19,33 +19,37 @@
 | T-1.1.3 | Freigabe-Queue (drafts.status) | DONE | T-1.1.2 | Wette 1 — `PrintingPress` IST die Queue: zeigt nicht-publizierte Drafts, badged `review` als „Autonomous Draft", Approve (→`addItemToLatestIssue`+`updateDraftStatus 'published'`)/Reject (→`deleteDraft`) = bewusste Mensch-Klicks. Cron speist sie jetzt (T-1.1.2). ⚠️ Approve-Flow fabriziert noch Unsplash-Bild/Fake-Comments/Fake-Score → **U6/T-1.2.4**. |
 | T-1.1.4 | Lauf-Deduplizierung | DONE | T-1.1.2 | A5 — TTL-Lock (`tryDiscoveryLock`/`releaseDiscoveryLock`, key `discovery_lock`) zentral in `discoverStories` (beide Pfade); try/finally. Live getestet: acquire→true, gehalten→false, nach release→true. |
 | T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
-| T-1.2.1 | Echte Metriken | TODO | — | C1 |
-| T-1.2.2 | Darkroom-Bild propagieren | TODO | — | U1 |
-| T-1.2.3 | Grid-Layout persistieren | TODO | T-1.2.6 | U5 |
-| T-1.2.4 | Schein-Metriken entfernen | TODO | — | U6 |
-| T-1.2.5 | Legal-Gate koppeln | TODO | — | U3 |
-| T-1.2.6 | issues.content-Validator | TODO | — | Validated Boundaries |
-| T-1.2.7 | NewsroomProvider-Scope | TODO | — | S3 |
-| T-1.2.8 | Pause/Resume echt | TODO | T-1.1.2 | U2 |
-| T-1.3.1 | Provenienz-Panel (light) | TODO | T-1.2.5, T-1.1.3 | Q11 A |
+| T-1.2.1 | Echte Metriken | DONE | — | C1 — `getDeepInsight` zählt jetzt echt: Stories via `collect` (klein), Signals via `take(501)`/"500+" (Embeddings → unbegrenztes Lesen teuer). Live: signals 280, narrativePillars 12, activeSources 29. |
+| T-1.2.2 | Darkroom-Bild propagieren | DONE | — | U1 — Root-Cause: `atelierState` (inkl. `currentImageBase64` + `history[].base64`, je mehrere MB) wurde komplett in `newsroom_state` persistiert → sprengt Convex' ~1-MB-Dokumentlimit → `saveNewsroomState` wirft → GESAMTE Persistenz (auch `imageId`) bricht still, daher „Bild propagiert nicht" nach Reload. Fix: `sanitizeAtelierForPersist` strippt Base64-Payloads vor dem Speichern; Asset überlebt via persistiertem `imageId`→`data.image` (Darkroom rendert bereits `image`). |
+| T-1.2.3 | Grid-Layout persistieren | DONE | T-1.2.6 | U5. Neue Mutation `updateLatestIssueLayout` (patcht `content.layout`, via T-1.2.6 validiert). `MagazineGrid` persistiert nur auf `onDragStop`/`onResizeStop` (nicht beim Mount-Fire) und **nur für Editoren** (`canEdit` gegated Drag/Resize/Handle → kein Anon-Abuse). Reorder überlebt Reload via App-`getLatestIssue`. |
+| T-1.2.4 | Schein-Metriken entfernen | DONE | — | U6 — Approve-Flow (PrintingPress): Unsplash-Stockfoto, erfundener `score{}` & zwei Fake-Comments ("The Board"/"The Editor") raus; nutzt jetzt echtes Darkroom-Bild oder keins (`media_type`→'text'). Pipeline: Random-"Confidence" (`0.85+rand`) raus. `usePublicationFlow`: hartkodierter `score` raus. Ticker war bereits als dekorativ kommentiert. **Offen (Design):** `picsum`-Platzhalter greifen jetzt bei bildlosen Artikeln → typografische "kein Bild"-Behandlung im Design-Pass. |
+| T-1.2.5 | Legal-Gate koppeln | DONE | — | U3 — `runSimilarityAudit` loggte nur PASSED/FAILED, blockierte aber nichts. Jetzt hartes Gate in `usePublicationFlow.publish`: bei aktivierten Guardrails + Seed-Draft muss der UrhG-Audit gelaufen & ≥70% sein, sonst `setError` + Block (mit `recommendation`). Non-Seed-Drafts ungated (keine Quelle zum Kopieren); Toggle = explizites Opt-out. Deckt beide Publish-Pfade (`publish` + `executeFullPipeline`). |
+| T-1.2.6 | issues.content-Validator | DONE | — | Validated Boundaries. **Boundary-Validator** `convex/newsroom/issueContent.ts` statt strikter Table-Schema (gespeicherte Shape divergiert vom Typ → `ticker`-Feld; strikt würde Legacy-Patches brechen). Prüft kritischen Vertrag (`meta`/`cover`-Objekte, `items`/`layout`-Arrays mit `i,x,y,w,h`) an allen 3 Write-Stellen (`publishIssue`, `addItemToLatestIssue` Patch+Genesis). |
+| T-1.2.7 | NewsroomProvider-Scope | DONE | — | S3. `isActive`-Flag (= `showNewsroom`) durch `NewsroomProvider`→`useNewsroomState`→`useNewsroomData` gefädelt; alle 11 Live-Queries via Convex-`"skip"` deaktiviert solange Ops zu. Öffentliche Seite liest Context nicht (verifiziert) + hat eigene `getLatestIssue` in `App.tsx`. Auto-Seed durch `dbSourcesResult!==undefined`-Guard geschützt. |
+| T-1.2.8 | Pause/Resume echt | DONE | T-1.1.2 | U2 — `enginePaused` war reiner lokaler `useState` (kosmetisch). Jetzt persistenter Flag: `setAutonomyPaused`-Mutation → eigene `newsroom_state`-Zeile `autonomy_control`; Cron `runScheduledAutonomousRun` prüft `control.paused` → skippt Sweep. UI liest/schreibt via Convex-Hooks. Live-Round-Trip verifiziert (true→false). |
+| T-1.3.1 | Provenienz-Panel (light) | DONE | T-1.2.5, T-1.1.3 | Q11 A — **Glass-Box v1.** Serialisierbarer `ArticleProvenance`-Snapshot (sources+claims) am Item, beim Publish erfasst — nie fabriziert. Path 1 (ThreeZone): echte Seed-/Independent-Quellen + atomare Claims aus `usePublicationFlow`. Path 2 (PrintingPress/autonom): Server (`addItemToLatestIssue`) leitet Quellen aus den Story-Signals ab (`storyId`), Claims leer (ehrlich). Panel in `ArticleDetail` (ersetzt fabrizierte „Technical Specs") + dezenter `Ns·Mc`-Indikator auf Grid-Karten. Beide Pfade tragen provenance via `agentLayoutDesigner`/Server ins `layout[].data` → überlebt Reload. |
+| T-1.4.0 | Cockpit-UX-Audit + Richtung | DONE | — | G7 — Audit in `docs/rewrite/UI-AUDIT.md`. **Entscheid (Mensch):** Redesign unterwirft sich **kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Crimson/Emerald), bleibt aber **funktional auf vorhandenen Logiken & High-Level-Flows** (Step-Machine, Räume, Pipelines, Wiring unverändert). Fundament existiert teils schon (`tailwind.config.js`, Fonts in `index.html`). |
+| T-1.4.1 | Editorial-Token-Fundament + Primitives | DONE | T-1.4.0 | Tokens in `tailwind.config.js` (ink/crimson/signal/hairline/paper-*) + `NewsroomUI` komplett umgeskinnt (Button/Label/Panel/Header/alle Cards) auf Paper/Ink/Crimson/Emerald + Playfair-Titel; neuer `EmptyState`-Primitive; Focus-Rings + aria. APIs/Logik 1:1. |
+| T-1.4.2 | Shell + Navigation umskinnen | DONE | T-1.4.1 | `NewsroomFloor` (Masthead „The Latent Times" Playfair, Tab-Nav mit Crimson-Unterstreichung + `aria-current`, Sub-Navbar, Log-Sidebar, Error-Banner, Bottom-Bar) + `NewsroomAuthBar` + App-„Ops"-Button editorial; Standby-Sackgasse → `EmptyState`+CTA; Purple/Orange-Raumfarben → Crimson (Restraint). Logik/Flows 1:1. |
+| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | IN-PROGRESS | T-1.4.2 | **Exemplare fertig:** `TheBullpen` + `TheDarkroom` editorial. **Offen:** Wire/`ThreeZonePipeline`, `PrintingPress`, `AutonomousPipeline`, `ObservabilityDashboard`, `SignalSourcingBar` — Dichte/Responsivität/A11y/States, Logik erhalten. |
 
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
-| T-2.1.1 | Deterministisches Gruppieren | TODO | T-1.1.2 | A2 |
-| T-2.1.2 | LLM nur Benennen | TODO | T-2.1.1 | A2 |
-| T-2.1.3 | Intent-Trace-Artefakt | TODO | T-2.1.1 | Traceable Intent |
+| T-2.1.1 | Deterministisches Gruppieren | DONE | T-1.1.2 | A2 — `discoverStories` ersetzt generatives LLM-Grouping durch **deterministisches Leader-Clustering** über Embedding-Kosinus (`cosineSimilarity`, Schwelle 0.74) auf Orphans mit Embedding. Reproduzierbar (stabile Timestamp-Reihenfolge + feste Schwelle). `getOrphanSignals` liefert Embeddings via `includeEmbeddings`-Flag. |
+| T-2.1.2 | LLM nur Benennen | DONE | T-2.1.1 | A2 — `synthesizeWithGemini` (war tot) benennt jetzt jede **deterministische** Gruppe (title/summary); kein LLM entscheidet mehr Mitgliedschaft. |
+| T-2.1.3 | Intent-Trace-Artefakt | DONE | T-2.1.1 | Traceable Intent — `stories.intentTrace` (method/threshold/avgSimilarity/seedSignalId/members[{signalId,title,similarity}]) bei jedem Cluster gespeichert + via `getNewsClusters` abrufbar (anzeigbar). Reiche Wire-Darstellung → Akt III (T-3.1.x). |
 | T-2.1.4 | Dormante Agenten verdrahten | TODO | — | A4 |
-| T-2.2.1 | centroid_embedding befüllen | TODO | T-2.1.1 | Lücke G4 |
-| T-2.2.2 | getNewsClusters-Limit | TODO | — | C4 |
-| T-2.2.3 | drafts.storyId typisieren | TODO | — | C3 |
+| T-2.2.1 | centroid_embedding befüllen | DONE | T-2.1.1 | Lücke G4 — beim deterministischen Cluster-Bau wird der Zentroid (Mittel der Member-Embeddings) berechnet & in `stories.centroid_embedding` gespeichert (Basis für Latent-Space-Karte). |
+| T-2.2.2 | getNewsClusters-Limit | DONE | — | C4 — `const limit=1` → `args.limit ?? 20`. Einziger Aufrufer (Wire) bekam still nur 1 Cluster; Cron nutzt längst `getStory`. Stories sind wenige → Default 20 günstig. |
+| T-2.2.3 | drafts.storyId typisieren | DONE | — | C3 — `drafts.storyId` `v.string()`→`v.id("stories")` + `saveDraft`-Arg getypt, `as any` raus. Werte verifiziert real: Cron-`targetStoryId` durch `getStory({id:v.id("stories")})` bewiesen, UI nutzt `selectedStoryId`. tsc/build grün (Hook-`data` ist `any` → keine FE-Brüche; Laufzeit-FK greift). |
 | T-2.3.1 | Mehr-Runden-Debatte | TODO | T-1.1.1 | Q4 A |
 | T-2.3.2 | Personas differenziert | TODO | T-2.3.1 | — |
 | T-2.4.1 | Volle Provenienz-Kette | TODO | T-1.3.1 | Q11 |
-| T-2.5.1 | Validatoren (Rest v.any) | TODO | — | Schicht 5 |
-| T-2.5.2 | @ts-nocheck entfernen | TODO | T-1.1.2 | EF-9 |
+| T-2.5.1 | Validatoren (Rest v.any) | DONE | — | Schicht 5 — **Boundary-Validatoren** `convex/newsroom/contracts.ts` (wie T-1.2.6) statt strikter Table-Schemas: `drafts.blocks` (Array v. {id, sentences:[{id,text}]} — `type` bleibt freier String wg. „text"/LLM-Varianz; Vertrag deckt sich exakt mit `Schemas.Columnist`-required → kein Writer bricht), `missions.metadata` (Objekt, diagnostic-erweiterbar), `newsroom_state.data` (Objekt — polymorph über Keys `current`/`discovery_lock`/`autonomy_control`, strikt unmöglich). Verdrahtet in `saveDraft`/`startMission`/`saveNewsroomState`. Table bleibt bewusst `v.any()` (Extra-Feld-Toleranz). |
+| T-2.5.2 | @ts-nocheck entfernen | DONE | T-1.1.2 | EF-9 — `@ts-nocheck` raus aus `crons.ts` (sauber via getypte `api`/`internal`-Refs statt `makeFunctionReference`+`as any`), `clusteringActions.ts` (expliziter Handler-Returntyp bricht die `api`-Selbstreferenz-Zirkularität TS7022/7023 → löste alle 7 Folgefehler), `autonomousActions.ts` (war nach T-1.1.2-Umbau bereits typsicher, Direktive veraltet). convex codegen + tsc + build grün. (`testing.ts` nicht im Scope.) |
 | T-2.6.1 | Signal-Cache | TODO | T-1.1.2 | S2 |
-| T-2.6.2 | Token-Telemetrie ehrlich | TODO | — | C5 |
+| T-2.6.2 | Token-Telemetrie ehrlich | DONE | — | C5 — `recordUsage`-Catch schluckt nicht mehr still: bei Fehler Best-Effort-`flagTelemetryGap` → `missions.tokenUsageIncomplete=true`; Dashboard zeigt „⚠ partial" statt einer still-falschen Summe als autoritativ. Generation wird nie geblockt (Telemetrie-only). |
 
 ## Akt III — Lebendiges Redaktionshaus
 | ID | Task | Status | Depends | Audit/Note |
@@ -120,3 +124,16 @@
   echten `review`-Drafts gespeist; Akzeptanz erfüllt. Approve-Flow-Unehrlichkeit (Unsplash/Fake-Comments/Score)
   → U6/T-1.2.4 weitergetragen. `T-1.1.4` → DONE (A5): TTL-Discovery-Lock zentral in `discoverStories`, live
   getestet (acquire/block/release). **Akt I: Slice 0 + Slice 1 fertig (7 DONE).** Nächst: Slice 2 „Honest Magazine".
+- 2026-06-03 — **Slice 2 technische Resttasks DONE:** `T-1.2.6` (issues.content-Boundary-Validator), `T-1.2.7`
+  (NewsroomProvider-Scope via `"skip"`), `T-1.2.3` (Grid-Layout persistieren, editor-gated). Redesign (`T-1.4.3`)
+  auf Mensch-Wunsch gestoppt (Parallel-Session übernimmt).
+- 2026-06-03 — **Akt-II-Kleinkorrekturen DONE:** `T-2.2.2` (Cluster-Limit), `T-2.6.2` (ehrliche Token-Telemetrie),
+  `T-2.2.3` (drafts.storyId FK), `T-2.5.2` (@ts-nocheck raus), `T-2.5.1` (Boundary-Validatoren contracts.ts).
+- 2026-06-03 — **Explainable-Wire-Slice DONE:** `T-2.1.1` deterministisches Leader-Clustering (Embedding-Kosinus
+  0.74) ersetzt generatives LLM-Grouping in `discoverStories`; `T-2.1.2` `synthesizeWithGemini` benennt nur noch;
+  `T-2.1.3` `stories.intentTrace` gespeichert + via `getNewsClusters` abrufbar; `T-2.2.1` Zentroid befüllt. Cron
+  clustert jetzt reproduzierbar/erklärbar. convex codegen + tsc + build grün.
+- 2026-06-03 — **Slice 3 DONE:** `T-1.3.1` Glass-Box-Provenienz v1. `ArticleProvenance`-Snapshot (sources+claims)
+  am Item beim Publish; Path 1 echte Seed/Independent-Quellen + atomare Claims, Path 2 (autonom) Server-Ableitung
+  aus Story-Signals (Claims leer = ehrlich). Panel in `ArticleDetail` ersetzt fabrizierte „Technical Specs",
+  Indikator auf Grid-Karten. tsc + convex codegen + build grün.

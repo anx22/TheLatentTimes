@@ -17,6 +17,17 @@ export default {
         paper: '#ffffff',
         muted: '#f5f5f5',
         'muted-foreground': '#666666',
+        // Editorial cockpit grammar (T-1.4.1). Additive — product tokens above
+        // stay untouched. Paper/Ink base, restrained Crimson/Emerald accents,
+        // hairline rules. Mirrors the design system in assets/screenshots.
+        ink: '#0A0A0A',
+        'ink-soft': '#3A3A38',
+        'ink-faint': '#8A8A82',
+        'paper-warm': '#FAFAF8',
+        'paper-dim': '#F2F1ED',
+        crimson: '#C8102E',
+        signal: '#1A7F5A',
+        hairline: '#E4E2DC',
       },
       fontFamily: {
         display: ['"Playfair Display"', 'serif'],

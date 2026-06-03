@@ -170,7 +170,12 @@ export const ObservabilityDashboard: React.FC = () => {
                                         <td className="p-3">
                                             {mission.tokenUsage ? (
                                                 <div className="flex flex-col text-[9px] text-zinc-600">
-                                                    <span>Σ {mission.tokenUsage.totalTokens}t</span>
+                                                    <span>
+                                                        Σ {mission.tokenUsage.totalTokens}t
+                                                        {mission.tokenUsageIncomplete && (
+                                                            <span className="text-amber-600" title="A token-usage write failed — this total is partial."> ⚠ partial</span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                             ) : (
                                                 <span className="text-zinc-800 italic">No usage recorded</span>

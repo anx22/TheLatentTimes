@@ -173,7 +173,10 @@ export const getSources = query({
 export const getNewsClusters = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = 1;
+    // C4 (T-2.2.2): respect the caller's limit instead of hardcoding 1, which
+    // silently collapsed the Wire's cluster view to a single story. Stories are
+    // few (a handful of pillars), so a default of 20 is cheap.
+    const limit = args.limit ?? 20;
     const stories = await ctx.db
       .query("stories")
       .withIndex("by_lastUpdatedAt")
@@ -191,6 +194,9 @@ export const getNewsClusters = query({
       status: story.status,
       cultural_context: story.cultural_context,
       missionId: story.missionId,
+      // Intent-trace (T-2.1.3) so the Wire can show *why* signals were grouped.
+      // (centroid_embedding is deliberately omitted — 3072 floats, not for clients.)
+      intentTrace: story.intentTrace,
       articleCount: 0,
     }));
   },
@@ -214,19 +220,22 @@ export const getDeepInsight = query({
   handler: async (ctx) => {
     const activeMissions = await ctx.db.query("missions").filter(q => q.eq(q.field("status"), "running")).collect();
     
-    // Instead of collecting the entire table and risking 'too many bytes read', 
-    // we take a sample/cap just to get a general idea or use a limited view.
-    const tickerCount = 0;
-    const storiesCount = 0;
-    
+    // Real counts (C1, was hardcoded 0). Stories are few + small → collect.
+    // Signals carry 3072-dim embeddings, so an unbounded read is expensive; cap the
+    // read at 501 and surface "500+" beyond that. (A sharded counter is the future
+    // optimization if the signal table grows large.)
+    const storiesCount = (await ctx.db.query("stories").collect()).length;
+    const signalsSample = await ctx.db.query("signals").take(501);
+    const signalsCount = signalsSample.length;
+
     const sources = await ctx.db.query("sources").take(50);
     const lastLogs = await ctx.db.query("agent_logs").order("desc").take(50);
     const recentDrafts = await ctx.db.query("drafts").order("desc").take(5);
 
     return {
       metrics: {
-        signals: tickerCount >= 500 ? "500+" : tickerCount,
-        narrativePillars: storiesCount >= 500 ? "500+" : storiesCount,
+        signals: signalsCount > 500 ? "500+" : signalsCount,
+        narrativePillars: storiesCount,
         activeSources: sources.filter(s => s.isActive).length,
         pendingMissions: activeMissions.length,
       },
@@ -246,7 +255,7 @@ export const getDeepInsight = query({
 
 // 22. GET ORPHAN TICKER ITEMS
 export const getOrphanSignals = query({
-  args: { limit: v.optional(v.number()) },
+  args: { limit: v.optional(v.number()), includeEmbeddings: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 100;
 
@@ -258,13 +267,14 @@ export const getOrphanSignals = query({
       .order("desc")
       .take(limit * 3); // Over-fetch to account for in-memory filtering (was *5).
 
-    // Strip embeddings/vectors — the only consumer (server-side clustering) uses
-    // id/title/content, never the vectors. Avoids shipping 3072-float arrays.
-    const orphans = signals
-      .filter((s) => !s.storyId)
-      .slice(0, limit)
-      .map(({ embedding, cultural_vectors, ...rest }: any) => rest);
-    return orphans;
+    const orphans = signals.filter((s) => !s.storyId).slice(0, limit);
+
+    // Deterministic clustering (T-2.1.1) needs the vectors; every other consumer
+    // does not, so by default we strip the 3072-float arrays to keep payloads small.
+    if (args.includeEmbeddings) {
+      return orphans.map(({ cultural_vectors, ...rest }: any) => rest);
+    }
+    return orphans.map(({ embedding, cultural_vectors, ...rest }: any) => rest);
   },
 });
 

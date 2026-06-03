@@ -17,10 +17,29 @@ import { useAtelier } from '../contexts/AtelierContext';
 import { useParameters } from '../contexts/ParameterContext';
 import { useAuth } from '../contexts/AuthContext';
 
-export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void) => {
+// Strip the heavy base64 payloads before persisting atelier state. A single
+// full-res `currentImageBase64` (plus up to 10 in `history`) can be several MB
+// and push the newsroom_state document past Convex's ~1 MB limit, which would
+// throw inside saveNewsroomState and silently kill ALL persistence — including
+// the draftId/imageId that the Darkroom needs to re-show the developed asset on
+// reload. The asset itself is durable via the persisted imageId (Convex
+// storage), so the base64 is purely transient (only used as an img2img ref
+// within a live session) and safe to drop.
+const sanitizeAtelierForPersist = (atelierState: any) => {
+  if (!atelierState) return atelierState;
+  const { currentImageBase64, history, ...rest } = atelierState;
+  return {
+    ...rest,
+    history: Array.isArray(history)
+      ? history.slice(0, 10).map(({ base64, ...item }: any) => item)
+      : [],
+  };
+};
+
+export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[]) => void, isActive: boolean = false) => {
   // 1. DOMAIN STATE
   const ui = useNewsroomUIState();
-  const data = useNewsroomData();
+  const data = useNewsroomData(isActive);
   const { atelierState, setAtelierState } = useAtelier();
   const params = useParameters();
   // Read-only sessions must not seed sources or persist shared UI state — that
@@ -114,9 +133,9 @@ export const useNewsroomState = (onPublish: (item: MagazineItem, layout?: any[])
         context: ui.context, 
         scoutedTopics: ui.scoutedTopics, 
         angles: ui.angles,
-        draftId: data.draftId, 
-        imageId: data.imageId, 
-        atelierState: atelierState,
+        draftId: data.draftId,
+        imageId: data.imageId,
+        atelierState: sanitizeAtelierForPersist(atelierState),
         selectedStoryId: ui.selectedStoryId,
         activeMethodology: ui.activeMethodology,
       }

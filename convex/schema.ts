@@ -41,6 +41,19 @@ export default defineSchema({
     cultural_context: v.optional(v.string()), // Broad philosophical/cultural link
     missionId: v.optional(v.id("missions")), // The execution thread that produced this story
     centroid_embedding: v.optional(v.array(v.float64())), // The representative vector of the pillar
+    // Intent-trace (T-2.1.3): the explainable, reproducible reason these signals
+    // were grouped — deterministic embedding correlation, not an LLM guess.
+    intentTrace: v.optional(v.object({
+      method: v.string(),        // e.g. "embedding-cosine-leader"
+      threshold: v.number(),     // cosine cut-off used to group
+      avgSimilarity: v.number(), // mean member-to-seed cosine
+      seedSignalId: v.optional(v.id("signals")),
+      members: v.array(v.object({
+        signalId: v.id("signals"),
+        title: v.string(),
+        similarity: v.number(),  // cosine of this member to the seed
+      })),
+    })),
   }).index("by_lastUpdatedAt", ["lastUpdatedAt"])
     .index("by_mission", ["missionId"]),
 
@@ -80,7 +93,7 @@ export default defineSchema({
 
   // 2. DRAFTS (The Article)
   drafts: defineTable({
-    storyId: v.optional(v.string()),
+    storyId: v.optional(v.id("stories")), // C3 (T-2.2.3): real FK, not a loose string
     missionId: v.optional(v.id("missions")), // The research/editorial mission
     headline: v.string(),
     deck: v.string(),
@@ -119,6 +132,10 @@ export default defineSchema({
       completionTokens: v.number(),
       totalTokens: v.number(),
     })),
+    // C5 (T-2.6.2): set when a token-usage write failed, so the dashboard can
+    // honestly flag the recorded total as partial instead of presenting a
+    // silently-wrong sum as authoritative.
+    tokenUsageIncomplete: v.optional(v.boolean()),
     error: v.optional(v.string()),
     resultId: v.optional(v.string()), // e.g. draftId or storyId
   }).index("by_startedAt", ["startedAt"]),

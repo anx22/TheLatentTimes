@@ -1,6 +1,8 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { INITIAL_SOURCES, getGenesisIssueContent } from "./seedData";
+import { validateIssueContent } from "./issueContent";
+import { validateDraftBlocks, validateMissionMetadata, validateNewsroomStateData } from "./contracts";
 
 // ── MISSIONS ─────────────────────────────────────────────────────────────────
 
@@ -12,6 +14,7 @@ export const startMission = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
+    validateMissionMetadata(args.metadata);
     return await ctx.db.insert("missions", {
       ...args,
       status: "running",
@@ -61,6 +64,17 @@ export const recordTokenUsage = mutation({
         totalTokens: prev.totalTokens + args.total,
       },
     });
+  },
+});
+
+// C5 (T-2.6.2): best-effort marker that a token-usage write was lost, so the
+// mission's recorded total is known to be partial rather than silently wrong.
+export const flagTelemetryGap = mutation({
+  args: { missionId: v.id("missions") },
+  handler: async (ctx, args) => {
+    const mission = await ctx.db.get(args.missionId);
+    if (!mission) return;
+    await ctx.db.patch(args.missionId, { tokenUsageIncomplete: true });
   },
 });
 
@@ -294,6 +308,7 @@ export const saveNewsroomState = mutation({
     key: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    validateNewsroomStateData(args.data);
     const key = args.key ?? "current";
     const existing = await ctx.db
       .query("newsroom_state")
@@ -317,6 +332,7 @@ export const publishIssue = mutation({
     content: v.any(),
   },
   handler: async (ctx, args) => {
+    validateIssueContent(args.content);
     await ctx.db.insert("issues", { ...args, published_at: Date.now() });
   },
 });
@@ -339,13 +355,41 @@ export const addItemToLatestIssue = mutation({
   args: {
     item: v.any(),
     layout: v.optional(v.any()),
+    storyId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Provenance enrichment (T-1.3.1): if the item carries no provenance yet but
+    // names its source story, derive a real source list from that story's
+    // signals. Claims stay empty for autonomous drafts (none were extracted) —
+    // honest by default, no fabrication.
+    let item = args.item;
+    if (args.storyId && !item?.provenance) {
+      const signals = await ctx.db
+        .query("signals")
+        .withIndex("by_storyId", (q) => q.eq("storyId", args.storyId as any))
+        .take(12);
+      if (signals.length > 0) {
+        item = {
+          ...item,
+          provenance: {
+            sources: signals.map((s) => ({
+              name: s.source,
+              url: s.url,
+              kind: "signal",
+              trustTier: s.sourceTrustTier,
+            })),
+            claims: [],
+            capturedAt: new Date().toISOString(),
+          },
+        };
+      }
+    }
+
     const latestIssue = await ctx.db.query("issues").order("desc").first();
 
     if (latestIssue) {
       const content = latestIssue.content;
-      const newItems = [args.item, ...(content.items || [])];
+      const newItems = [item, ...(content.items || [])];
 
       let newLayout = args.layout || content.layout || [];
 
@@ -354,13 +398,13 @@ export const addItemToLatestIssue = mutation({
         const blockType = newLayout.length === 0 ? "CoverStory" : (blockOptions[newLayout.length % blockOptions.length]);
 
         const newItemLayout = {
-          i: args.item.id,
+          i: item.id,
           x: 0, y: 0,
           w: 12,
           h: blockType === "CoverStory" ? 6 : 4,
           blockType,
-          headline: args.item.title,
-          data: args.item,
+          headline: item.title,
+          data: item,
         };
 
         const shiftY = newItemLayout.h;
@@ -370,26 +414,46 @@ export const addItemToLatestIssue = mutation({
         ];
       }
 
+      const nextContent = { ...content, items: newItems, layout: newLayout };
+      validateIssueContent(nextContent);
       await ctx.db.patch(latestIssue._id, {
-        content: { ...content, items: newItems, layout: newLayout },
+        content: nextContent,
       });
     } else {
       const initialLayout = [{
-        i: args.item.id, x: 0, y: 0, w: 12, h: 6,
+        i: item.id, x: 0, y: 0, w: 12, h: 6,
         blockType: "CoverStory",
-        headline: args.item.title,
-        data: args.item,
+        headline: item.title,
+        data: item,
       }];
 
+      const genesisContent = getGenesisIssueContent(item, initialLayout);
+      validateIssueContent(genesisContent);
       await ctx.db.insert("issues", {
         vol: "VOL. 1.0",
         theme: "THE GENESIS ISSUE",
         date: new Date().toISOString(),
         editor: "SYSTEM",
-        content: getGenesisIssueContent(args.item, initialLayout),
+        content: genesisContent,
         published_at: Date.now(),
       });
     }
+  },
+});
+
+/**
+ * Persist a layout-only reorder/resize of the latest issue's grid (T-1.2.3),
+ * so a manual rearrangement survives a reload instead of living in local state.
+ * Validated through the same issues.content boundary (T-1.2.6).
+ */
+export const updateLatestIssueLayout = mutation({
+  args: { layout: v.array(v.any()) },
+  handler: async (ctx, args) => {
+    const latestIssue = await ctx.db.query("issues").order("desc").first();
+    if (!latestIssue) return;
+    const nextContent = { ...latestIssue.content, layout: args.layout };
+    validateIssueContent(nextContent);
+    await ctx.db.patch(latestIssue._id, { content: nextContent });
   },
 });
 
@@ -401,6 +465,17 @@ export const addNewsCluster = mutation({
     cultural_context: v.optional(v.string()),
     missionId: v.optional(v.id("missions")),
     centroid_embedding: v.optional(v.array(v.float64())),
+    intentTrace: v.optional(v.object({
+      method: v.string(),
+      threshold: v.number(),
+      avgSimilarity: v.number(),
+      seedSignalId: v.optional(v.id("signals")),
+      members: v.array(v.object({
+        signalId: v.id("signals"),
+        title: v.string(),
+        similarity: v.number(),
+      })),
+    })),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("stories", {
@@ -428,7 +503,7 @@ export const updateNewsCluster = mutation({
 
 export const saveDraft = mutation({
   args: {
-    storyId: v.optional(v.string()),
+    storyId: v.optional(v.id("stories")),
     missionId: v.optional(v.id("missions")),
     headline: v.string(),
     deck: v.string(),
@@ -439,6 +514,7 @@ export const saveDraft = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    validateDraftBlocks(args.blocks);
     const recent = await ctx.db.query("drafts")
       .filter(q => q.eq(q.field("headline"), args.headline))
       .order("desc").first();
@@ -447,7 +523,7 @@ export const saveDraft = mutation({
     const { storyId, ...rest } = args;
     return await ctx.db.insert("drafts", {
       ...rest,
-      storyId: storyId as any,
+      storyId,
       status: args.status as "draft" | "review" | "published",
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -500,6 +576,23 @@ export const releaseDiscoveryLock = mutation({
       .withIndex("by_key", (q) => q.eq("key", "discovery_lock"))
       .unique();
     if (row) await ctx.db.patch(row._id, { data: { expiresAt: 0 }, updated_at: Date.now() });
+  },
+});
+
+// ── AUTONOMY PAUSE (U2) ──────────────────────────────────────────────────────
+// The Ops "Interrupt Flow" / "Resume Core" button toggles this persistent flag.
+// The circadian cron (runScheduledAutonomousRun) reads it and skips a sweep while
+// paused. Stored under its own newsroom_state key so it never clobbers "current".
+export const setAutonomyPaused = mutation({
+  args: { paused: v.boolean() },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const row = await ctx.db
+      .query("newsroom_state")
+      .withIndex("by_key", (q) => q.eq("key", "autonomy_control"))
+      .unique();
+    if (row) await ctx.db.patch(row._id, { data: { paused: args.paused }, updated_at: now });
+    else await ctx.db.insert("newsroom_state", { key: "autonomy_control", data: { paused: args.paused }, updated_at: now });
   },
 });
 

@@ -1,11 +1,10 @@
-/* eslint-disable */
-//@ts-nocheck
 import { GoogleGenAI } from "@google/genai";
 import { action } from "../../_generated/server";
 import { v } from "convex/values";
 import { api } from "../../_generated/api";
 import { Id } from "../../_generated/dataModel";
 import { MODELS } from "../../models";
+import { cosineSimilarity } from "../../../lib/vector";
 
 // Helper for Neural Synthesis
 const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, summary: string }> => {
@@ -96,7 +95,17 @@ export const checkSemanticSimilarity = action({
 // Scans orphan items and clusters them creatively using an LLM.
 export const discoverStories = action({
   args: { missionId: v.optional(v.id("missions")) },
-  handler: async (ctx, args) => {
+  // Explicit return type breaks the self-referential `api` inference cycle
+  // (TS7022/7023) that previously forced @ts-nocheck on this file (T-2.5.2).
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    processed: number;
+    newStories: number;
+    newStoryIds: Id<"stories">[];
+    skipped?: boolean;
+  }> => {
     // Dedup guard (A5): client `discoverStories` and the cron can fire concurrently
     // and produce duplicate story pillars. A short TTL lock lets only one run cluster
     // at a time; everything below runs inside try/finally so the lock always releases.
@@ -106,132 +115,109 @@ export const discoverStories = action({
       return { processed: 0, newStories: 0, newStoryIds: [], skipped: true };
     }
     try {
-    // 1. Fetch Orphans with High Innovation Potential
-    const orphans = await ctx.runQuery(api.newsroom.queries.getOrphanSignals, { limit: 60 });
-    
+    // 1. Fetch orphans WITH embeddings — deterministic clustering needs the vectors.
+    const orphans = await ctx.runQuery(api.newsroom.queries.getOrphanSignals, {
+      limit: 60,
+      includeEmbeddings: true,
+    });
     console.log(`[discoverStories] Found ${orphans.length} orphans for clustering.`);
 
-    if (orphans.length < 2) {
-      console.log("[discoverStories] Not enough orphans, aborting.");
+    // Only signals with a healthy embedding can be correlated deterministically.
+    const candidates = orphans.filter(
+      (o: any) => Array.isArray(o.embedding) && o.embedding.length > 0
+    );
+    if (candidates.length < 2) {
+      console.log("[discoverStories] Not enough embedded orphans, aborting.");
       return { processed: 0, newStories: 0, newStoryIds: [] };
     }
 
-    const signalsForPrompt = orphans.map(o => ({
-      id: o._id,
-      title: o.title,
-      summary: (o.content || "").slice(0, 300)
-    }));
+    // 2. DETERMINISTIC GROUPING (T-2.1.1): leader clustering by cosine similarity.
+    // Reproducible — given the same orphans (stable timestamp order) and threshold
+    // the same groups always form. No LLM decides *which* signals belong together.
+    const CLUSTER_THRESHOLD = 0.74;
+    const assigned = new Set<string>();
+    const groups: Array<{ members: any[]; sims: number[] }> = [];
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    if (!apiKey) {
-      console.error("[discoverStories] FATAL: Missing API Key.");
-      throw new Error("Missing Gemini API Key for Synthesis.");
-    }
-
-    const client = new GoogleGenAI({ 
-      apiKey,
-      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-    });
-
-    const prompt = `
-      You are 'The Board', the creative editorial engine of a high-fashion, high-impact publication ("Vogue meets Wired").
-      Analyze these ${signalsForPrompt.length} recent news signals.
-      Your task is to find non-obvious, high-level cultural or technological threads that connect seemingly disparate signals.
-      Be highly creative—derive new theses and broad trends. Group them into 1 to 3 "Pillars" (clusters).
-      
-      SIGNALS:
-      ${JSON.stringify(signalsForPrompt, null, 2)}
-      
-      Find up to 3 compelling thematic clusters. A cluster requires at least 2 distinct signals.
-      
-      CRITICAL: For 'signalIds', you MUST use the EXACT 'id' string from the SIGNALS array provided above. Do not invent IDs.
-      
-      Return a JSON array of clusters ONLY (no markdown formatting, no backticks, just raw JSON). Format:
-      [
-        {
-          "title": "Editorial Headline for the Pillar (Short, punchy)",
-          "summary": "Deep, analytical summary of the thesis connecting these specific signals (max 60 words)",
-          "signalIds": ["<exact string id>", "<exact string id>"]
+    for (let i = 0; i < candidates.length; i++) {
+      const seed = candidates[i];
+      if (assigned.has(seed._id)) continue;
+      const members = [seed];
+      const sims = [1];
+      for (let j = i + 1; j < candidates.length; j++) {
+        const cand = candidates[j];
+        if (assigned.has(cand._id)) continue;
+        const sim = cosineSimilarity(seed.embedding, cand.embedding);
+        if (sim >= CLUSTER_THRESHOLD) {
+          members.push(cand);
+          sims.push(sim);
+          assigned.add(cand._id);
         }
-      ]
-    `;
-
-    console.log(`[discoverStories] Sending ${signalsForPrompt.length} prompt instructions to Gemini 3.5 Flash...`);
-
-    let clusters;
-    let rawText = "";
-
-    try {
-      const result = await client.models.generateContent({
-        model: MODELS.text,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: { responseMimeType: "application/json" }
-      });
-      
-      rawText = result.text || "";
-      if (!rawText) throw new Error("Received empty response from Gemini.");
-      
-      const jsonStr = rawText.replace(/```json|```/g, '').trim();
-      console.log("[discoverStories] Gemini returned payload:", jsonStr);
-      clusters = JSON.parse(jsonStr);
-      
-    } catch (e) {
-      console.error(`[discoverStories] GEMINI SYNTHESIS FAILED. Raw Output was: ${rawText}`, e);
-      throw new Error(`Semantic Synthesis Failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      if (members.length >= 2) {
+        assigned.add(seed._id);
+        groups.push({ members, sims });
+      }
     }
+
+    console.log(`[discoverStories] Formed ${groups.length} deterministic groups (threshold ${CLUSTER_THRESHOLD}).`);
 
     let processedCount = 0;
     let newStoriesCount = 0;
     const newStoryIds: Id<"stories">[] = [];
-    const processedIds = new Set<string>();
 
-    for (const cluster of clusters) {
-      if (!cluster.signalIds || !Array.isArray(cluster.signalIds)) {
-        console.warn(`[discoverStories] Missing or invalid signalIds array in cluster:`, cluster);
-        continue;
+    for (const { members, sims } of groups) {
+      // Centroid = mean of member embeddings (fills centroid_embedding, G4/T-2.2.1).
+      const dim = members[0].embedding.length;
+      const centroid = new Array(dim).fill(0);
+      for (const m of members) {
+        for (let d = 0; d < dim; d++) centroid[d] += m.embedding[d];
       }
-      
-      // Ensure no duplicates and only valid IDs
-      const validIds = cluster.signalIds.filter((id: string) => 
-        typeof id === 'string' && 
-        signalsForPrompt.some(s => s.id === id) &&
-        !processedIds.has(id)
-      );
+      for (let d = 0; d < dim; d++) centroid[d] /= members.length;
 
-      if (validIds.length < 2) {
-        console.warn(`[discoverStories] Cluster '${cluster.title}' rejected. Only ${validIds.length} valid distinct orphans found. Payload IDs: ${cluster.signalIds}`);
-        continue;
-      }
+      // 3. LLM ONLY NAMES the deterministic group (T-2.1.2) — never decides membership.
+      const { title, summary } = await synthesizeWithGemini(members);
 
-      console.log(`[discoverStories] Creating News Cluster '${cluster.title}' with ${validIds.length} signals.`);
+      // 4. Intent-trace (T-2.1.3): the explainable record of *why* these grouped.
+      const avgSimilarity = sims.reduce((a, b) => a + b, 0) / sims.length;
+      const intentTrace = {
+        method: "embedding-cosine-leader",
+        threshold: CLUSTER_THRESHOLD,
+        avgSimilarity,
+        seedSignalId: members[0]._id as Id<"signals">,
+        members: members.map((m: any, k: number) => ({
+          signalId: m._id as Id<"signals">,
+          title: m.title as string,
+          similarity: sims[k],
+        })),
+      };
 
       try {
         const storyId = await ctx.runMutation(api.newsroom.mutations.addNewsCluster, {
-           title: cluster.title || "Emerging Cultural Pivot",
-           summary: cluster.summary || "A newly detected shift bridging disparate technological signals.",
-           keyEntities: [],
-           missionId: args.missionId,
+          title: title || "Emerging Cultural Pivot",
+          summary: summary || "A newly detected shift bridging related signals.",
+          keyEntities: [],
+          missionId: args.missionId,
+          centroid_embedding: centroid,
+          intentTrace,
         });
-
-        for (const id of validIds) {
+        for (const m of members) {
           await ctx.runMutation(api.newsroom.mutations.updateSignalStory, {
-            id: id as Id<"signals">,
-            storyId
+            id: m._id as Id<"signals">,
+            storyId,
           });
-          processedIds.add(id);
           processedCount++;
         }
         newStoriesCount++;
         newStoryIds.push(storyId);
-        console.log(`[discoverStories] Successfully formed News Cluster '${cluster.title}' [ID: ${storyId}]`);
+        console.log(`[discoverStories] Formed pillar '${title}' [${storyId}] from ${members.length} signals (avg sim ${avgSimilarity.toFixed(3)}).`);
       } catch (mutationErr) {
-        console.error(`[discoverStories] FATAL ERRROR forming News Cluster '${cluster.title}':`, mutationErr);
-        throw new Error(`Failed to commit cluster to database: ${mutationErr instanceof Error ? mutationErr.message : String(mutationErr)}`);
+        console.error(`[discoverStories] FATAL forming cluster:`, mutationErr);
+        throw new Error(`Failed to commit cluster: ${mutationErr instanceof Error ? mutationErr.message : String(mutationErr)}`);
       }
     }
 
-    console.log(`[discoverStories] Clustering complete. Formed ${newStoriesCount} Pillars from ${processedCount} orphans.`);
-    return { processed: processedCount, newStories: newStoriesCount, newStoryIds, debugClusters: clusters, debugIds: signalsForPrompt.map(s => s.id) };
+    console.log(`[discoverStories] Clustering complete. Formed ${newStoriesCount} pillars from ${processedCount} signals.`);
+    return { processed: processedCount, newStories: newStoriesCount, newStoryIds };
     } finally {
       await ctx.runMutation(api.newsroom.mutations.releaseDiscoveryLock, {});
     }

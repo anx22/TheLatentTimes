@@ -4,27 +4,34 @@ import { api } from "../frontendApi";
 type Id<T extends string> = string;
 import { Signal, SystemLog, GeneratedArticle } from '../types';
 
-export const useNewsroomData = () => {
-  // Queries
-  const rawSignals = useQuery(api.newsroom.queries.getSignals, {});
+/**
+ * @param isActive  When false (the Ops cockpit is closed) every live query is
+ *   skipped, so the public magazine page opens zero newsroom subscriptions
+ *   (T-1.2.7). No public component reads this context; the reader grid gets its
+ *   issue from App's own `getLatestIssue`. Queries reactivate the moment Ops
+ *   opens. `"skip"` is Convex's documented no-subscription sentinel.
+ */
+export const useNewsroomData = (isActive: boolean = false) => {
+  // Queries (skipped while the cockpit is closed)
+  const rawSignals = useQuery(api.newsroom.queries.getSignals, isActive ? {} : "skip");
   const signals = useMemo(() => (rawSignals || []) as Signal[], [rawSignals]);
-  const newsClusters = useQuery(api.newsroom.queries.getNewsClusters, {}) || [];
-  const logs = (useQuery(api.newsroom.queries.getAgentLogs, {}) || []) as SystemLog[];
-  const dbSourcesResult = useQuery(api.newsroom.queries.getSources, {});
+  const newsClusters = useQuery(api.newsroom.queries.getNewsClusters, isActive ? {} : "skip") || [];
+  const logs = (useQuery(api.newsroom.queries.getAgentLogs, isActive ? {} : "skip") || []) as SystemLog[];
+  const dbSourcesResult = useQuery(api.newsroom.queries.getSources, isActive ? {} : "skip");
   const dbSources = useMemo(() => dbSourcesResult || [], [dbSourcesResult]);
-  const persistedState = useQuery(api.newsroom.queries.getNewsroomStateByKey, { key: "current" });
-  const latestIssue = useQuery(api.newsroom.queries.getLatestIssue);
-  const drafts = useQuery(api.newsroom.queries.getAllDrafts, {}) || [];
-  const activeWorkbenchSession = useQuery(api.newsroom.queries.getActiveWorkbenchSession, {});
-  const storyAngles = useQuery(api.newsroom.queries.getStoryAngles, { workbenchId: activeWorkbenchSession?._id }) || [];
+  const persistedState = useQuery(api.newsroom.queries.getNewsroomStateByKey, isActive ? { key: "current" } : "skip");
+  const latestIssue = useQuery(api.newsroom.queries.getLatestIssue, isActive ? {} : "skip");
+  const drafts = useQuery(api.newsroom.queries.getAllDrafts, isActive ? {} : "skip") || [];
+  const activeWorkbenchSession = useQuery(api.newsroom.queries.getActiveWorkbenchSession, isActive ? {} : "skip");
+  const storyAngles = useQuery(api.newsroom.queries.getStoryAngles, isActive ? { workbenchId: activeWorkbenchSession?._id } : "skip") || [];
 
   // Local IDs for Draft/Image (Persisted)
   const [draftId, setDraftId] = useState<Id<"drafts"> | null>(null);
   const [imageId, setImageId] = useState<Id<"images"> | null>(null);
 
   // Detail Queries
-  const draft = (useQuery(api.newsroom.queries.getDraftById, { id: draftId ?? undefined }) || null) as GeneratedArticle | null;
-  const imageRecord = useQuery(api.newsroom.queries.getImageById, { id: imageId ?? undefined });
+  const draft = (useQuery(api.newsroom.queries.getDraftById, isActive ? { id: draftId ?? undefined } : "skip") || null) as GeneratedArticle | null;
+  const imageRecord = useQuery(api.newsroom.queries.getImageById, isActive ? { id: imageId ?? undefined } : "skip");
   const image = imageRecord ? imageRecord.url : null;
 
   // Mutations

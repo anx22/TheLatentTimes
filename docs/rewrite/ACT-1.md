@@ -130,3 +130,34 @@ publiziert, **ohne ein einziges Schein-Element**, mit sichtbarer Provenienz.
 - **Files:** `components/MagazineGrid.tsx`/`components/ArticleDetail.tsx`, Datenherkunft aus `signals.storyId` + Legal-Claims (`ThreeZonePipeline`-Flow).
 - **Acceptance:** Jeder publizierte Artikel zeigt nachvollziehbar Quellen + Kernbehauptungen.
 - **Depends:** T-1.2.5, T-1.1.3
+
+---
+
+## Slice 4 — Operator Cockpit (UI/UX) *(Mensch-Priorität; Lücke G7)*
+> **Abgrenzung:** *nicht* das Zeitungs-Produkt-Design (T-1.2.0 / Akt III „Visual Supremacy") und *nicht* der
+> öffentliche Cinematic Newsroom (T-3.1.x, Zuschauer-Bühne). Hier geht es um die **Bedien-Oberfläche, mit der
+> der Operator täglich arbeitet** — Navigation, Informationshierarchie, Konsistenz, Zustände. Auf Mensch-Wunsch
+> aufgenommen, weil die Cockpit-UX im Masterplan zwischen Produkt-Design und Schauspiel durchfiel (COVERAGE G7).
+
+### T-1.4.0 — Cockpit-UX-Audit + Richtungsentscheid ✅
+- **What:** Strukturierter Audit der Operator-UI; Schwächen priorisiert + Richtung entschieden.
+- **Ergebnis:** `docs/rewrite/UI-AUDIT.md`. **Richtungsentscheid (Mensch):** Das Redesign **unterwirft sich kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Akzente Crimson/Emerald, Swiss × Vogue) — bleibt aber **funktional strikt auf den vorhandenen Logiken & High-Level-Flows** (Step-Machine, fünf Räume, Pipelines, Daten-Wiring unverändert). Mutig visuell, konservativ funktional.
+- **Acceptance:** erfüllt.
+
+### T-1.4.1 — Editorial-Token-Fundament + Primitives
+- **What:** Token-System vervollständigen (Crimson-/Emerald-Akzente ergänzen; Paper/Ink/Muted + Playfair/Inter/Mono existieren bereits in `tailwind.config.js`/`index.html`). Die `NewsroomUI`-Primitives (`NewsroomButton/Label/Panel`, Cards) + ein neuer `EmptyState` auf die editoriale Grammatik umskinnen — eine Quelle der Wahrheit.
+- **Files:** `tailwind.config.js`, `components/newsroom-v2/NewsroomUI.tsx`, ggf. `index.css`.
+- **Acceptance:** Primitives spiegeln die editoriale Grammatik; Konsumenten erben sie automatisch.
+- **Depends:** T-1.4.0
+
+### T-1.4.2 — Shell + Navigation umskinnen *(sichtbarer Checkpoint)*
+- **What:** `App`-Shell + `NewsroomFloor` (Masthead, Tab-Nav, Orientierung/Breadcrumb, Error-Banner) auf die Grammatik; Standby-Sackgasse + unklare Zurück-Navigation beheben. Logik/Flows unverändert.
+- **Files:** `App.tsx`, `components/newsroom-v2/NewsroomFloor.tsx`.
+- **Acceptance:** Shell trägt die editoriale Grammatik; `dev`-Preview-Checkpoint für Mensch-Feedback **vor** dem Raum-Rollout.
+- **Depends:** T-1.4.1
+
+### T-1.4.3 — Räume umskinnen + Ausführungs-Defekte ①–⑧
+- **What:** Raum für Raum (Wire/`ThreeZonePipeline`, `TheBullpen`, `TheDarkroom`, `PrintingPress`, `AutonomousPipeline`, `ObservabilityDashboard`, `SignalSourcingBar`) auf die Grammatik; dabei Audit-Defekte fixen: Responsivität, Mikro-Text-Dichte, hand-gebaute Buttons → Primitives, `<div onClick>` → `<button>`, Empty/Error-States, A11y. Funktion/Flows erhalten.
+- **Files:** `components/newsroom-v2/*`.
+- **Acceptance:** Jeder Raum folgt der Grammatik; ①–⑧ adressiert; kein Flow gebrochen.
+- **Depends:** T-1.4.2

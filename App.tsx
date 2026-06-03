@@ -130,6 +130,7 @@ const App: React.FC = () => {
   
   const latestIssue = useQuery(api.newsroom.queries.getLatestIssue);
   const addItemMutation = useMutation(api.newsroom.mutations.addItemToLatestIssue);
+  const updateLayoutMutation = useMutation(api.newsroom.mutations.updateLatestIssueLayout);
 
   useEffect(() => {
     if (latestIssue !== undefined) {
@@ -160,8 +161,13 @@ const App: React.FC = () => {
 
   const handleManualLayoutChange = async (newLayout: LayoutItem[]) => {
       setIssue(prev => ({ ...prev, layout: newLayout }));
-      // We could also add a dedicated mutation for layout-only updates if needed
-      // For now, it updates locally and will be saved on the next addition or state save
+  };
+
+  // Persist a finished editor reorder/resize so it survives a reload (T-1.2.3).
+  // MagazineGrid only invokes this for editors, on drag/resize stop.
+  const handlePersistLayout = async (newLayout: LayoutItem[]) => {
+      setIssue(prev => ({ ...prev, layout: newLayout }));
+      await updateLayoutMutation({ layout: newLayout });
   };
 
   const handleSelectIssue = async (selectedIssue: any) => {
@@ -175,7 +181,7 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>
-    <NewsroomProvider onPublish={handlePublishItem}>
+    <NewsroomProvider onPublish={handlePublishItem} isActive={showNewsroom}>
       <div className="min-h-screen bg-[#faf9f6] text-foreground font-sans selection:bg-accent selection:text-white pb-32">
          
          {/* 1. GLOBAL SYSTEM HEADER (Controls) */}
@@ -207,10 +213,11 @@ const App: React.FC = () => {
          {/* 3. CONTENT LAYER */}
          <div className="pt-16">
            {issue.layout && issue.layout.length > 0 ? (
-             <MagazineGrid 
-               layout={issue.layout} 
+             <MagazineGrid
+               layout={issue.layout}
                onLayoutChange={handleManualLayoutChange}
-               onItemClick={setSelectedItem} 
+               onPersistLayout={handlePersistLayout}
+               onItemClick={setSelectedItem}
              />
            ) : (
              <MainNewspaper items={issue.items || []} onItemClick={setSelectedItem} />
@@ -228,10 +235,11 @@ const App: React.FC = () => {
          {/* Floating Toggle (Backup access) */}
          {!showNewsroom && session && (
              <div className="fixed bottom-6 right-6 z-50">
-                 <button 
+                 <button
                       onClick={() => setShowNewsroom(true)}
-                      className="bg-black text-white w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-2xl hover:scale-110 transition-transform"
+                      className="bg-ink text-paper w-12 h-12 rounded-full flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.15em] shadow-2xl hover:scale-110 hover:bg-crimson transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-crimson/40"
                       title="Open Redaktion"
+                      aria-label="Open newsroom"
                  >
                      Ops
                  </button>

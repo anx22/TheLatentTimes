@@ -1,5 +1,3 @@
-/* eslint-disable */
-//@ts-nocheck
 import { GoogleGenAI } from "@google/genai";
 import { action } from "../../_generated/server";
 import { api } from "../../_generated/api";
@@ -109,6 +107,17 @@ export const runScheduledAutonomousRun = action({
     if (state?.activeMethodology !== "autonomous") {
       console.log("[SYSTEM] Background sweep skipped: Autonomy methodology is off.");
       return "skipped";
+    }
+
+    // B. Honour the operator pause switch (U2). The Ops "Interrupt Flow" button
+    // writes this flag; while paused the circadian sweep must not run.
+    const control: any = await ctx.runQuery(
+      api.newsroom.queries.getNewsroomStateByKey,
+      { key: "autonomy_control" }
+    );
+    if (control?.paused === true) {
+      console.log("[SYSTEM] Background sweep skipped: autonomy paused by operator.");
+      return "paused";
     }
 
     console.log("[SYSTEM] Global Autonomy Core activated. Commencing newsroom pipeline...");

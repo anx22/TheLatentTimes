@@ -1,5 +1,5 @@
 import { agentRewriteBlock, agentRewriteSentence, agentCriticsCorner, agentLayoutDesigner, agentPromptEnhancer } from '../services/agents';
-import { MagazineItem } from '../types';
+import { MagazineItem, ArticleProvenance, ProvenanceSource, ProvenanceClaim, Claim } from '../types';
 
 export const usePublicationFlow = (
   data: any,
@@ -10,7 +10,7 @@ export const usePublicationFlow = (
   addLog: (agent: string, message: string, level?: any) => void
 ) => {
   const { mutations, setDraftId, draft, image, persistedState, latestIssue } = data;
-  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId } = ui;
+  const { setError, setIsPolishing, setStep, setIsRewriting, context, editorialLens, globalDirective, setIsEnhancing, visualStyle, atelierState, setActiveMissionId, isLegalGuardrailsEnabled, seedArticle, similarityReport, extractedClaims, evidencePack } = ui;
 
   const rewriteBlock = async (blockId: string, instruction: string, sentenceId?: string) => {
     if (!draft || !draft.blocks) return;
@@ -105,7 +105,24 @@ export const usePublicationFlow = (
       setError("Cannot publish: Draft or Image missing.");
       return;
     }
-    
+
+    // Legal gate (U3): when guardrails are on AND this draft was built from a
+    // seed source, the UrhG copy-distance audit must have actually passed before
+    // we publish. Previously the audit only logged PASSED/FAILED and never
+    // blocked anything. Drafts with no seed have no source to copy, so the gate
+    // does not apply; the guardrails toggle is the human's explicit opt-out.
+    if (isLegalGuardrailsEnabled && seedArticle) {
+      if (!similarityReport) {
+        setError("Legal gate: run the UrhG similarity audit before publishing a seed-based draft.");
+        return;
+      }
+      if (similarityReport.score < 70) {
+        addLog('THE COMPLIANCE', `Publication BLOCKED — UrhG safety distance ${similarityReport.score}% (FAILED).`, 'error');
+        setError(`Legal gate blocked publication: copycat safety distance ${similarityReport.score}% (< 70%). ${similarityReport.recommendation || 'Refine the draft to raise originality, then re-run the audit.'}`);
+        return;
+      }
+    }
+
     const mission = await missionRegistry.start('editorial', 'Final Publication');
     setActiveMissionId(mission.id);
     try {
@@ -117,6 +134,33 @@ export const usePublicationFlow = (
 
       const publicComments = await agentCriticsCorner(draft.headline, draft.deck, draft.body.substring(0, 500), mission.id);
 
+      // Provenance snapshot (T-1.3.1): the real seed + independent sources and the
+      // atomic claims this draft was built on. Never fabricated — only what the
+      // ThreeZone flow actually gathered. Absent fields stay absent (honest).
+      const provenanceSources: ProvenanceSource[] = [];
+      if (seedArticle) {
+        provenanceSources.push({
+          name: seedArticle.source || seedArticle.sourcePack || 'Seed source',
+          url: seedArticle.url,
+          kind: 'seed',
+          trustTier: seedArticle.sourceTrustTier,
+        });
+      }
+      for (const s of evidencePack?.sources || []) {
+        if (s?.title || s?.url) provenanceSources.push({ name: s.title || s.url, url: s.url, kind: 'independent' });
+      }
+      const provenanceClaims: ProvenanceClaim[] = (extractedClaims || []).map((c: Claim) => ({
+        text: c.claimText,
+        sourceName: c.sourceName,
+        sourceUrl: c.sourceUrl,
+        confidence: c.confidence,
+        claimType: c.claimType,
+      }));
+      const provenance: ArticleProvenance | undefined =
+        (provenanceSources.length || provenanceClaims.length)
+          ? { sources: provenanceSources, claims: provenanceClaims, capturedAt: new Date().toISOString() }
+          : undefined;
+
       const newItem: MagazineItem = {
         id: Math.random().toString(36).substring(7),
         title: prep.title!,
@@ -127,10 +171,10 @@ export const usePublicationFlow = (
         hero_image_url: prep.hero_image_url!,
         status: 'published',
         featured_level: 'none',
-        score: { final: 8, recency: 10, trust: 8, novelty: 8, visual_fit: 9 },
         body: prep.body!,
         blocks: prep.blocks!,
-        public_comments: publicComments
+        public_comments: publicComments,
+        ...(provenance ? { provenance } : {}),
       };
 
       const currentLayout = latestIssue?.content?.layout || [];

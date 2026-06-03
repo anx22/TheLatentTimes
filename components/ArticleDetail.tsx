@@ -17,6 +17,7 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({ item, onClose }) =
   const imageUrl = data?.hero_image_url || 'https://picsum.photos/1200/800?random=detail';
   const tags = data?.tags || ['EDITORIAL', 'SYSTEM'];
   const date = data?.published_at ? new Date(data.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : "MARCH 2026";
+  const provenance = data?.provenance;
 
   const [comments, setComments] = useState(data?.public_comments || []);
   const [replyingIdx, setReplyingIdx] = useState<number | null>(null);
@@ -212,13 +213,70 @@ export const ArticleDetail: React.FC<ArticleDetailProps> = ({ item, onClose }) =
               </div>
             )}
 
+            {/* Provenance — Glass-Box (T-1.3.1): real sources + atomic claims,
+                captured at publish. Never fabricated; honest empty state if absent. */}
             <div className="pt-8 border-t border-zinc-100">
-               <div className="text-[8px] font-mono text-zinc-400 uppercase tracking-widest mb-2">Technical Specs</div>
-               <div className="space-y-1 text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
-                  <div>LATENT_MODEL: GEMINI-3-FLASH</div>
-                  <div>DIALOGUE_ENGINE: ATOMIC_CONVERSE</div>
-                  <div>OBSERVABILITY: MISSIONS_V2</div>
-               </div>
+               <div className="text-[8px] font-mono text-zinc-400 uppercase tracking-widest mb-3">Provenance</div>
+
+               {provenance ? (
+                 <div className="space-y-6">
+                   {/* Sources */}
+                   <div>
+                     <div className="text-[8px] font-mono font-bold text-black uppercase tracking-widest mb-2">
+                       Sources {provenance.sources.length > 0 && <span className="text-zinc-400">· {provenance.sources.length}</span>}
+                     </div>
+                     {provenance.sources.length > 0 ? (
+                       <ul className="space-y-2">
+                         {provenance.sources.map((s, i) => (
+                           <li key={i} className="text-[9px] font-mono text-zinc-600 leading-snug">
+                             <span className="inline-block border border-zinc-300 text-zinc-500 px-1 mr-1.5 align-middle uppercase tracking-wider text-[7px]">
+                               {s.kind}
+                             </span>
+                             {s.url ? (
+                               <a href={s.url} target="_blank" rel="noreferrer" className="underline decoration-zinc-300 hover:decoration-black break-words">
+                                 {s.name}
+                               </a>
+                             ) : (
+                               <span className="break-words">{s.name}</span>
+                             )}
+                             {s.trustTier && <span className="text-zinc-400"> · {s.trustTier}</span>}
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <div className="text-[8px] font-mono text-zinc-400 italic">No sources recorded.</div>
+                     )}
+                   </div>
+
+                   {/* Atomic Claims */}
+                   <div>
+                     <div className="text-[8px] font-mono font-bold text-black uppercase tracking-widest mb-2">
+                       Atomic Claims {provenance.claims.length > 0 && <span className="text-zinc-400">· {provenance.claims.length}</span>}
+                     </div>
+                     {provenance.claims.length > 0 ? (
+                       <ul className="space-y-3">
+                         {provenance.claims.map((c, i) => (
+                           <li key={i} className="text-[9px] font-mono text-zinc-600 leading-snug">
+                             <span className="text-zinc-300 mr-1">▪</span>
+                             {c.text}
+                             {(c.sourceName || typeof c.confidence === 'number') && (
+                               <span className="block mt-0.5 text-[7px] text-zinc-400 uppercase tracking-wider pl-3">
+                                 {c.sourceName}{typeof c.confidence === 'number' ? ` · ${Math.round(c.confidence * 100)}%` : ''}
+                               </span>
+                             )}
+                           </li>
+                         ))}
+                       </ul>
+                     ) : (
+                       <div className="text-[8px] font-mono text-zinc-400 italic">No atomic claims extracted for this dispatch.</div>
+                     )}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="text-[8px] font-mono text-zinc-400 italic leading-relaxed">
+                   Provenance was not recorded for this dispatch.
+                 </div>
+               )}
             </div>
           </aside>
         </div>

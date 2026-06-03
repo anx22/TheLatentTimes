@@ -41,12 +41,22 @@
 **Choice** → 5-file backbone (AGENTS root; `docs/{PRODUCT,ARCHITECTURE,NOW,DECISIONS}`); rewrite hub at `docs/rewrite/`. Only `AGENTS.md` + `README.md` (GitHub landing) in root; everything else under `docs/`. One source per fact. Added `docs/CODEBASE_MAP.md`. Retired `CODEBASE_ANALYSIS.md` + `EMERGENCY_FIXES.md` (value extracted).
 **Reason** → Eliminate the overlap that causes documentation drift.
 
+### [2026-06-03] Validated boundaries — write-site validators, not strict table schemas (T-1.2.6, T-2.5.1)
+**Problem** → Core objects were typed `v.any()` (`issues.content`, `drafts.blocks`, `missions.metadata`, `newsroom_state.data`). Swapping each to a strict Convex *table* validator looked obvious but is unsafe: the stored shapes diverge from the TS types (e.g. `getGenesisIssueContent` writes a `ticker` field no type declares) and `newsroom_state.data` is genuinely polymorphic per key (`current` UI blob / `discovery_lock` / `autonomy_control`). A strict `v.object` rejects any extra field, so it would break legacy patches and valid writes.
+**Choice** → Keep the table fields `v.any()` and assert the **structural contract at each write boundary** instead, via small validators (`convex/newsroom/issueContent.ts`, `convex/newsroom/contracts.ts`) wired into the mutations. They check only what consumers rely on (e.g. blocks are `{id, sentences:[{id,text}]}`, content has object `meta`/`cover` and array `items`/`layout` with `i,x,y,w,h`) and tolerate extra/evolving fields. `drafts.storyId` *was* tightened to a real `v.id("stories")` FK because its values are provably real ids.
+**Reason** → Real rejection of malformed data without the fragility of strict table schemas on loose, LLM-authored, evolving blobs. Consumers (reader grid, dashboard) can rely on the contract; unknown future fields don't break writes.
+
+### [2026-06-03] Explainable Wire — deterministic clustering, LLM only names (T-2.1.1/2/3, audit A2)
+**Problem** → `discoverStories` handed orphan signals to an LLM and asked it to *invent* the groupings (which signals belong together) — non-reproducible, unexplainable "Authority via aggregation guesswork". (Flagged [2026-05-31] as to-be-reverted.)
+**Choice** → Group **deterministically** by embedding cosine similarity (leader clustering, threshold 0.74) over orphans that carry a healthy 3072-dim vector; the LLM (`synthesizeWithGemini`) only **names** each group (title/summary). Each story stores an `intentTrace` (method/threshold/avg + per-member cosine to the seed) explaining *why* the signals grouped, surfaced via `getNewsClusters`. The group centroid (mean embedding) fills `stories.centroid_embedding` (basis for the future Latent Space map).
+**Reason** → Reproducible + explainable grouping (same input + threshold → same clusters); the LLM is confined to the task it is actually good at (naming), and provenance of the grouping decision is recorded, not hand-waved.
+
 ---
 
 ## Recent operational (condensed)
 
 - **[2026-05-31] Production connection & soft-wall** → pinned regional `VITE_CONVEX_URL` in `netlify.toml`; plain `npm run build` (dev-key 403'd on `convex deploy`); fixed cron crash A1 (`completeMission` arg) + drafting A2 (`getStory`); read-usage −90% (strip embeddings, logs 300→50); password-only server-verified newsroom auth with single read-only choke-point in `NewsroomContext`; model aliases centralized.
-- **[2026-05-31] Generative semantic clustering** → ⚠️ **SUPERSEDED (2026-06-01)**: had switched `discoverStories` to a single generative Gemini sweep. *Rewrite Akt II reverts to explainable/hybrid:* deterministic vector correlation for grouping, LLM only for naming (Authority over Aggregation).
+- **[2026-05-31] Generative semantic clustering** → ⚠️ **SUPERSEDED → now implemented (2026-06-03)**: had switched `discoverStories` to a single generative Gemini sweep; replaced by deterministic vector correlation for grouping with the LLM only naming (see the [2026-06-03] Explainable Wire decision above).
 - **[2026-05-31] Loud error boundaries** → stripped silent catches; pinned `gemini-3-flash-preview` (the `gemini-3.5-flash` alias 404'd). Pipelines must crash loudly.
 - **[2026-05-31] Magazine grid injection** → `addItemToLatestIssue` injects approved articles at `y=0`, shifts others down (were vanishing into grid holes).
 - **[2026-05-31] Convex actions split** → `actions.ts` → `actions/{clustering,fetch,autonomous}.ts` (re-export shim). **Mutations split REVERTED** (`5399c67`): sub-files re-triggered TS2589 → `mutations.ts` stays flat. Seed data isolated to `seedData.ts`.
