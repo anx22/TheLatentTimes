@@ -173,7 +173,10 @@ export const getSources = query({
 export const getNewsClusters = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const limit = 1;
+    // C4 (T-2.2.2): respect the caller's limit instead of hardcoding 1, which
+    // silently collapsed the Wire's cluster view to a single story. Stories are
+    // few (a handful of pillars), so a default of 20 is cheap.
+    const limit = args.limit ?? 20;
     const stories = await ctx.db
       .query("stories")
       .withIndex("by_lastUpdatedAt")

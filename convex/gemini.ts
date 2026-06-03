@@ -46,9 +46,17 @@ const recordUsage = async (
       total: usage.totalTokenCount || 0,
     });
   } catch (e) {
-    // Mission may not exist or have been completed — never block the
-    // generation path because of telemetry bookkeeping.
+    // Never block the generation path because of telemetry bookkeeping — but
+    // don't silently swallow either (C5/T-2.6.2): mark the mission so the
+    // dashboard shows its token total as partial, and still log for the server.
     console.warn("[GEMINI] recordTokenUsage failed", e);
+    try {
+      await ctx.runMutation(api.newsroom.mutations.flagTelemetryGap, {
+        missionId: missionId as any,
+      });
+    } catch (flagErr) {
+      console.warn("[GEMINI] flagTelemetryGap also failed", flagErr);
+    }
   }
 };
 

@@ -119,6 +119,10 @@ export default defineSchema({
       completionTokens: v.number(),
       totalTokens: v.number(),
     })),
+    // C5 (T-2.6.2): set when a token-usage write failed, so the dashboard can
+    // honestly flag the recorded total as partial instead of presenting a
+    // silently-wrong sum as authoritative.
+    tokenUsageIncomplete: v.optional(v.boolean()),
     error: v.optional(v.string()),
     resultId: v.optional(v.string()), // e.g. draftId or storyId
   }).index("by_startedAt", ["startedAt"]),

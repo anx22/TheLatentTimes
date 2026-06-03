@@ -65,6 +65,17 @@ export const recordTokenUsage = mutation({
   },
 });
 
+// C5 (T-2.6.2): best-effort marker that a token-usage write was lost, so the
+// mission's recorded total is known to be partial rather than silently wrong.
+export const flagTelemetryGap = mutation({
+  args: { missionId: v.id("missions") },
+  handler: async (ctx, args) => {
+    const mission = await ctx.db.get(args.missionId);
+    if (!mission) return;
+    await ctx.db.patch(args.missionId, { tokenUsageIncomplete: true });
+  },
+});
+
 export const failMission = mutation({
   args: {
     missionId: v.id("missions"),
