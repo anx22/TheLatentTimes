@@ -12,9 +12,10 @@ Polisher (tone) → Photographer (assets) → Designer (layout).
 ## Code surface
 - `services/agents/*` — 18 client agents (one fn each); proxy Gemini via `services/gemini.ts` →
   `convex/gemini.ts` (server transport). Canonical list: `services/agents/index.ts`.
-  ⚠️ Several dormant (`agentPersonaSpeak/SeedExplorer/LayoutDesigner`) — see TRACKING `A4`.
-  ⚠️ The autonomous cron (`convex/newsroom/actions/autonomousActions.ts`) re-implements the chain
-  server-side with inline prompts — duplicate "truth". Being unified (rewrite Akt I).
+  ⚠️ Several dormant (`agentPersonaSpeak/SeedExplorer/LayoutDesigner`) — see TRACKING `A4` / `T-2.1.4`.
+  ✅ The autonomous cron (`convex/newsroom/actions/autonomousActions.ts`) now reuses the shared layer
+  (`EditorialOrchestrator` + the same agents), not inline prompts — one brain (T-1.1.2). Clustering in
+  `actions/clusteringActions.ts` is deterministic (embedding cosine), LLM only names (T-2.1.1/2).
 - `services/`: `editorial` (EditorialOrchestrator) · `signals` (SignalBroker) · `visual` (AtelierEngine) ·
   `publication` (PublicationOrchestrator) · `mission` (telemetry).
 - Backend `convex/`: `schema.ts`, `queries.ts`, `mutations.ts` (**flat**, TS2589), `actions/`, `gemini.ts`, `crons.ts`.
