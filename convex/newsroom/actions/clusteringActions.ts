@@ -1,5 +1,3 @@
-/* eslint-disable */
-//@ts-nocheck
 import { GoogleGenAI } from "@google/genai";
 import { action } from "../../_generated/server";
 import { v } from "convex/values";
@@ -96,7 +94,19 @@ export const checkSemanticSimilarity = action({
 // Scans orphan items and clusters them creatively using an LLM.
 export const discoverStories = action({
   args: { missionId: v.optional(v.id("missions")) },
-  handler: async (ctx, args) => {
+  // Explicit return type breaks the self-referential `api` inference cycle
+  // (TS7022/7023) that previously forced @ts-nocheck on this file (T-2.5.2).
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    processed: number;
+    newStories: number;
+    newStoryIds: Id<"stories">[];
+    skipped?: boolean;
+    debugClusters?: any;
+    debugIds?: string[];
+  }> => {
     // Dedup guard (A5): client `discoverStories` and the cron can fire concurrently
     // and produce duplicate story pillars. A short TTL lock lets only one run cluster
     // at a time; everything below runs inside try/finally so the lock always releases.
