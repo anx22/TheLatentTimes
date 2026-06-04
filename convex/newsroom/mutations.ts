@@ -563,6 +563,13 @@ export const saveDraft = mutation({
     tags: v.optional(v.array(v.string())),
     suggested_visual_prompt: v.optional(v.string()),
     status: v.string(),
+    provenanceChain: v.optional(v.object({
+      storyId: v.optional(v.id("stories")),
+      sourceSignalIds: v.array(v.id("signals")),
+      debateTranscriptId: v.optional(v.id("debate_transcripts")),
+      chosenLens: v.optional(v.string()),
+      capturedAt: v.number(),
+    })),
   },
   handler: async (ctx, args) => {
     validateDraftBlocks(args.blocks);

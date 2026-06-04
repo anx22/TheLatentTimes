@@ -252,7 +252,7 @@ export const runScheduledAutonomousRun = action({
           await log("THE BOARD", `Convening editorial board on: "${story.title}"`, "EDITORIAL_BOARD", "action");
           const { angles, transcript, rounds } = await orchestrator.conductDebate(story.title, story.summary || "", missionId);
           // T-2.3.1: persist the real multi-round debate behind this story.
-          await ctx.runMutation(api.newsroom.mutations.saveDebateTranscript, {
+          const debateTranscriptId = await ctx.runMutation(api.newsroom.mutations.saveDebateTranscript, {
             storyId: targetStoryId,
             missionId,
             topic: story.title,
@@ -265,6 +265,12 @@ export const runScheduledAutonomousRun = action({
 
           await log("THE COLUMNIST", `Drafting structured prose for "${story.title}"...`, "EDITORIAL_BOARD", "action");
           const { article } = await orchestrator.produceDraft(story.title, story.summary || "", lens, 400, missionId);
+
+          // T-2.4.1: assemble the full provenance chain — the signals behind the
+          // story (from the intent-trace), the debate that shaped it, the lens chosen.
+          const sourceSignalIds = (story.intentTrace?.members || []).map(
+            (m: any) => m.signalId
+          );
 
           // Save as a 'review' draft → lands in the editorial Freigabe-Queue (human-gated publish).
           await ctx.runMutation(api.newsroom.mutations.saveDraft, {
@@ -279,6 +285,13 @@ export const runScheduledAutonomousRun = action({
               article.suggested_visual_prompt ||
               `${article.headline || story.title}, elegant high-contrast editorial photography, swiss-minimalism`,
             status: "review",
+            provenanceChain: {
+              storyId: targetStoryId,
+              sourceSignalIds,
+              debateTranscriptId,
+              chosenLens: lens,
+              capturedAt: Date.now(),
+            },
           });
 
           await log("SYSTEM", `Draft "${(article.headline || story.title).slice(0, 35)}..." awaiting approval in the Publishing Room.`, "EDITORIAL_BOARD", "success");

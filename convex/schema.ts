@@ -133,6 +133,16 @@ export default defineSchema({
     tags: v.optional(v.array(v.string())),
     suggested_visual_prompt: v.optional(v.string()),
     status: v.union(v.literal("draft"), v.literal("review"), v.literal("published")),
+    // Provenance chain (T-2.4.1): the editorial decision trail behind this draft —
+    // which signals fed the story, the debate that shaped it, and the chosen lens.
+    // Lets the glass-box (T-1.3.1) be extended from a snapshot to the full chain.
+    provenanceChain: v.optional(v.object({
+      storyId: v.optional(v.id("stories")),
+      sourceSignalIds: v.array(v.id("signals")),
+      debateTranscriptId: v.optional(v.id("debate_transcripts")),
+      chosenLens: v.optional(v.string()),
+      capturedAt: v.number(),
+    })),
     created_at: v.number(),
     updated_at: v.number(),
   }).index("by_mission", ["missionId"]),
