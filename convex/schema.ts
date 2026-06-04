@@ -175,6 +175,21 @@ export default defineSchema({
     updated_at: v.number(),
   }).index("by_mission", ["missionId"]),
 
+  // 2f. DRAFT REVISIONS (T-3.2.1) — immutable version history of a draft so an
+  // article can evolve v1→v2 traceably. Genesis revision (#1) is recorded at
+  // draft creation; `reviseDraft` appends further revisions. The v1→v2 *display*
+  // (Critics' Corner, T-3.2.2) is parked to the redesign wave.
+  draft_revisions: defineTable({
+    draftId: v.id("drafts"),
+    revisionNumber: v.number(),
+    headline: v.string(),
+    deck: v.string(),
+    body: v.string(),
+    blocks: v.optional(v.any()),
+    note: v.optional(v.string()), // e.g. "genesis", "critics-corner revision"
+    createdAt: v.number(),
+  }).index("by_draft", ["draftId"]),
+
   // 3. AGENT LOGS (Chatter Stream)
   agent_logs: defineTable({
     agentName: v.string(), // e.g., "Scout", "Editor", "Columnist"

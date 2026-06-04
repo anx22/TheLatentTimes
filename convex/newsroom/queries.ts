@@ -216,6 +216,18 @@ export const findSignalByUrl = query({
   },
 });
 
+// T-3.2.1: a draft's version history (v1→vN, oldest first).
+export const getDraftRevisions = query({
+  args: { draftId: v.id("drafts") },
+  handler: async (ctx, args) => {
+    const revisions = await ctx.db
+      .query("draft_revisions")
+      .withIndex("by_draft", (q) => q.eq("draftId", args.draftId))
+      .collect();
+    return revisions.sort((a, b) => a.revisionNumber - b.revisionNumber);
+  },
+});
+
 // T-4.4.1: strongest rising signals (by innovation_score) in a recent window —
 // the raw material for the Lead Indicators digest. Vectors stripped.
 export const getTopSignalsByInnovation = query({

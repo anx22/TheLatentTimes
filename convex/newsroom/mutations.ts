@@ -613,13 +613,71 @@ export const saveDraft = mutation({
     if (recent && Date.now() - recent.created_at < 60 * 1000) return recent._id;
 
     const { storyId, ...rest } = args;
-    return await ctx.db.insert("drafts", {
+    const now = Date.now();
+    const draftId = await ctx.db.insert("drafts", {
       ...rest,
       storyId,
       status: args.status as "draft" | "review" | "published",
-      created_at: Date.now(),
-      updated_at: Date.now(),
+      created_at: now,
+      updated_at: now,
     });
+    // T-3.2.1: record the genesis revision so the version history starts at v1.
+    await ctx.db.insert("draft_revisions", {
+      draftId,
+      revisionNumber: 1,
+      headline: args.headline,
+      deck: args.deck,
+      body: args.body,
+      blocks: args.blocks,
+      note: "genesis",
+      createdAt: now,
+    });
+    return draftId;
+  },
+});
+
+// T-3.2.1: evolve a draft in place (v1→v2) and append an immutable revision —
+// the forward primitive for the (parked) Critics' Corner revision loop.
+export const reviseDraft = mutation({
+  args: {
+    draftId: v.id("drafts"),
+    headline: v.string(),
+    deck: v.string(),
+    body: v.string(),
+    blocks: v.optional(v.any()),
+    note: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    validateDraftBlocks(args.blocks);
+    const draft = await ctx.db.get(args.draftId);
+    if (!draft) throw new Error("[reviseDraft] draft not found");
+
+    const now = Date.now();
+    await ctx.db.patch(args.draftId, {
+      headline: args.headline,
+      deck: args.deck,
+      body: args.body,
+      blocks: args.blocks,
+      updated_at: now,
+    });
+
+    const existing = await ctx.db
+      .query("draft_revisions")
+      .withIndex("by_draft", (q) => q.eq("draftId", args.draftId))
+      .collect();
+    const revisionNumber = existing.length + 1;
+
+    await ctx.db.insert("draft_revisions", {
+      draftId: args.draftId,
+      revisionNumber,
+      headline: args.headline,
+      deck: args.deck,
+      body: args.body,
+      blocks: args.blocks,
+      note: args.note,
+      createdAt: now,
+    });
+    return revisionNumber;
   },
 });
 
