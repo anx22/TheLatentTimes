@@ -182,7 +182,17 @@ export const runScheduledAutonomousRun = action({
 
       // Register non-duplicate items — embeddings via the SHARED transport (dim-guarded).
       let registeredCount = 0;
+      let skippedKnown = 0;
       for (const item of flatSignals) {
+        // T-2.6.1 (Zero-Token): RSS feeds re-serve the same URLs every sweep. Skip
+        // already-known URLs BEFORE embedding so we never spend a Gemini embedding
+        // call on a signal we already have (addSignal dedups the write; this dedups
+        // the far more expensive embedding).
+        if (item.url) {
+          const known = await ctx.runQuery(api.newsroom.queries.findSignalByUrl, { url: item.url });
+          if (known) { skippedKnown++; continue; }
+        }
+
         let embedding: number[] = [];
         try {
           embedding = await generateEmbedding(`${item.title} ${item.content || ""}`, missionId);
@@ -221,7 +231,7 @@ export const runScheduledAutonomousRun = action({
           registeredCount++;
         }
       }
-      await log("The Scout", `Pool stabilized: ${registeredCount} raw signals committed.`, "NEWS_TERMINAL", "success");
+      await log("The Scout", `Pool stabilized: ${registeredCount} raw signals committed, ${skippedKnown} known URLs skipped before embedding (Zero-Token).`, "NEWS_TERMINAL", "success");
 
       // 2. BOARD — strategic narrative clustering (existing explainable-ish action).
       await log("THE BOARD", "Triggering story discovery (clustering)...", "NEWS_TERMINAL", "action");

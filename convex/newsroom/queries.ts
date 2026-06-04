@@ -203,6 +203,19 @@ export const getNewsClusters = query({
   },
 });
 
+// T-2.6.1 (S2, Zero-Token): cheap existence check by URL, used to skip embedding
+// already-known signals before spending a Gemini embedding call on them.
+export const findSignalByUrl = query({
+  args: { url: v.string() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("signals")
+      .withIndex("by_url", (q) => q.eq("url", args.url))
+      .first();
+    return existing ? existing._id : null;
+  },
+});
+
 // T-3.4.0: read a story's snapshot time series (oldest→newest) for drift views.
 export const getStorySnapshots = query({
   args: { storyId: v.id("stories") },
