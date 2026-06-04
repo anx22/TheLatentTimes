@@ -8,11 +8,15 @@
 We are executing the consolidated rewrite. **Authority for tasks/status is the tracking board, not this file.**
 - **Plan (what/why):** `docs/rewrite/REWRITE_MASTERPLAN.md` (4 pillars · 4 acts · 13 decisions).
 - **Tasks/Tracking:** `docs/rewrite/TRACKING.md` (62 tasks · **28 DONE**).
-- **Now:** Akt I content-complete (except `T-1.0.4` prod deploy + the paused cockpit redesign `T-1.4.3`).
-  Into **Akt II** — „Ein Motor, dem man vertraut": Explainable Wire done; next big rocks are real
-  multi-round debate (`T-2.3.1/2`), the full provenance chain (`T-2.4.1`), the signal cache (`T-2.6.1`).
-- **Blocked (need human decision):** `T-1.2.0` design baseline · `T-3.3.0` identity/governance · `T-4.0.1` platform.
-- **Paused (human):** cockpit redesign `T-1.4.3` — a larger overhaul lands from a parallel session.
+- **Now: PIVOT „Substrate first" (2026-06-04).** The newsroom redesign is going deep (reshapes spectacle/logic),
+  so its surface is frozen and we advance the **Foundation Track** — deep, redesign-agnostic foundations:
+  - **Tier 0:** `T-1.0.4` prod deploy (needs your Convex access) · `T-3.3.0` identity/governance (unblocked).
+  - **Tier 1:** `T-2.4.1` provenance chain · `T-2.3.1/2` debate engine (substrate) · `T-2.6.1` signal cache ·
+    `T-3.2.1` draft-versioning data model · `T-3.4.0` story snapshots · `T-3.5.1` altitude tagging.
+  - **Tier 2 (after `T-3.3.0`):** `T-4.1.1` outbound queue model · `T-4.3.1` citizen inbox model · `T-4.4.1` digest gen.
+  All newsroom-surface/spectacle work is `PARKED` → redesign wave (see `TRACKING.md`). Rationale in `DECISIONS.md`.
+- **Blocked (need human decision):** `T-4.0.1` platform (gates `T-4.2.2`).
+- **Paused → redesign wave:** cockpit redesign `T-1.4.3` + all `components/newsroom-v2/*` surface tasks.
 
 ## Baseline Reality (live DB, observed 2026-05-31)
 `GEMINI_API_KEY` set · embeddings live (3072-dim) · sweep ingested **193 signals / 29 active sources** ·

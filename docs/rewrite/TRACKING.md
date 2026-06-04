@@ -3,9 +3,16 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 30 TODO · 1 IN-PROGRESS · **3 BLOCKED** (Mensch-Entscheidung) · 0 REVIEW · 28 DONE
-**Nächster Task:** **Explainable-Wire-Slice DONE** (`T-2.1.1`/`T-2.1.2`/`T-2.1.3` + `T-2.2.1` centroid). Akt II Slice 1+2 damit weitgehend durch (offen: `T-2.1.4` dormante Agenten). Nächste Brocken: **echte Mehr-Runden-Debatte** `T-2.3.1`/`T-2.3.2` (Q4 A) · `T-2.4.1` Provenienz-Kette · `T-2.6.1` Signal-Cache. Offen Mensch: `T-1.0.4` Prod-Deploy. (`T-1.2.0`/`T-3.3.0`/`T-4.0.1` BLOCKED; `T-1.4.3` gestoppt.)
-**Blocker, die der Mensch entscheiden muss:** `T-1.2.0` (Design-Baseline) · `T-3.3.0` (Identität/Governance) · `T-4.0.1` (Plattform-Wahl).
+**Übersicht:** 62 Tasks · 16 TODO · 0 IN-PROGRESS · **1 BLOCKED** · 0 REVIEW · 28 DONE · **17 PARKED**
+
+### ⚙️ PIVOT (2026-06-04) — „Substrat jetzt, Newsroom-Bühne später"
+Das Newsroom-Redesign wird tiefgreifend (Bühnen-Logik/Schauspiel/Funktionen) → seine Oberfläche ist noch beweglich. **Best Practice:** alle tiefen, redesign-agnostischen Fundamente jetzt; alles Newsroom-/Bühnen-Oberflächliche `PARKED` bis zur Redesign-Welle. (Plan: `/root/.claude/plans/ich-m-chte-erst-mal-sunny-nest.md`. 3 Mensch-Forks bestätigt: Debatte-Engine als Substrat jetzt · Identität entsperrt & jetzt · Prod-Deploy jetzt.)
+
+**Foundation Track (jetzt aktiv, in Reihenfolge):**
+- **Tier 0 Keystone:** `T-1.0.4` Prod-Deploy (braucht Convex-Zugänge) · `T-3.3.0` Identität/Governance (entsperrt)
+- **Tier 1 Backend/Daten:** `T-2.4.1` Provenienz-Kette (+`agentExtractSeedClaims`) · `T-2.3.1`/`T-2.3.2` Debatten-Engine (+`agentPersonaSpeak`) · `T-2.6.1` Signal-Cache · `T-3.2.1` Draft-Versionierung (Datenmodell) · `T-3.4.0` Story-Snapshots · `T-3.5.1` Altitude-Tagging
+- **Tier 2 Akt-IV-Substrat (nach `T-3.3.0`):** `T-4.1.1` Outbound-Queue-Modell · `T-4.3.1` Citizen-Inbox-Modell · `T-4.4.1` Digest-Generator
+- **PARKED → Redesign-Welle:** alle `components/newsroom-v2/*`-Bühne + Anzeige-Hälften (siehe `PARKED`-Zeilen). **Blocked (Mensch):** `T-4.0.1` Plattform-Wahl (gated `T-4.2.2`).
 
 ## Akt I — Makellose Ausgabe
 | ID | Task | Status | Depends | Audit/Note |
@@ -13,12 +20,12 @@
 | T-1.0.1 | Gemini-Actions absichern | DONE | — | **S1/P0** — Session-Token-Gate + Per-Session-Rate-Cap. **Live verifiziert** auf `adamant-mastiff-745`: Negativ (Fremd-Token → `Unauthorized` abgelehnt) + Positiv (Passwort→Token-Mint→`generateText`="OK"). genai 2.x live OK, `sessions`-Tabelle deployed. |
 | T-1.0.2 | Netlify-Key-Hygiene | DONE | — | S4/EF-7 — `depl_key_claudecode` (write-fähiger Convex-Key, `is_secret:false`/Klartext, vom Build ungenutzt) via Netlify-MCP gelöscht. Einzige Env-Var; keine weiteren Stray-Vars. Build unberührt (`VITE_CONVEX_URL` via `netlify.toml`). ⚠️ Key-Wert war exponiert → **rotieren empfohlen**. |
 | T-1.0.3 | Embedding-Dim-Guard | DONE | — | C2 — `assertEmbeddingDim` wirft jetzt (jeder Call, nicht once-only); `generateEmbedding` guardet primär+Fallback → 768-dim kann 3072-Index nicht mehr korrumpieren. FE-Build + convex deploy/typecheck grün. |
-| T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 |
+| T-1.0.4 | Echtes Prod-Deployment | TODO | — | EF-10/P1 — **Foundation Tier 0.** Braucht Convex-Prod-Zugänge (Deploy-Key) vom Menschen; ich führe durch Setup + CI. |
 | T-1.1.1 | Agenten-Schicht extrahieren | DONE | — | A1/A3 — `services/agents/modelClient.ts` (reine, transport-agnostische Schicht mit injizierbarem `ModelTransport` + `callJsonAgent`/`safeGenerateContent`/`Schemas`/`Type`). `services/gemini.ts` = Client-Adapter (injiziert Convex-Transport, re-exportiert). 20 Agenten → `./modelClient`; alle ohne React/DOM = convex-bündelbar. FE-Build grün. |
 | T-1.1.2 | Cron reused Schicht | DONE | T-1.1.1 | A1/A3 — `autonomousActions` nutzt jetzt `EditorialOrchestrator` + geteilte Agenten (Debatte→Columnist→Editor) statt Inline-Prompts; injizierter Server-`ModelTransport` (GoogleGenAI + Token-Telemetrie); Embeddings via geteilte `generateEmbedding` (→ T-1.0.3-Guard greift auch im Cron). `convex dev --once` typecheckt+bündelt die ganze Schicht grün. Live-Editorial-Run bestätigt sich bei Autonomie-an (Super-Switch/Cron). |
 | T-1.1.3 | Freigabe-Queue (drafts.status) | DONE | T-1.1.2 | Wette 1 — `PrintingPress` IST die Queue: zeigt nicht-publizierte Drafts, badged `review` als „Autonomous Draft", Approve (→`addItemToLatestIssue`+`updateDraftStatus 'published'`)/Reject (→`deleteDraft`) = bewusste Mensch-Klicks. Cron speist sie jetzt (T-1.1.2). ⚠️ Approve-Flow fabriziert noch Unsplash-Bild/Fake-Comments/Fake-Score → **U6/T-1.2.4**. |
 | T-1.1.4 | Lauf-Deduplizierung | DONE | T-1.1.2 | A5 — TTL-Lock (`tryDiscoveryLock`/`releaseDiscoveryLock`, key `discovery_lock`) zentral in `discoverStories` (beide Pfade); try/finally. Live getestet: acquire→true, gehalten→false, nach release→true. |
-| T-1.2.0 | Design-Baseline | **BLOCKED** | Mensch | Lücke G3 |
+| T-1.2.0 | Design-Baseline | **PARKED** | Mensch | Lücke G3 — → Newsroom-Redesign-Welle (Design ist Oberfläche; mit dem Umbau entscheiden). |
 | T-1.2.1 | Echte Metriken | DONE | — | C1 — `getDeepInsight` zählt jetzt echt: Stories via `collect` (klein), Signals via `take(501)`/"500+" (Embeddings → unbegrenztes Lesen teuer). Live: signals 280, narrativePillars 12, activeSources 29. |
 | T-1.2.2 | Darkroom-Bild propagieren | DONE | — | U1 — Root-Cause: `atelierState` (inkl. `currentImageBase64` + `history[].base64`, je mehrere MB) wurde komplett in `newsroom_state` persistiert → sprengt Convex' ~1-MB-Dokumentlimit → `saveNewsroomState` wirft → GESAMTE Persistenz (auch `imageId`) bricht still, daher „Bild propagiert nicht" nach Reload. Fix: `sanitizeAtelierForPersist` strippt Base64-Payloads vor dem Speichern; Asset überlebt via persistiertem `imageId`→`data.image` (Darkroom rendert bereits `image`). |
 | T-1.2.3 | Grid-Layout persistieren | DONE | T-1.2.6 | U5. Neue Mutation `updateLatestIssueLayout` (patcht `content.layout`, via T-1.2.6 validiert). `MagazineGrid` persistiert nur auf `onDragStop`/`onResizeStop` (nicht beim Mount-Fire) und **nur für Editoren** (`canEdit` gegated Drag/Resize/Handle → kein Anon-Abuse). Reorder überlebt Reload via App-`getLatestIssue`. |
@@ -31,7 +38,7 @@
 | T-1.4.0 | Cockpit-UX-Audit + Richtung | DONE | — | G7 — Audit in `docs/rewrite/UI-AUDIT.md`. **Entscheid (Mensch):** Redesign unterwirft sich **kreativ komplett der editorialen Produkt-Grammatik** (Paper/Ink, Playfair/Inter, Crimson/Emerald), bleibt aber **funktional auf vorhandenen Logiken & High-Level-Flows** (Step-Machine, Räume, Pipelines, Wiring unverändert). Fundament existiert teils schon (`tailwind.config.js`, Fonts in `index.html`). |
 | T-1.4.1 | Editorial-Token-Fundament + Primitives | DONE | T-1.4.0 | Tokens in `tailwind.config.js` (ink/crimson/signal/hairline/paper-*) + `NewsroomUI` komplett umgeskinnt (Button/Label/Panel/Header/alle Cards) auf Paper/Ink/Crimson/Emerald + Playfair-Titel; neuer `EmptyState`-Primitive; Focus-Rings + aria. APIs/Logik 1:1. |
 | T-1.4.2 | Shell + Navigation umskinnen | DONE | T-1.4.1 | `NewsroomFloor` (Masthead „The Latent Times" Playfair, Tab-Nav mit Crimson-Unterstreichung + `aria-current`, Sub-Navbar, Log-Sidebar, Error-Banner, Bottom-Bar) + `NewsroomAuthBar` + App-„Ops"-Button editorial; Standby-Sackgasse → `EmptyState`+CTA; Purple/Orange-Raumfarben → Crimson (Restraint). Logik/Flows 1:1. |
-| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | IN-PROGRESS | T-1.4.2 | **Exemplare fertig:** `TheBullpen` + `TheDarkroom` editorial. **Offen:** Wire/`ThreeZonePipeline`, `PrintingPress`, `AutonomousPipeline`, `ObservabilityDashboard`, `SignalSourcingBar` — Dichte/Responsivität/A11y/States, Logik erhalten. |
+| T-1.4.3 | Räume umskinnen + Defekte (①–⑧) | **PARKED** | T-1.4.2 | **→ Newsroom-Redesign-Welle** (tiefgreifender Umbau aus Parallel-Session; Exemplare `TheBullpen`/`TheDarkroom` auf `dev`). Hier nicht weiterführen. |
 
 ## Akt II — Motor, dem man vertraut
 | ID | Task | Status | Depends | Audit/Note |
@@ -39,7 +46,7 @@
 | T-2.1.1 | Deterministisches Gruppieren | DONE | T-1.1.2 | A2 — `discoverStories` ersetzt generatives LLM-Grouping durch **deterministisches Leader-Clustering** über Embedding-Kosinus (`cosineSimilarity`, Schwelle 0.74) auf Orphans mit Embedding. Reproduzierbar (stabile Timestamp-Reihenfolge + feste Schwelle). `getOrphanSignals` liefert Embeddings via `includeEmbeddings`-Flag. |
 | T-2.1.2 | LLM nur Benennen | DONE | T-2.1.1 | A2 — `synthesizeWithGemini` (war tot) benennt jetzt jede **deterministische** Gruppe (title/summary); kein LLM entscheidet mehr Mitgliedschaft. |
 | T-2.1.3 | Intent-Trace-Artefakt | DONE | T-2.1.1 | Traceable Intent — `stories.intentTrace` (method/threshold/avgSimilarity/seedSignalId/members[{signalId,title,similarity}]) bei jedem Cluster gespeichert + via `getNewsClusters` abrufbar (anzeigbar). Reiche Wire-Darstellung → Akt III (T-3.1.x). |
-| T-2.1.4 | Dormante Agenten verdrahten | TODO | — | A4 |
+| T-2.1.4 | Dormante Agenten verdrahten | TODO | — | A4 — **Split:** `agentPersonaSpeak`→Debatte (mit T-2.3.1), `agentExtractSeedClaims`→Provenienz (mit T-2.4.1) = Substrat jetzt; `agentLayoutDesigner`-in-Autonomie-Loop ist UI-gekoppelt → **PARKED-Teil** (Redesign-Welle). |
 | T-2.2.1 | centroid_embedding befüllen | DONE | T-2.1.1 | Lücke G4 — beim deterministischen Cluster-Bau wird der Zentroid (Mittel der Member-Embeddings) berechnet & in `stories.centroid_embedding` gespeichert (Basis für Latent-Space-Karte). |
 | T-2.2.2 | getNewsClusters-Limit | DONE | — | C4 — `const limit=1` → `args.limit ?? 20`. Einziger Aufrufer (Wire) bekam still nur 1 Cluster; Cron nutzt längst `getStory`. Stories sind wenige → Default 20 günstig. |
 | T-2.2.3 | drafts.storyId typisieren | DONE | — | C3 — `drafts.storyId` `v.string()`→`v.id("stories")` + `saveDraft`-Arg getypt, `as any` raus. Werte verifiziert real: Cron-`targetStoryId` durch `getStory({id:v.id("stories")})` bewiesen, UI nutzt `selectedStoryId`. tsc/build grün (Hook-`data` ist `any` → keine FE-Brüche; Laufzeit-FK greift). |
@@ -54,36 +61,36 @@
 ## Akt III — Lebendiges Redaktionshaus
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
-| T-3.1.1 | Live-Aktivitätsstrom | TODO | T-1.2.1 | Q1 B |
-| T-3.1.2 | Fünf Räume als Bühne | TODO | T-3.1.1 | Q1 B |
-| T-3.1.3 | Agenten als Charaktere | TODO | T-2.1.4 | Q1 B |
-| T-3.2.1 | Draft-Versionierung | TODO | — | Q3 B |
-| T-3.2.2 | Critics' Corner sichtbar | TODO | T-3.2.1 | Q3 B |
-| T-3.3.0 | Identität/Governance | **BLOCKED** | Mensch | Lücke G2 |
-| T-3.3.1 | Signal boosten/Angle | TODO | T-3.3.0 | Q2 B |
-| T-3.3.2 | In Debatte mitstimmen | TODO | T-3.3.0 | Q2 B |
-| T-3.3.3 | Queue mitkuratieren | TODO | T-3.3.0, T-1.1.3 | Q2 B |
-| T-3.4.0 | Zeitreihen-Design | TODO | — | Lücke G1 |
-| T-3.4.1 | Embeddings sichtbar | TODO | T-2.2.1 | Q9 A |
-| T-3.4.2 | Leser-Karte (UI) | TODO | T-3.4.0, T-1.0.3 | Q9 A |
-| T-3.5.1 | Altitude-Tagging | TODO | — | Q10 B |
-| T-3.5.2 | Meta-Ausgaben-Generator | TODO | T-1.2.6 | Q10 B |
-| T-3.6.1 | Art-Direction-Profile | TODO | T-1.2.0 | Visual Supremacy |
-| T-3.6.2 | Komponierbares Layout | TODO | — | U8 |
+| T-3.1.1 | Live-Aktivitätsstrom | **PARKED** | T-1.2.1 | Q1 B — → Redesign-Welle (Cinematic Newsroom, `NewsroomFloor`). |
+| T-3.1.2 | Fünf Räume als Bühne | **PARKED** | T-3.1.1 | Q1 B — → Redesign-Welle. |
+| T-3.1.3 | Agenten als Charaktere | **PARKED** | T-2.1.4 | Q1 B — → Redesign-Welle. |
+| T-3.2.1 | Draft-Versionierung | TODO | — | Q3 B — **Foundation Tier 1: Datenmodell jetzt** (`draft_revisions`); Anzeige/v1→v2 = T-3.2.2 später. |
+| T-3.2.2 | Critics' Corner sichtbar | **PARKED** | T-3.2.1 | Q3 B — Anzeige → Redesign-Welle. |
+| T-3.3.0 | Identität/Governance | TODO | — | **Foundation Tier 0 (entsperrt).** Lücke G2 — Reuse `convex/auth.ts` → `users`+Rollen (operator/editor/reader/contributor), Sessions an userId, Rollen in `applyReadOnlyGuard`+Action-Gate, Mock-Session raus. Keystone für Akt-IV-Community/Outbound. |
+| T-3.3.1 | Signal boosten/Angle | **PARKED** | T-3.3.0 | Q2 B — Co-Director-Interaktion → Redesign-Welle. |
+| T-3.3.2 | In Debatte mitstimmen | **PARKED** | T-3.3.0 | Q2 B — → Redesign-Welle. |
+| T-3.3.3 | Queue mitkuratieren | **PARKED** | T-3.3.0, T-1.1.3 | Q2 B — → Redesign-Welle. |
+| T-3.4.0 | Zeitreihen-Design | TODO | — | Lücke G1 — **Foundation Tier 1: `story_snapshots`-Schema + Drift-Service jetzt.** |
+| T-3.4.1 | Embeddings sichtbar | **PARKED** | T-2.2.1 | Q9 A — Viz → Redesign-Welle. |
+| T-3.4.2 | Leser-Karte (UI) | **PARKED** | T-3.4.0, T-1.0.3 | Q9 A — UI → Redesign-Welle. |
+| T-3.5.1 | Altitude-Tagging | TODO | — | Q10 B — **Foundation Tier 1: `stories.altitudeTags` + `assessAltitude` jetzt.** |
+| T-3.5.2 | Meta-Ausgaben-Generator | TODO | T-1.2.6 | Q10 B — Backend-Generator (später in Tier 2; Render = Bühne). |
+| T-3.6.1 | Art-Direction-Profile | **PARKED** | T-1.2.0 | Visual Supremacy → Redesign-Welle. |
+| T-3.6.2 | Komponierbares Layout | **PARKED** | — | U8 → Redesign-Welle. |
 
 ## Akt IV — Die Zeitung kommt zu den Menschen
 | ID | Task | Status | Depends | Audit/Note |
 |---|---|---|---|---|
 | T-4.0.1 | Plattform-Spike | **BLOCKED** | Mensch | Lücke G5 |
-| T-4.1.1 | Outbound-Modell + Queue | TODO | — | §2 Human-Gate |
-| T-4.1.2 | Freigabe-UI (Outbound) | TODO | T-4.1.1 | §2 |
-| T-4.2.1 | Story-Post-Drafter | TODO | T-4.1.1 | Q5 A |
-| T-4.2.2 | Thread-Reply-Drafter | TODO | T-4.1.1, T-4.0.1 | Q6 (gated) |
-| T-4.3.1 | Submission-Inbox | TODO | — | Q7 B |
-| T-4.3.2 | Moderation/Gate | TODO | T-4.3.1 | Q7 B |
-| T-4.3.3 | Attribution + Debatte | TODO | T-4.3.1 | Q7 B |
-| T-4.4.1 | Digest-Generator | TODO | — | Q8 A |
-| T-4.4.2 | Zustellung Web/E-Mail | TODO | T-4.4.1 | Q8 A |
+| T-4.1.1 | Outbound-Modell + Queue | TODO | T-3.3.0 | §2 Human-Gate — **Foundation Tier 2: `social_posts`+`approval_queue`-Datenmodell jetzt** (requestedBy/approvedBy via `users`). UI = T-4.1.2 später. |
+| T-4.1.2 | Freigabe-UI (Outbound) | **PARKED** | T-4.1.1 | §2 — UI → Redesign-/Outbound-Welle. |
+| T-4.2.1 | Story-Post-Drafter | TODO | T-4.1.1 | Q5 A — nach T-4.1.1 möglich (Agenten-Schicht). |
+| T-4.2.2 | Thread-Reply-Drafter | TODO | T-4.1.1, T-4.0.1 | Q6 — **gated durch T-4.0.1 (Plattform, BLOCKED)**. |
+| T-4.3.1 | Submission-Inbox | TODO | T-3.3.0 | Q7 B — **Foundation Tier 2: `citizen_submissions`-Datenmodell jetzt** (submitter via `users`). |
+| T-4.3.2 | Moderation/Gate | **PARKED** | T-4.3.1 | Q7 B — → Redesign-/Community-Welle. |
+| T-4.3.3 | Attribution + Debatte | **PARKED** | T-4.3.1 | Q7 B — Anzeige/Attribution → Welle. |
+| T-4.4.1 | Digest-Generator | TODO | — | Q8 A — **Foundation Tier 2: Backend-Generierung + `lead_digests` jetzt.** Render/Zustellung = T-4.4.2. |
+| T-4.4.2 | Zustellung Web/E-Mail | **PARKED** | T-4.4.1 | Q8 A — Render/Delivery → Welle. |
 
 ---
 ## Änderungslog (Sessions tragen hier ein)
@@ -133,7 +140,12 @@
   0.74) ersetzt generatives LLM-Grouping in `discoverStories`; `T-2.1.2` `synthesizeWithGemini` benennt nur noch;
   `T-2.1.3` `stories.intentTrace` gespeichert + via `getNewsClusters` abrufbar; `T-2.2.1` Zentroid befüllt. Cron
   clustert jetzt reproduzierbar/erklärbar. convex codegen + tsc + build grün.
-- 2026-06-03 — **Slice 3 DONE:** `T-1.3.1` Glass-Box-Provenienz v1. `ArticleProvenance`-Snapshot (sources+claims)
+- 2026-06-03 — **Slice 3 DONE:** `T-1.3.1` Glass-Box-Provenienz v1.
+- 2026-06-04 — **PIVOT „Substrat jetzt, Newsroom-Bühne später".** Newsroom-Redesign wird tiefgreifend → Oberfläche
+  beweglich. Board neu priorisiert: **Foundation Track** (Tier 0 `T-1.0.4`/`T-3.3.0` · Tier 1 Backend/Daten · Tier 2
+  Akt-IV-Substrat) jetzt; 17 Newsroom-/Bühnen-/Anzeige-Tasks → `PARKED` (Redesign-Welle). `T-3.3.0` entsperrt
+  (BLOCKED→TODO). 3 Mensch-Forks bestätigt (Debatte-Engine-Substrat, Identität jetzt, Prod-Deploy jetzt). Plan:
+  `/root/.claude/plans/ich-m-chte-erst-mal-sunny-nest.md`. `ArticleProvenance`-Snapshot (sources+claims)
   am Item beim Publish; Path 1 echte Seed/Independent-Quellen + atomare Claims, Path 2 (autonom) Server-Ableitung
   aus Story-Signals (Claims leer = ehrlich). Panel in `ArticleDetail` ersetzt fabrizierte „Technical Specs",
   Indikator auf Grid-Karten. tsc + convex codegen + build grün.
