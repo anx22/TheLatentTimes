@@ -7,11 +7,17 @@ import { MODELS } from "../../models";
 import { cosineSimilarity } from "../../../lib/vector";
 
 // Helper for Neural Synthesis
-const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, summary: string }> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (!apiKey) return { title: signals[0].title, summary: `Synthesized Cluster [v2.5]. Quality analysis benchmarked.` };
+type Altitude = "macro" | "meso" | "day";
+const coerceAltitude = (v: unknown): Altitude =>
+  v === "macro" || v === "meso" || v === "day" ? v : "meso";
 
-  const client = new GoogleGenAI({ 
+const synthesizeWithGemini = async (
+  signals: any[]
+): Promise<{ title: string; summary: string; altitude: Altitude }> => {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!apiKey) return { title: signals[0].title, summary: `Synthesized Cluster [v2.5]. Quality analysis benchmarked.`, altitude: "meso" };
+
+  const client = new GoogleGenAI({
     apiKey,
     httpOptions: {
       headers: {
@@ -23,15 +29,16 @@ const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, su
   const prompt = `
     You are 'The Board', the consensus logic of an elite newsroom.
     Analyze these ${signals.length} signals and synthesize them into a single logical narrative pillar.
-    
+
     SIGNALS:
     ${signals.map((m, i) => `${i+1}. ${m.title}: ${m.content?.slice(0, 300)}`).join('\n')}
-    
+
     GOAL:
     1. Create a professional editorial TITLE for this pillar (max 10 words). Avoid clickbait.
     2. Create an analytical, dense SUMMARY that connects the dots (max 50 words).
-    
-    Return JSON: { "title": "Headline", "summary": "Detailed synthesis..." }
+    3. Classify the ALTITUDE of this narrative (T-3.5.1): "macro" = epochal/structural shift in the AI revolution; "meso" = a multi-week trend or movement; "day" = a single day's news beat.
+
+    Return JSON: { "title": "Headline", "summary": "Detailed synthesis...", "altitude": "macro" | "meso" | "day" }
   `;
 
   try {
@@ -40,15 +47,15 @@ const synthesizeWithGemini = async (signals: any[]): Promise<{ title: string, su
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: { responseMimeType: "application/json" }
     });
-    
+
     const text = result.text;
     if (!text) throw new Error("Empty response");
-    
+
     const json = JSON.parse(text.replace(/```json|```/g, '').trim());
-    return json;
+    return { title: json.title, summary: json.summary, altitude: coerceAltitude(json.altitude) };
   } catch (e) {
     console.warn("Gemini Synthesis Failed", e);
-    return { title: signals[0].title, summary: `Adaptive Pillar [v2.5]. Resonating across ${signals.length} signals.` };
+    return { title: signals[0].title, summary: `Adaptive Pillar [v2.5]. Resonating across ${signals.length} signals.`, altitude: "meso" };
   }
 };
 
@@ -174,8 +181,11 @@ export const discoverStories = action({
       }
       for (let d = 0; d < dim; d++) centroid[d] /= members.length;
 
-      // 3. LLM ONLY NAMES the deterministic group (T-2.1.2) — never decides membership.
-      const { title, summary } = await synthesizeWithGemini(members);
+      // 3. LLM ONLY NAMES the deterministic group (T-2.1.2) — never decides
+      // membership — and classifies its altitude (T-3.5.1) in the same call (no extra cost).
+      const { title, summary, altitude } = await synthesizeWithGemini(members);
+      // Cheap drift key for snapshots (T-3.4.0) — avoids storing the full vector twice.
+      const centroidHash = centroid.slice(0, 8).map((x: number) => x.toFixed(3)).join(",");
 
       // 4. Intent-trace (T-2.1.3): the explainable record of *why* these grouped.
       const avgSimilarity = sims.reduce((a, b) => a + b, 0) / sims.length;
@@ -199,6 +209,7 @@ export const discoverStories = action({
           missionId: args.missionId,
           centroid_embedding: centroid,
           intentTrace,
+          altitudeTags: [altitude],
         });
         for (const m of members) {
           await ctx.runMutation(api.newsroom.mutations.updateSignalStory, {
@@ -207,6 +218,8 @@ export const discoverStories = action({
           });
           processedCount++;
         }
+        // T-3.4.0: seed the time series with an initial snapshot of the pillar.
+        await ctx.runMutation(api.newsroom.mutations.captureStorySnapshot, { storyId, centroidHash });
         newStoriesCount++;
         newStoryIds.push(storyId);
         console.log(`[discoverStories] Formed pillar '${title}' [${storyId}] from ${members.length} signals (avg sim ${avgSimilarity.toFixed(3)}).`);

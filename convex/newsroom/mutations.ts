@@ -476,12 +476,48 @@ export const addNewsCluster = mutation({
         similarity: v.number(),
       })),
     })),
+    altitudeTags: v.optional(v.array(v.union(v.literal("macro"), v.literal("meso"), v.literal("day")))),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("stories", {
       ...args,
       status: "emerging",
       lastUpdatedAt: Date.now(),
+    });
+  },
+});
+
+// T-3.5.1: manual altitude override (operator can re-classify a pillar's plane).
+export const tagStoryAltitude = mutation({
+  args: {
+    storyId: v.id("stories"),
+    altitudeTags: v.array(v.union(v.literal("macro"), v.literal("meso"), v.literal("day"))),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.storyId, { altitudeTags: args.altitudeTags, lastUpdatedAt: Date.now() });
+  },
+});
+
+// T-3.4.0: take an immutable snapshot of a story's current state so narrative
+// drift over time is measurable. memberCount is counted from attached signals.
+export const captureStorySnapshot = mutation({
+  args: { storyId: v.id("stories"), centroidHash: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const story = await ctx.db.get(args.storyId);
+    if (!story) return;
+    const members = await ctx.db
+      .query("signals")
+      .withIndex("by_storyId", (q) => q.eq("storyId", args.storyId))
+      .collect();
+    await ctx.db.insert("story_snapshots", {
+      storyId: args.storyId,
+      snapshotAt: Date.now(),
+      title: story.title,
+      summary: story.summary,
+      keyEntities: story.keyEntities,
+      memberCount: members.length,
+      altitudeTags: story.altitudeTags,
+      centroidHash: args.centroidHash,
     });
   },
 });

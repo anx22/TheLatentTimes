@@ -197,8 +197,21 @@ export const getNewsClusters = query({
       // Intent-trace (T-2.1.3) so the Wire can show *why* signals were grouped.
       // (centroid_embedding is deliberately omitted — 3072 floats, not for clients.)
       intentTrace: story.intentTrace,
+      altitudeTags: story.altitudeTags, // T-3.5.1 chronicle plane(s)
       articleCount: 0,
     }));
+  },
+});
+
+// T-3.4.0: read a story's snapshot time series (oldest→newest) for drift views.
+export const getStorySnapshots = query({
+  args: { storyId: v.id("stories") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("story_snapshots")
+      .withIndex("by_story", (q) => q.eq("storyId", args.storyId))
+      .order("asc")
+      .collect();
   },
 });
 

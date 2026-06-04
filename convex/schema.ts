@@ -54,8 +54,25 @@ export default defineSchema({
         similarity: v.number(),  // cosine of this member to the seed
       })),
     })),
+    // Altitude (T-3.5.1): chronicle plane(s) this pillar lives on — macro (epochal
+    // shift) / meso (multi-week trend) / day (daily beat). Array so a human can
+    // tag a story across planes; the classifier seeds one.
+    altitudeTags: v.optional(v.array(v.union(v.literal("macro"), v.literal("meso"), v.literal("day")))),
   }).index("by_lastUpdatedAt", ["lastUpdatedAt"])
     .index("by_mission", ["missionId"]),
+
+  // 2b. STORY SNAPSHOTS (T-3.4.0) — immutable point-in-time records of a pillar so
+  // narrative drift over time is measurable (Chronicle / Latent Space, Lücke G1).
+  story_snapshots: defineTable({
+    storyId: v.id("stories"),
+    snapshotAt: v.number(),
+    title: v.string(),
+    summary: v.string(),
+    keyEntities: v.array(v.string()),
+    memberCount: v.number(), // signals attached to the story at snapshot time
+    altitudeTags: v.optional(v.array(v.union(v.literal("macro"), v.literal("meso"), v.literal("day")))),
+    centroidHash: v.optional(v.string()), // cheap drift key without storing the full 3072-vector
+  }).index("by_story", ["storyId"]),
 
   // 3. TICKER ITEMS (Raw Signals)
   signals: defineTable({
