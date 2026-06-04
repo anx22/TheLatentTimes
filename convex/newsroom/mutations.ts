@@ -498,6 +498,22 @@ export const tagStoryAltitude = mutation({
   },
 });
 
+// T-4.4.1: persist a generated Lead Indicators digest.
+export const saveLeadDigest = mutation({
+  args: {
+    windowStart: v.number(),
+    windowEnd: v.number(),
+    title: v.string(),
+    markdown: v.string(),
+    topEntities: v.array(v.string()),
+    signalCount: v.number(),
+    missionId: v.optional(v.id("missions")),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("lead_digests", { ...args, generatedAt: Date.now() });
+  },
+});
+
 // T-2.3.1: persist a story's real multi-round board debate (transcript + synthesized angles).
 export const saveDebateTranscript = mutation({
   args: {

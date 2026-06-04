@@ -216,6 +216,38 @@ export const findSignalByUrl = query({
   },
 });
 
+// T-4.4.1: strongest rising signals (by innovation_score) in a recent window —
+// the raw material for the Lead Indicators digest. Vectors stripped.
+export const getTopSignalsByInnovation = query({
+  args: { limit: v.optional(v.number()), windowMs: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 15;
+    const since = Date.now() - (args.windowMs ?? 7 * 24 * 60 * 60 * 1000);
+    const recent = await ctx.db
+      .query("signals")
+      .withIndex("by_timestamp")
+      .order("desc")
+      .take(300);
+    return recent
+      .filter((s) => s.timestamp >= since)
+      .sort((a, b) => (b.innovation_score ?? 0) - (a.innovation_score ?? 0))
+      .slice(0, limit)
+      .map(({ embedding, cultural_vectors, ...rest }: any) => rest);
+  },
+});
+
+// T-4.4.1: the most recent published digest (for the future web/email surface).
+export const getLatestDigest = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("lead_digests")
+      .withIndex("by_generatedAt")
+      .order("desc")
+      .first();
+  },
+});
+
 // T-2.3.1: read the latest debate transcript for a story (newest first).
 export const getDebateTranscript = query({
   args: { storyId: v.id("stories") },

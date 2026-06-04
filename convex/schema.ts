@@ -88,7 +88,19 @@ export default defineSchema({
   }).index("by_story", ["storyId"])
     .index("by_mission", ["missionId"]),
 
-  // 3. TICKER ITEMS (Raw Signals)
+  // 2d. LEAD DIGESTS (T-4.4.1) — periodic "Lead Indicators" synthesis of the
+  // strongest rising signals. Backend artifact; web/email rendering+delivery
+  // (T-4.4.2) is parked to a later wave.
+  lead_digests: defineTable({
+    generatedAt: v.number(),
+    windowStart: v.number(),
+    windowEnd: v.number(),
+    title: v.string(),
+    markdown: v.string(),
+    topEntities: v.array(v.string()),
+    signalCount: v.number(),
+    missionId: v.optional(v.id("missions")),
+  }).index("by_generatedAt", ["generatedAt"]),
   signals: defineTable({
     title: v.string(),
     source: v.string(),
