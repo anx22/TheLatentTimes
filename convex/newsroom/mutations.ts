@@ -514,6 +514,24 @@ export const saveLeadDigest = mutation({
   },
 });
 
+// T-3.5.2: persist a generated "State of the Revolution" meta-issue.
+export const saveMetaIssue = mutation({
+  args: {
+    periodLabel: v.string(),
+    title: v.string(),
+    sections: v.array(v.object({
+      altitude: v.union(v.literal("macro"), v.literal("meso"), v.literal("day")),
+      heading: v.string(),
+      markdown: v.string(),
+    })),
+    storyCount: v.number(),
+    missionId: v.optional(v.id("missions")),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("meta_issues", { ...args, generatedAt: Date.now() });
+  },
+});
+
 // T-2.3.1: persist a story's real multi-round board debate (transcript + synthesized angles).
 export const saveDebateTranscript = mutation({
   args: {

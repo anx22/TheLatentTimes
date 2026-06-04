@@ -101,6 +101,22 @@ export default defineSchema({
     signalCount: v.number(),
     missionId: v.optional(v.id("missions")),
   }).index("by_generatedAt", ["generatedAt"]),
+
+  // 2e. META ISSUES (T-3.5.2) — periodic "State of the Revolution" synthesis across
+  // stories, organized by chronicle altitude (macro/meso/day). Backend artifact;
+  // rendering it into a magazine `issues` entry is a (parked) presentation step.
+  meta_issues: defineTable({
+    generatedAt: v.number(),
+    periodLabel: v.string(),
+    title: v.string(),
+    sections: v.array(v.object({
+      altitude: v.union(v.literal("macro"), v.literal("meso"), v.literal("day")),
+      heading: v.string(),
+      markdown: v.string(),
+    })),
+    storyCount: v.number(),
+    missionId: v.optional(v.id("missions")),
+  }).index("by_generatedAt", ["generatedAt"]),
   signals: defineTable({
     title: v.string(),
     source: v.string(),

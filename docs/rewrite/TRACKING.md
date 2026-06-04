@@ -3,7 +3,7 @@
 > Arbeitsprotokoll). Status: `TODO · IN-PROGRESS · BLOCKED · REVIEW · DONE · PARKED`.
 > Detail je Task in `ACT-1…4.md`. Stand initial: 2026-06-01.
 
-**Übersicht:** 62 Tasks · 8 TODO · 0 IN-PROGRESS · **1 BLOCKED** · 0 REVIEW · 36 DONE · **17 PARKED**
+**Übersicht:** 62 Tasks · 7 TODO · 0 IN-PROGRESS · **1 BLOCKED** · 0 REVIEW · 37 DONE · **17 PARKED**
 
 ### ⚙️ PIVOT (2026-06-04) — „Substrat jetzt, Newsroom-Bühne später"
 Das Newsroom-Redesign wird tiefgreifend (Bühnen-Logik/Schauspiel/Funktionen) → seine Oberfläche ist noch beweglich. **Best Practice:** alle tiefen, redesign-agnostischen Fundamente jetzt; alles Newsroom-/Bühnen-Oberflächliche `PARKED` bis zur Redesign-Welle. (Plan: `/root/.claude/plans/ich-m-chte-erst-mal-sunny-nest.md`. 3 Mensch-Forks bestätigt: Debatte-Engine als Substrat jetzt · Identität entsperrt & jetzt · Prod-Deploy jetzt.)
@@ -74,7 +74,7 @@ Das Newsroom-Redesign wird tiefgreifend (Bühnen-Logik/Schauspiel/Funktionen) �
 | T-3.4.1 | Embeddings sichtbar | **PARKED** | T-2.2.1 | Q9 A — Viz → Redesign-Welle. |
 | T-3.4.2 | Leser-Karte (UI) | **PARKED** | T-3.4.0, T-1.0.3 | Q9 A — UI → Redesign-Welle. |
 | T-3.5.1 | Altitude-Tagging | DONE | — | Q10 B — `stories.altitudeTags` (`macro\|meso\|day`) + Klassifikation **in den bestehenden `synthesizeWithGemini`-Call gefaltet (zero extra cost)**, beim Cluster-Bau gesetzt; `tagStoryAltitude`-Mutation (manueller Override); via `getNewsClusters` abrufbar. Browse-UI → Redesign-Welle. tsc/codegen/build grün. |
-| T-3.5.2 | Meta-Ausgaben-Generator | TODO | T-1.2.6 | Q10 B — Backend-Generator (später in Tier 2; Render = Bühne). |
+| T-3.5.2 | Meta-Ausgaben-Generator | DONE | T-1.2.6 | Q10 B — `generateMetaIssue`-Action (`digestActions.ts`) synthetisiert „State of the Revolution" aus Stories **gruppiert nach Altitude** (macro/meso/day, T-3.5.1) → `meta_issues`-Tabelle (`saveMetaIssue`) + `getLatestMetaIssue`-Query; **Monats-Cron** (1. um 06:00). Backend-Artefakt; Rendern in `issues`-Magazin = Bühne → PARKED. tsc/codegen/build grün. |
 | T-3.6.1 | Art-Direction-Profile | **PARKED** | T-1.2.0 | Visual Supremacy → Redesign-Welle. |
 | T-3.6.2 | Komponierbares Layout | **PARKED** | — | U8 → Redesign-Welle. |
 

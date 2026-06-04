@@ -14,4 +14,7 @@ crons.cron("autonomous evening sweep", "0 19 * * *", api.newsroom.actions.runSch
 // Weekly Lead Indicators digest (T-4.4.1) — Monday 07:00.
 crons.cron("weekly lead digest", "0 7 * * 1", api.newsroom.actions.generateLeadDigest, {});
 
+// Monthly "State of the Revolution" meta-issue (T-3.5.2) — 1st of month 06:00.
+crons.cron("monthly meta issue", "0 6 1 * *", api.newsroom.actions.generateMetaIssue, {});
+
 export default crons;

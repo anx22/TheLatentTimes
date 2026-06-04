@@ -248,6 +248,18 @@ export const getLatestDigest = query({
   },
 });
 
+// T-3.5.2: the most recent "State of the Revolution" meta-issue.
+export const getLatestMetaIssue = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("meta_issues")
+      .withIndex("by_generatedAt")
+      .order("desc")
+      .first();
+  },
+});
+
 // T-2.3.1: read the latest debate transcript for a story (newest first).
 export const getDebateTranscript = query({
   args: { storyId: v.id("stories") },
