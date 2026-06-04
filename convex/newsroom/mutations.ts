@@ -498,6 +498,21 @@ export const tagStoryAltitude = mutation({
   },
 });
 
+// T-2.3.1: persist a story's real multi-round board debate (transcript + synthesized angles).
+export const saveDebateTranscript = mutation({
+  args: {
+    storyId: v.optional(v.id("stories")),
+    missionId: v.optional(v.id("missions")),
+    topic: v.string(),
+    rounds: v.number(),
+    transcript: v.array(v.object({ persona: v.string(), message: v.string() })),
+    angles: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("debate_transcripts", { ...args, createdAt: Date.now() });
+  },
+});
+
 // T-3.4.0: take an immutable snapshot of a story's current state so narrative
 // drift over time is measurable. memberCount is counted from attached signals.
 export const captureStorySnapshot = mutation({

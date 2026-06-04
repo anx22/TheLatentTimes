@@ -216,6 +216,18 @@ export const findSignalByUrl = query({
   },
 });
 
+// T-2.3.1: read the latest debate transcript for a story (newest first).
+export const getDebateTranscript = query({
+  args: { storyId: v.id("stories") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("debate_transcripts")
+      .withIndex("by_story", (q) => q.eq("storyId", args.storyId))
+      .order("desc")
+      .first();
+  },
+});
+
 // T-3.4.0: read a story's snapshot time series (oldest→newest) for drift views.
 export const getStorySnapshots = query({
   args: { storyId: v.id("stories") },

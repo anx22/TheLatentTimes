@@ -1,5 +1,9 @@
-import { agentDebate, agentColumnist, agentEditor, agentTargetedSearch } from '../agents';
+import { agentDebate, agentColumnist, agentEditor, agentTargetedSearch, agentPersonaSpeak, DEBATE_PERSONAS } from '../agents';
 import { DebateMessage, EditorialAngle, GeneratedArticle, BlockAnnotation } from '../../types';
+
+// How many full rounds the board debates. 2 = each persona gets to react to the
+// others' opening positions → genuine friction, not a one-shot fabrication (T-2.3.1).
+export const DEBATE_ROUNDS = 2;
 
 export interface EditorialOrchestratorConfig {
   globalDirective?: string;
@@ -45,20 +49,37 @@ export class EditorialOrchestrator {
   /**
    * Conducts a multi-perspective debate and generates editorial angles.
    */
-  async conductDebate(topic: string, context?: string, missionId?: string): Promise<{ transcript: DebateMessage[], angles: EditorialAngle[], context: string }> {
+  async conductDebate(topic: string, context?: string, missionId?: string): Promise<{ transcript: DebateMessage[], angles: EditorialAngle[], context: string, rounds: number }> {
     const activeContext = await this.ensureContext(topic, context, missionId);
-    
+    const mId = missionId || this.config.missionId;
+
     this.log('THE BOARD', `Convening Editorial Board to debate: "${topic}"`, 'info', missionId);
-    this.log('THE BOARD', `Simulating high-friction persona exchange...`, 'action', missionId);
-    
-    const debateResult = await agentDebate(topic, activeContext, this.config.globalDirective, undefined, missionId || this.config.missionId);
-    
-    this.log('THE BOARD', 'Debate concluded and synthesized into curated angles.', 'success', missionId);
-    
+
+    // T-2.3.1: REAL multi-round friction. Each persona actually speaks in turn,
+    // reacting to the accumulating transcript — no single fabricated JSON dump.
+    const transcript: DebateMessage[] = [];
+    for (let round = 1; round <= DEBATE_ROUNDS; round++) {
+      for (const persona of DEBATE_PERSONAS) {
+        this.log('THE BOARD', `${persona.name} weighs in (round ${round}/${DEBATE_ROUNDS})...`, 'action', missionId);
+        const turn = await agentPersonaSpeak(
+          persona.name, persona.lens, topic, activeContext, transcript, this.config.globalDirective, mId
+        );
+        transcript.push({ persona: turn.persona || persona.name, message: turn.message });
+      }
+    }
+
+    // The LLM now only SYNTHESIZES angles from the REAL transcript (transcript
+    // branch of agentDebate); it does not invent the debate.
+    this.log('THE BOARD', 'Synthesizing the debate into curated angles...', 'action', missionId);
+    const synth = await agentDebate(topic, activeContext, this.config.globalDirective, transcript, mId);
+
+    this.log('THE BOARD', `Debate concluded — ${transcript.length} turns over ${DEBATE_ROUNDS} rounds.`, 'success', missionId);
+
     return {
-      transcript: debateResult.transcript,
-      angles: debateResult.angles,
-      context: activeContext
+      transcript,
+      angles: synth.angles,
+      context: activeContext,
+      rounds: DEBATE_ROUNDS,
     };
   }
 

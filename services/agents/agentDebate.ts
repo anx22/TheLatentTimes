@@ -1,6 +1,18 @@
 import { EditorialAngle } from '../../types';
 import { callJsonAgent, Schemas } from './modelClient';
 
+/**
+ * Canonical editorial board (T-2.3.2). Three sharply distinct lenses, used both
+ * for the per-turn voices (agentPersonaSpeak) in the multi-round debate and for
+ * the final angle synthesis. The ids map 1:1 to the synthesized angle ids so the
+ * downstream pipeline (lens selection → columnist) stays consistent.
+ */
+export const DEBATE_PERSONAS: { id: string; name: string; lens: string }[] = [
+  { id: 'critic', name: 'The Critic', lens: 'An avant-garde cultural editor: demands stylistic refinement, poetic tension, and unexpected cultural synthesis. Pushes back hard on shallow or hype-driven takes from the others.' },
+  { id: 'technologist', name: 'The Technologist', lens: 'A cynical systems architect: demands clinical accuracy and structural/mechanistic truth over narrative. Challenges vague claims by asking how it actually works.' },
+  { id: 'accelerationist', name: 'The Accelerationist', lens: 'A provocative philosopher: pushes the thesis into uncomfortable truths about societal momentum and where the trajectory ultimately leads. Escalates the stakes.' },
+];
+
 export const agentDebate = async (topic: string, context: string, globalDirective?: string, transcript?: { persona: string, message: string }[], missionId?: string): Promise<{ transcript: { persona: string, message: string }[], angles: EditorialAngle[] }> => {
   const directivePrefix = globalDirective ? `DIRECTOR'S STRATEGIC DIRECTIVE: "${globalDirective}"\n\nYou MUST align your output with this directive.\n\n` : '';
   

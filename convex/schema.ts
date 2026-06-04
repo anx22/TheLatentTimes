@@ -74,6 +74,20 @@ export default defineSchema({
     centroidHash: v.optional(v.string()), // cheap drift key without storing the full 3072-vector
   }).index("by_story", ["storyId"]),
 
+  // 2c. DEBATE TRANSCRIPTS (T-2.3.1) — the real multi-round board debate behind a
+  // story/draft, captured so the friction is provable (Bullpen "real-time friction
+  // transcript"). angles kept loose (LLM-shaped); the transcript is the artifact.
+  debate_transcripts: defineTable({
+    storyId: v.optional(v.id("stories")),
+    missionId: v.optional(v.id("missions")),
+    topic: v.string(),
+    rounds: v.number(),
+    transcript: v.array(v.object({ persona: v.string(), message: v.string() })),
+    angles: v.optional(v.any()),
+    createdAt: v.number(),
+  }).index("by_story", ["storyId"])
+    .index("by_mission", ["missionId"]),
+
   // 3. TICKER ITEMS (Raw Signals)
   signals: defineTable({
     title: v.string(),

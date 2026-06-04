@@ -250,7 +250,16 @@ export const runScheduledAutonomousRun = action({
           const orchestrator = new EditorialOrchestrator({ missionId });
 
           await log("THE BOARD", `Convening editorial board on: "${story.title}"`, "EDITORIAL_BOARD", "action");
-          const { angles } = await orchestrator.conductDebate(story.title, story.summary || "", missionId);
+          const { angles, transcript, rounds } = await orchestrator.conductDebate(story.title, story.summary || "", missionId);
+          // T-2.3.1: persist the real multi-round debate behind this story.
+          await ctx.runMutation(api.newsroom.mutations.saveDebateTranscript, {
+            storyId: targetStoryId,
+            missionId,
+            topic: story.title,
+            rounds,
+            transcript,
+            angles,
+          });
           const lens = angles?.[0]?.angle || angles?.[0]?.persona || "Tech-forward Analysis";
           await log("THE BOARD", `Consensus lens: "${lens}". Dispatching to Columnist.`, "EDITORIAL_BOARD", "success");
 
